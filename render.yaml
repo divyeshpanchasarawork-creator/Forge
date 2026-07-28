@@ -24,8 +24,8 @@ services:
       - key: JAVA_OPTS
         value: "-Xmx256m -Xms128m"
 
-  - type: postgresql
-    name: forge-db
+databases:
+  - name: forge-db
     plan: free
     databaseName: forge
     ipAllowList: []

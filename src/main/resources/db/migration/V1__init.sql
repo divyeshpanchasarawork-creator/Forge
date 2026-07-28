@@ -1,20 +1,27 @@
 -- Forge Database Schema V1
--- All tables for the personal engineering companion
+-- Complete schema with multi-user support and LeetCode integration
 
+-- ============================================
 -- Users
+-- ============================================
 CREATE TABLE users (
     id UUID PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
+    password VARCHAR(255),
     email VARCHAR(100),
     display_name VARCHAR(100),
+    leetcode_username VARCHAR(50),
+    avatar_url VARCHAR(500),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ============================================
 -- Topics
+-- ============================================
 CREATE TABLE topics (
     id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id),
     title VARCHAR(200) NOT NULL,
     description TEXT,
     category VARCHAR(50) NOT NULL,
@@ -26,16 +33,25 @@ CREATE TABLE topics (
     status VARCHAR(20) DEFAULT 'NOT_STARTED',
     revision_count INT DEFAULT 0,
     estimated_retention DOUBLE DEFAULT 100.0,
+    source VARCHAR(20) DEFAULT 'MANUAL',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_topics_confidence CHECK (confidence BETWEEN 0 AND 10),
     CONSTRAINT chk_topics_mastery CHECK (mastery BETWEEN 0 AND 100),
     CONSTRAINT chk_topics_status CHECK (status IN ('NOT_STARTED', 'IN_PROGRESS', 'MASTERED'))
 );
+CREATE INDEX idx_topics_user_id ON topics(user_id);
+CREATE INDEX idx_topics_status ON topics(status);
+CREATE INDEX idx_topics_next_revision ON topics(next_revision);
+CREATE INDEX idx_topics_category ON topics(category);
+CREATE INDEX idx_topics_confidence ON topics(confidence);
 
+-- ============================================
 -- Problems
+-- ============================================
 CREATE TABLE problems (
     id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id),
     title VARCHAR(200) NOT NULL,
     leetcode_id VARCHAR(20),
     difficulty VARCHAR(10) NOT NULL,
@@ -52,8 +68,13 @@ CREATE TABLE problems (
     CONSTRAINT chk_problems_difficulty CHECK (difficulty IN ('EASY', 'MEDIUM', 'HARD')),
     CONSTRAINT chk_problems_confidence CHECK (confidence BETWEEN 0 AND 10)
 );
+CREATE INDEX idx_problems_user_id ON problems(user_id);
+CREATE INDEX idx_problems_solved_at ON problems(solved_at);
+CREATE INDEX idx_problems_difficulty ON problems(difficulty);
 
+-- ============================================
 -- Problem-Topic join table
+-- ============================================
 CREATE TABLE problem_topics (
     problem_id UUID NOT NULL,
     topic_id UUID NOT NULL,
@@ -61,10 +82,14 @@ CREATE TABLE problem_topics (
     CONSTRAINT fk_problem_topics_problem FOREIGN KEY (problem_id) REFERENCES problems(id) ON DELETE CASCADE,
     CONSTRAINT fk_problem_topics_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
 );
+CREATE INDEX idx_problem_topics_topic ON problem_topics(topic_id);
 
+-- ============================================
 -- Revisions
+-- ============================================
 CREATE TABLE revisions (
     id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id),
     topic_id UUID NOT NULL,
     scheduled_date DATE NOT NULL,
     completed BOOLEAN DEFAULT FALSE,
@@ -75,10 +100,16 @@ CREATE TABLE revisions (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_revisions_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
 );
+CREATE INDEX idx_revisions_scheduled_date ON revisions(scheduled_date);
+CREATE INDEX idx_revisions_topic_id ON revisions(topic_id);
+CREATE INDEX idx_revisions_completed ON revisions(completed);
 
+-- ============================================
 -- Recommendations
+-- ============================================
 CREATE TABLE recommendations (
     id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id),
     title VARCHAR(200) NOT NULL,
     description TEXT,
     reason TEXT NOT NULL,
@@ -88,11 +119,16 @@ CREATE TABLE recommendations (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX idx_recommendations_dismissed ON recommendations(dismissed);
+CREATE INDEX idx_recommendations_priority ON recommendations(priority);
 
--- Journal
+-- ============================================
+-- Journals
+-- ============================================
 CREATE TABLE journals (
     id UUID PRIMARY KEY,
-    entry_date DATE NOT NULL UNIQUE,
+    user_id UUID NOT NULL REFERENCES users(id),
+    entry_date DATE NOT NULL,
     morning_goal TEXT,
     evening_reflection TEXT,
     energy INT,
@@ -104,20 +140,49 @@ CREATE TABLE journals (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_journals_energy CHECK (energy BETWEEN 1 AND 5),
-    CONSTRAINT chk_journals_mood CHECK (mood BETWEEN 1 AND 5)
+    CONSTRAINT chk_journals_mood CHECK (mood BETWEEN 1 AND 5),
+    CONSTRAINT uk_journals_user_date UNIQUE (user_id, entry_date)
+);
+CREATE INDEX idx_journals_entry_date ON journals(entry_date);
+CREATE INDEX idx_journals_user_id ON journals(user_id);
+
+-- ============================================
+-- LeetCode Snapshots (one per user)
+-- ============================================
+CREATE TABLE leetcode_snapshots (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id),
+    total_solved INT DEFAULT 0,
+    easy_solved INT DEFAULT 0,
+    medium_solved INT DEFAULT 0,
+    hard_solved INT DEFAULT 0,
+    easy_beats_pct DOUBLE,
+    medium_beats_pct DOUBLE,
+    hard_beats_pct DOUBLE,
+    ranking INT,
+    contest_rating DOUBLE,
+    contest_ranking INT,
+    contest_attended_count INT DEFAULT 0,
+    streak INT DEFAULT 0,
+    total_active_days INT DEFAULT 0,
+    submission_calendar TEXT,
+    last_synced_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uk_lc_snapshot_user UNIQUE (user_id)
 );
 
--- Indexes for performance
-CREATE INDEX idx_topics_status ON topics(status);
-CREATE INDEX idx_topics_next_revision ON topics(next_revision);
-CREATE INDEX idx_topics_category ON topics(category);
-CREATE INDEX idx_topics_confidence ON topics(confidence);
-CREATE INDEX idx_revisions_scheduled_date ON revisions(scheduled_date);
-CREATE INDEX idx_revisions_topic_id ON revisions(topic_id);
-CREATE INDEX idx_revisions_completed ON revisions(completed);
-CREATE INDEX idx_problems_solved_at ON problems(solved_at);
-CREATE INDEX idx_problems_difficulty ON problems(difficulty);
-CREATE INDEX idx_problem_topics_topic ON problem_topics(topic_id);
-CREATE INDEX idx_journals_entry_date ON journals(entry_date);
-CREATE INDEX idx_recommendations_dismissed ON recommendations(dismissed);
-CREATE INDEX idx_recommendations_priority ON recommendations(priority);
+-- ============================================
+-- LeetCode Tag Stats (per user per tag)
+-- ============================================
+CREATE TABLE leetcode_tag_stats (
+    id UUID PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES users(id),
+    tag_name VARCHAR(100) NOT NULL,
+    tag_slug VARCHAR(100) NOT NULL,
+    problems_solved INT DEFAULT 0,
+    skill_level VARCHAR(20),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_lc_tags_user ON leetcode_tag_stats(user_id);
