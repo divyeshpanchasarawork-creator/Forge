@@ -16,11 +16,6 @@ export default function JournalPage() {
     lessons: '',
   });
 
-  const { data: todayJournal, isLoading: loadingToday } = useQuery({
-    queryKey: ['journal', 'today'],
-    queryFn: () => journalsApi.getToday().then((res) => res.data.data),
-  });
-
   const { data: recentJournals } = useQuery({
     queryKey: ['journal', 'recent'],
     queryFn: () => journalsApi.getRecent().then((res) => res.data.data),
