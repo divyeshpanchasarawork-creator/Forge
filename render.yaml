@@ -7,18 +7,26 @@ services:
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
-      - key: DATABASE_URL
+      - key: DB_HOST
         fromDatabase:
           name: forge-db
-          property: DATABASE_URL
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: forge-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: forge-db
+          property: database
       - key: DATABASE_USERNAME
         fromDatabase:
           name: forge-db
-          property: DATABASE_USERNAME
+          property: user
       - key: DATABASE_PASSWORD
         fromDatabase:
           name: forge-db
-          property: DATABASE_PASSWORD
+          property: password
       - key: JWT_SECRET
         generateValue: true
       - key: JAVA_OPTS
