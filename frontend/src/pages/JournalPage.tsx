@@ -1,0 +1,156 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { journalsApi } from '@/api';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { useState } from 'react';
+
+export default function JournalPage() {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState({
+    morningGoal: '',
+    eveningReflection: '',
+    energy: 3,
+    mood: 3,
+    hoursStudied: 0,
+    achievements: '',
+    challenges: '',
+    lessons: '',
+  });
+
+  const { data: todayJournal, isLoading: loadingToday } = useQuery({
+    queryKey: ['journal', 'today'],
+    queryFn: () => journalsApi.getToday().then((res) => res.data.data),
+  });
+
+  const { data: recentJournals } = useQuery({
+    queryKey: ['journal', 'recent'],
+    queryFn: () => journalsApi.getRecent().then((res) => res.data.data),
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: journalsApi.save,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['journal'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+
+  const moodEmojis = ['', '😞', '😐', '🙂', '😊', '🤩'];
+  const energyLabels = ['', 'Very Low', 'Low', 'Medium', 'High', 'Very High'];
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Journal</h1>
+
+      {/* Today's Entry */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Today's Entry</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1.5">Morning Goal</label>
+            <textarea
+              value={form.morningGoal}
+              onChange={(e) => setForm({ ...form, morningGoal: e.target.value })}
+              placeholder="What do you want to accomplish today?"
+              className="w-full rounded-lg border border-input bg-secondary px-4 py-2.5 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              rows={3}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">Energy: {energyLabels[form.energy]}</label>
+              <input
+                type="range"
+                min={1}
+                max={5}
+                value={form.energy}
+                onChange={(e) => setForm({ ...form, energy: Number(e.target.value) })}
+                className="w-full accent-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1.5">Mood: {moodEmojis[form.mood]}</label>
+              <input
+                type="range"
+                min={1}
+                max={5}
+                value={form.mood}
+                onChange={(e) => setForm({ ...form, mood: Number(e.target.value) })}
+                className="w-full accent-primary"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1.5">Hours Studied</label>
+            <input
+              type="number"
+              min={0}
+              max={24}
+              step={0.5}
+              value={form.hoursStudied}
+              onChange={(e) => setForm({ ...form, hoursStudied: Number(e.target.value) })}
+              className="w-full rounded-lg border border-input bg-secondary px-4 py-2.5 text-foreground focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1.5">Achievements</label>
+            <textarea
+              value={form.achievements}
+              onChange={(e) => setForm({ ...form, achievements: e.target.value })}
+              placeholder="What did you achieve today?"
+              className="w-full rounded-lg border border-input bg-secondary px-4 py-2.5 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+              rows={2}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-1.5">Evening Reflection</label>
+            <textarea
+              value={form.eveningReflection}
+              onChange={(e) => setForm({ ...form, eveningReflection: e.target.value })}
+              placeholder="How was your day? What did you learn?"
+              className="w-full rounded-lg border border-input bg-secondary px-4 py-2.5 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+              rows={3}
+            />
+          </div>
+
+          <button
+            onClick={() => saveMutation.mutate(form)}
+            disabled={saveMutation.isPending}
+            className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            {saveMutation.isPending ? 'Saving...' : 'Save Journal Entry'}
+          </button>
+        </CardContent>
+      </Card>
+
+      {/* Recent Entries */}
+      {recentJournals && recentJournals.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Entries</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {recentJournals.map((journal) => (
+              <div key={journal.id} className="rounded-xl bg-secondary/30 px-5 py-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium">{new Date(journal.entryDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</p>
+                  <div className="flex gap-2 text-lg">
+                    <span>{moodEmojis[journal.mood || 3]}</span>
+                    <span className="text-xs text-muted-foreground">Energy: {journal.energy}/5</span>
+                  </div>
+                </div>
+                {journal.morningGoal && <p className="text-sm text-muted-foreground">Goal: {journal.morningGoal}</p>}
+                {journal.achievements && <p className="text-sm text-green-400">Achieved: {journal.achievements}</p>}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

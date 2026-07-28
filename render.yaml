@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: forge-api
+    runtime: java
+    plan: free
+    buildCommand: mvn clean package -DskipTests -f pom.xml
+    startCommand: java -jar target/forge-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
+    envVars:
+      - key: JAVA_VERSION
+        value: "21"
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DATABASE_URL
+        fromDatabase:
+          name: forge-db
+          property: DATABASE_URL
+      - key: DATABASE_USERNAME
+        fromDatabase:
+          name: forge-db
+          property: DATABASE_USERNAME
+      - key: DATABASE_PASSWORD
+        fromDatabase:
+          name: forge-db
+          property: DATABASE_PASSWORD
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JVM_OPTS
+        value: "-Xmx256m -Xms128m"
+
+  - type: postgresql
+    name: forge-db
+    plan: free
+    databaseName: forge
+    ipAllowList: []
