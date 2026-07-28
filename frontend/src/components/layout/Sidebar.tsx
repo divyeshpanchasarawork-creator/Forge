@@ -1,6 +1,7 @@
-import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Code2, RefreshCw, PenLine, BarChart3, User, Flame } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, BookOpen, Code2, RefreshCw, PenLine, BarChart3, User, Flame, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -13,13 +14,21 @@ const navItems = [
 ];
 
 export default function Sidebar() {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-sidebar">
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-border bg-sidebar">
       <div className="flex h-16 items-center gap-2 px-6">
         <Flame className="h-7 w-7 text-primary" />
         <span className="text-xl font-bold tracking-tight">Forge</span>
       </div>
-      <nav className="mt-4 space-y-1 px-3">
+      <nav className="flex-1 space-y-1 px-3 pt-4">
         {navItems.map((item) => (
           <NavLink
             key={item.to}
@@ -39,6 +48,15 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
+      <div className="border-t border-border px-3 py-3">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign Out
+        </button>
+      </div>
     </aside>
   );
 }

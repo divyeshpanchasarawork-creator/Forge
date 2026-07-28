@@ -4,8 +4,8 @@ import type { ApiResponse, LoginResponse, DashboardResponse, Topic, TopicRequest
 export const authApi = {
   login: (username: string, password: string) =>
     api.post<ApiResponse<LoginResponse>>('/auth/login', { username, password }),
-  register: (data: { username: string; password: string; email?: string; displayName?: string; leetcodeUsername?: string }) =>
-    api.post<ApiResponse<LoginResponse>>('/auth/register', data),
+  register: (data: { email: string; password: string }) =>
+    api.post<ApiResponse<void>>('/auth/register', data),
   getProfile: () =>
     api.get<ApiResponse<LoginResponse['user']>>('/auth/profile'),
   updateProfile: (data: { displayName?: string; email?: string; leetcodeUsername?: string }) =>

@@ -39,35 +39,30 @@ public class AuthService {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         String token = jwtTokenProvider.generateToken(principal);
 
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "username", request.getUsername()));
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", principal.getId()));
 
         return new LoginResponse(token, "Bearer", toUserInfo(user));
     }
 
-    public LoginResponse register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new BadRequestException("Username already taken");
+    public void register(RegisterRequest request) {
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new BadRequestException("Email is already registered");
         }
 
-        if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
-            throw new BadRequestException("Email already in use");
+        String username = request.getEmail().substring(0, request.getEmail().indexOf('@'));
+        if (userRepository.existsByUsername(username)) {
+            username = username + "_" + UUID.randomUUID().toString().substring(0, 6);
         }
 
         User user = new User();
-        user.setUsername(request.getUsername());
+        user.setUsername(username);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setEmail(request.getEmail());
-        user.setDisplayName(request.getDisplayName() != null ? request.getDisplayName() : request.getUsername());
-        user.setLeetcodeUsername(request.getLeetcodeUsername());
+        user.setDisplayName(username);
 
-        user = userRepository.save(user);
-        log.info("User registered: {}", user.getUsername());
-
-        UserPrincipal principal = new UserPrincipal(user.getId(), user.getUsername(), user.getPassword());
-        String token = jwtTokenProvider.generateToken(principal);
-
-        return new LoginResponse(token, "Bearer", toUserInfo(user));
+        userRepository.save(user);
+        log.info("User registered: {} ({})", user.getUsername(), user.getEmail());
     }
 
     public LoginResponse.UserInfo getProfile() {

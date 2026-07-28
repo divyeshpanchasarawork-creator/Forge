@@ -17,9 +17,8 @@ export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [leetcodeUsername, setLeetcodeUsername] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
@@ -27,32 +26,41 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
     try {
       if (isRegister) {
-        await register({ username, password, email: email || undefined, displayName: displayName || undefined, leetcodeUsername: leetcodeUsername || undefined });
+        await register({ email, password });
+        setSuccess('Account created! Check your email and sign in.');
+        setEmail('');
+        setPassword('');
+        setIsRegister(false);
       } else {
         await login(username, password);
+        navigate('/');
       }
-      navigate('/');
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || '';
-      if (msg.toLowerCase().includes('username already taken')) {
-        setError('This username is already taken. Try another.');
-      } else if (msg.toLowerCase().includes('email already in use')) {
-        setError('This email is already registered.');
-      } else if (isRegister) {
-        setError('Registration failed. Please check your details and try again.');
+      const msg = err?.response?.data?.message || err?.response?.data || err?.message || '';
+      if (typeof msg === 'string') {
+        if (msg.toLowerCase().includes('email already')) {
+          setError('This email is already registered.');
+        } else if (msg.toLowerCase().includes('username already')) {
+          setError('This username is already taken.');
+        } else if (isRegister) {
+          setError('Registration failed. Please check your details.');
+        } else {
+          setError('Invalid username or password.');
+        }
       } else {
-        setError('Invalid username or password.');
+        setError(isRegister ? 'Registration failed.' : 'Invalid username or password.');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const switchToRegister = () => { setIsRegister(true); setError(''); };
-  const switchToLogin = () => { setIsRegister(false); setError(''); };
+  const switchToRegister = () => { setIsRegister(true); setError(''); setSuccess(''); };
+  const switchToLogin = () => { setIsRegister(false); setError(''); setSuccess(''); };
 
   const scrollToFeatures = () => {
     document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
@@ -145,7 +153,7 @@ export default function LoginPage() {
 
           {/* Right - Auth Card */}
           <div id="auth-section" className="flex items-center justify-center pt-8 lg:pt-0">
-            <div className="w-full max-w-md rounded-2xl border border-white/10 bg-card/70 p-8 shadow-2xl shadow-black/30 backdrop-blur-xl" style={{ minHeight: '480px' }}>
+            <div className="w-full max-w-md rounded-2xl border border-white/10 bg-card/70 p-8 shadow-2xl shadow-black/30 backdrop-blur-xl" style={{ minHeight: '420px' }}>
               {/* Tabs */}
               <div className="flex rounded-xl bg-secondary p-1">
                 <button
@@ -165,70 +173,69 @@ export default function LoginPage() {
               </div>
 
               <p className="mt-5 text-center text-sm text-muted-foreground">
-                {isRegister ? 'Start mastering your craft in 30 seconds' : 'Welcome back. Sign in to continue.'}
+                {isRegister ? 'Create your account in seconds' : 'Welcome back. Sign in to continue.'}
               </p>
 
               <form onSubmit={handleSubmit} className="mt-5 flex flex-1 flex-col space-y-3.5">
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1.5">Username</label>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="w-full rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-foreground placeholder:text-muted-foreground/50 transition-all focus:border-primary focus:bg-secondary focus:outline-none focus:ring-1 focus:ring-primary"
-                    placeholder="your_username"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-1.5">Password</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-foreground placeholder:text-muted-foreground/50 transition-all focus:border-primary focus:bg-secondary focus:outline-none focus:ring-1 focus:ring-primary"
-                    placeholder="minimum 6 characters"
-                    required
-                  />
-                </div>
-
-                {isRegister && (
-                  <div className="space-y-3.5">
+                {isRegister ? (
+                  <>
                     <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-1.5">Display Name <span className="text-muted-foreground/50">(optional)</span></label>
-                      <input
-                        type="text"
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
-                        className="w-full rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-foreground placeholder:text-muted-foreground/50 transition-all focus:border-primary focus:bg-secondary focus:outline-none focus:ring-1 focus:ring-primary"
-                        placeholder="Forge User"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-1.5">Email <span className="text-muted-foreground/50">(optional)</span></label>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1.5">Email</label>
                       <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-foreground placeholder:text-muted-foreground/50 transition-all focus:border-primary focus:bg-secondary focus:outline-none focus:ring-1 focus:ring-primary"
                         placeholder="you@example.com"
+                        required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-muted-foreground mb-1.5">LeetCode Username <span className="text-muted-foreground/50">(optional)</span></label>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1.5">Password</label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-foreground placeholder:text-muted-foreground/50 transition-all focus:border-primary focus:bg-secondary focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="minimum 6 characters"
+                        required
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1.5">Email or Username</label>
                       <input
                         type="text"
-                        value={leetcodeUsername}
-                        onChange={(e) => setLeetcodeUsername(e.target.value)}
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
                         className="w-full rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-foreground placeholder:text-muted-foreground/50 transition-all focus:border-primary focus:bg-secondary focus:outline-none focus:ring-1 focus:ring-primary"
-                        placeholder="your_leetcode_id"
+                        placeholder="you@example.com"
+                        required
                       />
-                      <p className="mt-1.5 text-xs text-muted-foreground/60">We'll auto-import your solved problems and stats</p>
                     </div>
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1.5">Password</label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-foreground placeholder:text-muted-foreground/50 transition-all focus:border-primary focus:bg-secondary focus:outline-none focus:ring-1 focus:ring-primary"
+                        placeholder="your password"
+                        required
+                      />
+                    </div>
+                  </>
                 )}
 
                 <div className="flex-1" />
+
+                {success && (
+                  <div className="rounded-lg bg-green-500/10 px-4 py-3 text-sm text-green-500">
+                    {success}
+                  </div>
+                )}
 
                 {error && (
                   <div className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">

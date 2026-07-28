@@ -14,7 +14,7 @@ interface AuthContextType {
   token: string | null;
   user: User | null;
   login: (username: string, password: string) => Promise<void>;
-  register: (data: { username: string; password: string; email?: string; displayName?: string; leetcodeUsername?: string }) => Promise<void>;
+  register: (data: { email: string; password: string }) => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -47,12 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(data.user);
   };
 
-  const register = async (data: { username: string; password: string; email?: string; displayName?: string; leetcodeUsername?: string }) => {
-    const response = await authApi.register(data);
-    const result = response.data.data;
-    localStorage.setItem('forge_token', result.token);
-    setToken(result.token);
-    setUser(result.user);
+  const register = async (data: { email: string; password: string }) => {
+    await authApi.register(data);
   };
 
   const logout = () => {

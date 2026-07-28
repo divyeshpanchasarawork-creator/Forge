@@ -120,9 +120,11 @@ public class LeetCodeFetchService {
 
         List<LeetCodeTagStat> allTags = new ArrayList<>();
 
-        addTagsForLevel(allTags, user, matchedUser.getTagProblemCounts() != null ? matchedUser.getTagProblemCounts().stream().flatMap(g -> g.getFundamental() != null ? g.getFundamental().stream() : java.util.stream.Stream.empty()).toList() : List.of(), "fundamental");
-        addTagsForLevel(allTags, user, matchedUser.getTagProblemCounts() != null ? matchedUser.getTagProblemCounts().stream().flatMap(g -> g.getIntermediate() != null ? g.getIntermediate().stream() : java.util.stream.Stream.empty()).toList() : List.of(), "intermediate");
-        addTagsForLevel(allTags, user, matchedUser.getTagProblemCounts() != null ? matchedUser.getTagProblemCounts().stream().flatMap(g -> g.getAdvanced() != null ? g.getAdvanced().stream() : java.util.stream.Stream.empty()).toList() : List.of(), "advanced");
+        if (matchedUser.getTagProblemCounts() != null) {
+            addTagsForLevel(allTags, user, matchedUser.getTagProblemCounts().getFundamental(), "fundamental");
+            addTagsForLevel(allTags, user, matchedUser.getTagProblemCounts().getIntermediate(), "intermediate");
+            addTagsForLevel(allTags, user, matchedUser.getTagProblemCounts().getAdvanced(), "advanced");
+        }
 
         tagStatRepository.saveAll(allTags);
     }
@@ -144,11 +146,9 @@ public class LeetCodeFetchService {
     private void syncTopicsFromTags(User user, LeetCodeGraphQlResponse.MatchedUser matchedUser) {
         List<LeetCodeGraphQlResponse.TagCount> allTags = new ArrayList<>();
         if (matchedUser.getTagProblemCounts() != null) {
-            for (LeetCodeGraphQlResponse.TagProblemCountGroup group : matchedUser.getTagProblemCounts()) {
-                if (group.getFundamental() != null) allTags.addAll(group.getFundamental());
-                if (group.getIntermediate() != null) allTags.addAll(group.getIntermediate());
-                if (group.getAdvanced() != null) allTags.addAll(group.getAdvanced());
-            }
+            if (matchedUser.getTagProblemCounts().getFundamental() != null) allTags.addAll(matchedUser.getTagProblemCounts().getFundamental());
+            if (matchedUser.getTagProblemCounts().getIntermediate() != null) allTags.addAll(matchedUser.getTagProblemCounts().getIntermediate());
+            if (matchedUser.getTagProblemCounts().getAdvanced() != null) allTags.addAll(matchedUser.getTagProblemCounts().getAdvanced());
         }
 
         List<Topic> topics = topicMapper.mapToTopics(user, allTags, "mixed");

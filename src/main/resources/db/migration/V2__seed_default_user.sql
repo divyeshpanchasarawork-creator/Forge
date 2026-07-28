@@ -1,7 +1,5 @@
--- Seed default user for Forge
--- Password: forge123 (BCrypt encoded)
--- Generated with: BCryptPasswordEncoder().encode("forge123")
-
+-- Seed default dev user (for local development only)
+-- Password: forge123
 INSERT INTO users (id, username, password, email, display_name, created_at, updated_at)
 VALUES (
     'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',

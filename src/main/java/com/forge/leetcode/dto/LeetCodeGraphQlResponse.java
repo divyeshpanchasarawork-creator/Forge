@@ -44,7 +44,7 @@ public class LeetCodeGraphQlResponse {
         private SubmitStatsGlobal submitStatsGlobal;
         private List<BeatsStat> problemsSolvedBeatsStats;
         private UserCalendar userCalendar;
-        private List<TagProblemCountGroup> tagProblemCounts;
+        private TagProblemCountGroup tagProblemCounts;
         private List<LanguageStat> languageProblemCount;
     }
 
