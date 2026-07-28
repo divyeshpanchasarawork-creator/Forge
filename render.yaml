@@ -1,13 +1,10 @@
 services:
   - type: web
     name: forge-api
-    runtime: java
+    env: docker
     plan: free
-    buildCommand: mvn clean package -DskipTests -f pom.xml
-    startCommand: java -jar target/forge-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
+    dockerfilePath: Dockerfile
     envVars:
-      - key: JAVA_VERSION
-        value: "21"
       - key: SPRING_PROFILES_ACTIVE
         value: prod
       - key: DATABASE_URL
@@ -24,7 +21,7 @@ services:
           property: DATABASE_PASSWORD
       - key: JWT_SECRET
         generateValue: true
-      - key: JVM_OPTS
+      - key: JAVA_OPTS
         value: "-Xmx256m -Xms128m"
 
   - type: postgresql

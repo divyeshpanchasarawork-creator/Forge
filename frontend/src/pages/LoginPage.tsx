@@ -35,8 +35,17 @@ export default function LoginPage() {
         await login(username, password);
       }
       navigate('/');
-    } catch {
-      setError(isRegister ? 'Registration failed. Username may already be taken.' : 'Invalid credentials');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || '';
+      if (msg.toLowerCase().includes('username already taken')) {
+        setError('This username is already taken. Try another.');
+      } else if (msg.toLowerCase().includes('email already in use')) {
+        setError('This email is already registered.');
+      } else if (isRegister) {
+        setError('Registration failed. Please check your details and try again.');
+      } else {
+        setError('Invalid username or password.');
+      }
     } finally {
       setLoading(false);
     }
@@ -68,7 +77,6 @@ export default function LoginPage() {
 
       {/* Hero Section */}
       <section id="hero" className="relative flex flex-1 items-center overflow-hidden">
-        {/* Background glow */}
         <div className="pointer-events-none absolute left-1/2 top-1/2 -z-10 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-[120px]" />
 
         <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-12 px-6 py-16 lg:grid-cols-2 lg:gap-0 lg:py-0">
@@ -102,7 +110,6 @@ export default function LoginPage() {
               </a>
             </div>
 
-            {/* Stats */}
             <div className="flex gap-8 pt-4">
               <div>
                 <p className="text-2xl font-bold">LeetCode</p>
@@ -123,7 +130,7 @@ export default function LoginPage() {
 
           {/* Right — Auth Card */}
           <div id="auth-form" className="flex items-center justify-center">
-            <div className="w-full max-w-md space-y-6 rounded-2xl border border-border bg-card p-8 shadow-2xl shadow-black/20">
+            <div className="flex w-full max-w-md flex-col rounded-2xl border border-border bg-card p-8 shadow-2xl shadow-black/20" style={{ minHeight: '480px' }}>
               {/* Tabs */}
               <div className="flex rounded-lg bg-secondary p-1">
                 <button
@@ -142,13 +149,11 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              {isRegister && (
-                <p className="text-center text-sm text-muted-foreground">
-                  Start mastering your craft in 30 seconds
-                </p>
-              )}
+              <p className="mt-4 text-center text-sm text-muted-foreground">
+                {isRegister ? 'Start mastering your craft in 30 seconds' : 'Welcome back. Sign in to continue.'}
+              </p>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="mt-4 flex flex-1 flex-col space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-muted-foreground mb-1.5">Username</label>
                   <input
@@ -208,6 +213,9 @@ export default function LoginPage() {
                   </>
                 )}
 
+                {/* Spacer pushes error + button to bottom */}
+                <div className="flex-1" />
+
                 {error && (
                   <div className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
                     {error}
@@ -230,7 +238,7 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              <div className="text-center text-xs text-muted-foreground">
+              <div className="mt-4 text-center text-xs text-muted-foreground">
                 {isRegister ? (
                   <>Already have an account?{' '}
                     <button onClick={switchToLogin} className="font-medium text-primary hover:underline">Sign in</button>
