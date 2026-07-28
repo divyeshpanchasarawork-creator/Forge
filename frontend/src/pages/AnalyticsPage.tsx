@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { analyticsApi } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, AreaChart, Area } from 'recharts';
-import { TrendingUp, Code2, BookOpen, RefreshCw, Flame } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+import { TrendingUp, Code2, BookOpen, Flame, Trophy } from 'lucide-react';
 
 export default function AnalyticsPage() {
   const { data, isLoading } = useQuery({
@@ -37,9 +37,56 @@ export default function AnalyticsPage() {
     fullMark: 100,
   })) || [];
 
+  const lc = data.leetcodeOverview;
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Analytics</h1>
+
+      {/* LeetCode Overview */}
+      {lc && (
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Code2 className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold text-primary">LeetCode Overview</h2>
+            {lc.ranking && (
+              <span className="ml-auto flex items-center gap-1 rounded-full bg-yellow-500/10 px-2.5 py-0.5 text-xs font-medium text-yellow-400">
+                <Trophy className="h-3 w-3" />
+                Rank #{lc.ranking.toLocaleString()}
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-3 gap-4 md:grid-cols-6">
+            <div className="text-center">
+              <p className="text-2xl font-bold">{lc.totalSolved}</p>
+              <p className="text-xs text-muted-foreground">Solved</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-green-400">{lc.easySolved}</p>
+              <p className="text-xs text-muted-foreground">Easy ({lc.easyBeatsPct != null ? `${lc.easyBeatsPct.toFixed(1)}%` : '-'})</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-yellow-400">{lc.mediumSolved}</p>
+              <p className="text-xs text-muted-foreground">Medium ({lc.mediumBeatsPct != null ? `${lc.mediumBeatsPct.toFixed(1)}%` : '-'})</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-red-400">{lc.hardSolved}</p>
+              <p className="text-xs text-muted-foreground">Hard ({lc.hardBeatsPct != null ? `${lc.hardBeatsPct.toFixed(1)}%` : '-'})</p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1">
+                <Flame className="h-4 w-4 text-orange-400" />
+                <p className="text-2xl font-bold text-orange-400">{lc.streak}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Streak</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold">{lc.totalActiveDays}</p>
+              <p className="text-xs text-muted-foreground">Active Days</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -106,14 +153,20 @@ export default function AnalyticsPage() {
             <CardTitle>Mastery by Category</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <RadarChart data={masteryData}>
-                <PolarGrid stroke="#2a2a2d" />
-                <PolarAngleAxis dataKey="category" stroke="#a0a0a0" fontSize={10} />
-                <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#a0a0a0" fontSize={10} />
-                <Radar name="Mastery" dataKey="mastery" stroke="#6d5dfc" fill="#6d5dfc" fillOpacity={0.3} />
-              </RadarChart>
-            </ResponsiveContainer>
+            {masteryData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <RadarChart data={masteryData}>
+                  <PolarGrid stroke="#2a2a2d" />
+                  <PolarAngleAxis dataKey="category" stroke="#a0a0a0" fontSize={10} />
+                  <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#a0a0a0" fontSize={10} />
+                  <Radar name="Mastery" dataKey="mastery" stroke="#6d5dfc" fill="#6d5dfc" fillOpacity={0.3} />
+                </RadarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
+                No topic data yet. Add topics or sync LeetCode.
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -125,6 +178,9 @@ export default function AnalyticsPage() {
             <CardTitle className="text-red-400">Weakest Topics</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {data.weakestTopics?.length === 0 && (
+              <p className="text-sm text-muted-foreground">No weak topics identified.</p>
+            )}
             {data.weakestTopics?.map((t, i) => (
               <div key={i} className="flex items-center justify-between">
                 <div>
@@ -146,6 +202,9 @@ export default function AnalyticsPage() {
             <CardTitle className="text-green-400">Strongest Topics</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {data.strongestTopics?.length === 0 && (
+              <p className="text-sm text-muted-foreground">No strong topics yet.</p>
+            )}
             {data.strongestTopics?.map((t, i) => (
               <div key={i} className="flex items-center justify-between">
                 <div>

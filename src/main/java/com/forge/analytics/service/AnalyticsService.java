@@ -5,6 +5,8 @@ import com.forge.analytics.dto.WeeklyProgressResponse;
 import com.forge.common.util.SecurityUtils;
 import com.forge.journal.entity.Journal;
 import com.forge.journal.repository.JournalRepository;
+import com.forge.leetcode.entity.LeetCodeSnapshot;
+import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.problem.repository.ProblemRepository;
 import com.forge.revision.repository.RevisionRepository;
 import com.forge.topic.entity.Topic;
@@ -28,6 +30,7 @@ public class AnalyticsService {
     private final TopicRepository topicRepository;
     private final RevisionRepository revisionRepository;
     private final JournalRepository journalRepository;
+    private final LeetCodeSnapshotRepository snapshotRepository;
 
     public AnalyticsResponse getAnalytics() {
         UUID userId = SecurityUtils.getCurrentUserId();
@@ -38,6 +41,12 @@ public class AnalyticsService {
 
         long totalProblems = problemRepository.countByUserId(userId);
         long totalTopics = topicRepository.countByUserId(userId);
+
+        LeetCodeSnapshot lcSnapshot = snapshotRepository.findByUserId(userId).orElse(null);
+        if (lcSnapshot != null) {
+            totalProblems = lcSnapshot.getTotalSolved();
+        }
+
         Double totalStudyHours = allTopics.stream()
                 .mapToDouble(t -> t.getMastery() != null ? t.getMastery() : 0)
                 .sum() / 10.0;
@@ -50,9 +59,18 @@ public class AnalyticsService {
                 .mapToInt(Topic::getConfidence)
                 .average().orElse(0);
 
-        long easy = problemRepository.countByUserIdAndDifficulty(userId, "EASY");
-        long medium = problemRepository.countByUserIdAndDifficulty(userId, "MEDIUM");
-        long hard = problemRepository.countByUserIdAndDifficulty(userId, "HARD");
+        long easy;
+        long medium;
+        long hard;
+        if (lcSnapshot != null) {
+            easy = lcSnapshot.getEasySolved();
+            medium = lcSnapshot.getMediumSolved();
+            hard = lcSnapshot.getHardSolved();
+        } else {
+            easy = problemRepository.countByUserIdAndDifficulty(userId, "EASY");
+            medium = problemRepository.countByUserIdAndDifficulty(userId, "MEDIUM");
+            hard = problemRepository.countByUserIdAndDifficulty(userId, "HARD");
+        }
 
         List<AnalyticsResponse.CategoryMastery> categoryMastery = allTopics.stream()
                 .collect(Collectors.groupingBy(Topic::getCategory))
@@ -86,6 +104,25 @@ public class AnalyticsService {
         double completionRate = totalRevisions > 0 ? (double) completedRevisions / totalRevisions * 100 : 0;
 
         long streak = calculateStreak(userId);
+        if (lcSnapshot != null && lcSnapshot.getStreak() != null && lcSnapshot.getStreak() > streak) {
+            streak = lcSnapshot.getStreak();
+        }
+
+        AnalyticsResponse.LeetCodeOverview lcOverview = null;
+        if (lcSnapshot != null) {
+            lcOverview = new AnalyticsResponse.LeetCodeOverview(
+                    lcSnapshot.getTotalSolved(),
+                    lcSnapshot.getEasySolved(),
+                    lcSnapshot.getMediumSolved(),
+                    lcSnapshot.getHardSolved(),
+                    lcSnapshot.getRanking(),
+                    lcSnapshot.getStreak(),
+                    lcSnapshot.getTotalActiveDays(),
+                    lcSnapshot.getEasyBeatsPct(),
+                    lcSnapshot.getMediumBeatsPct(),
+                    lcSnapshot.getHardBeatsPct()
+            );
+        }
 
         return new AnalyticsResponse(
                 totalProblems,
@@ -99,7 +136,8 @@ public class AnalyticsService {
                 trend,
                 weakest,
                 strongest,
-                streak
+                streak,
+                lcOverview
         );
     }
 

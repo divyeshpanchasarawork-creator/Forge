@@ -1,5 +1,5 @@
 import api from './client';
-import type { ApiResponse, LoginResponse, DashboardResponse, Topic, TopicRequest, PagedResponse, Problem, ProblemRequest, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse } from '@/types';
+import type { ApiResponse, LoginResponse, DashboardResponse, Topic, TopicRequest, PagedResponse, Problem, ProblemRequest, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, LeetCodeStats } from '@/types';
 
 export const authApi = {
   login: (username: string, password: string) =>
@@ -64,4 +64,9 @@ export const journalsApi = {
 export const analyticsApi = {
   get: () => api.get<ApiResponse<AnalyticsResponse>>('/analytics'),
   getWeekly: () => api.get<ApiResponse<any>>('/analytics/weekly'),
+};
+
+export const leetcodeApi = {
+  sync: () => api.post<ApiResponse<LeetCodeStats>>('/leetcode/sync'),
+  getStats: () => api.get<ApiResponse<LeetCodeStats>>('/leetcode/stats'),
 };

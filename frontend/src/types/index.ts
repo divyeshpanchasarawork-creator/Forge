@@ -152,6 +152,29 @@ export interface DashboardResponse {
   };
   recentJournal: string;
   recentProblems: string[];
+  leetcodeStats: LeetCodeStats | null;
+}
+
+export interface LeetCodeStats {
+  totalSolved: number;
+  easySolved: number;
+  mediumSolved: number;
+  hardSolved: number;
+  ranking: number | null;
+  streak: number;
+  totalActiveDays: number;
+  contestRating: number | null;
+  contestRanking: number | null;
+  contestAttendedCount: number | null;
+  lastSyncedAt: string | null;
+  tags?: LeetCodeTagStat[];
+}
+
+export interface LeetCodeTagStat {
+  tagName: string;
+  tagSlug: string;
+  problemsSolved: number;
+  skillLevel: string;
 }
 
 export interface AnalyticsResponse {
@@ -167,4 +190,16 @@ export interface AnalyticsResponse {
   weakestTopics: { title: string; confidence: number; mastery: number; category: string }[];
   strongestTopics: { title: string; confidence: number; mastery: number; category: string }[];
   currentStreak: number;
+  leetcodeOverview: {
+    totalSolved: number;
+    easySolved: number;
+    mediumSolved: number;
+    hardSolved: number;
+    ranking: number | null;
+    streak: number;
+    totalActiveDays: number;
+    easyBeatsPct: number | null;
+    mediumBeatsPct: number | null;
+    hardBeatsPct: number | null;
+  } | null;
 }

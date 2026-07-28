@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Flame, Target, RefreshCw, TrendingUp, TrendingDown, BookOpen, Zap } from 'lucide-react';
+import { Flame, Target, RefreshCw, TrendingUp, TrendingDown, BookOpen, Zap, Trophy, Code2 } from 'lucide-react';
 
 export default function DashboardPage() {
   const { data, isLoading } = useQuery({
@@ -24,6 +24,8 @@ export default function DashboardPage() {
 
   if (!data) return null;
 
+  const lc = data.leetcodeStats;
+
   return (
     <div className="space-y-6">
       {/* Greeting */}
@@ -38,6 +40,54 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* LeetCode Stats Banner */}
+      {lc && (
+        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Code2 className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold text-primary">LeetCode Progress</h2>
+            {lc.streak > 0 && (
+              <span className="ml-auto flex items-center gap-1 rounded-full bg-orange-500/10 px-2.5 py-0.5 text-xs font-medium text-orange-400">
+                <Flame className="h-3 w-3" />
+                {lc.streak} day streak
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+            <div className="text-center">
+              <p className="text-2xl font-bold">{lc.totalSolved}</p>
+              <p className="text-xs text-muted-foreground">Total Solved</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-green-400">{lc.easySolved}</p>
+              <p className="text-xs text-muted-foreground">Easy</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-yellow-400">{lc.mediumSolved}</p>
+              <p className="text-xs text-muted-foreground">Medium</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-red-400">{lc.hardSolved}</p>
+              <p className="text-xs text-muted-foreground">Hard</p>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center gap-1">
+                <Trophy className="h-4 w-4 text-yellow-400" />
+                <p className="text-2xl font-bold">{lc.ranking ? `#${lc.ranking.toLocaleString()}` : '-'}</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Ranking</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!lc && (
+        <div className="rounded-2xl border border-dashed border-border p-5 text-center">
+          <Code2 className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
+          <p className="text-sm text-muted-foreground">Set your LeetCode username in Profile to see stats here</p>
+        </div>
+      )}
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -140,6 +190,9 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {data.weakTopics?.length === 0 && (
+              <p className="text-sm text-muted-foreground">No weak topics identified yet.</p>
+            )}
             {data.weakTopics?.slice(0, 5).map((topic: any) => (
               <div key={topic.id} className="flex items-center justify-between">
                 <div>
@@ -169,6 +222,9 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {data.strongTopics?.length === 0 && (
+              <p className="text-sm text-muted-foreground">No strong topics yet. Keep practicing!</p>
+            )}
             {data.strongTopics?.slice(0, 5).map((topic: any) => (
               <div key={topic.id} className="flex items-center justify-between">
                 <div>

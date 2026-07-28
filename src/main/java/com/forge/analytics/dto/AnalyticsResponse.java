@@ -25,6 +25,7 @@ public class AnalyticsResponse {
     private List<TopicSummary> weakestTopics;
     private List<TopicSummary> strongestTopics;
     private long currentStreak;
+    private LeetCodeOverview leetcodeOverview;
 
     @Getter
     @Setter
@@ -64,5 +65,22 @@ public class AnalyticsResponse {
         private Integer confidence;
         private Integer mastery;
         private String category;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LeetCodeOverview {
+        private Integer totalSolved;
+        private Integer easySolved;
+        private Integer mediumSolved;
+        private Integer hardSolved;
+        private Integer ranking;
+        private Integer streak;
+        private Integer totalActiveDays;
+        private Double easyBeatsPct;
+        private Double mediumBeatsPct;
+        private Double hardBeatsPct;
     }
 }

@@ -27,6 +27,7 @@ public class DashboardResponse {
     private WeeklyProgress weeklyProgress;
     private String recentJournal;
     private List<String> recentProblems;
+    private LeetCodeStats leetcodeStats;
 
     @Getter
     @Setter
@@ -48,5 +49,23 @@ public class DashboardResponse {
         private long topicsReviewed;
         private Double hoursStudied;
         private long revisionsCompleted;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LeetCodeStats {
+        private Integer totalSolved;
+        private Integer easySolved;
+        private Integer mediumSolved;
+        private Integer hardSolved;
+        private Integer ranking;
+        private Integer streak;
+        private Integer totalActiveDays;
+        private Double contestRating;
+        private Integer contestRanking;
+        private Integer contestAttendedCount;
+        private java.time.LocalDateTime lastSyncedAt;
     }
 }

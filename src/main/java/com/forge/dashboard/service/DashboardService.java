@@ -8,6 +8,8 @@ import com.forge.common.util.SecurityUtils;
 import com.forge.dashboard.dto.DashboardResponse;
 import com.forge.journal.entity.Journal;
 import com.forge.journal.repository.JournalRepository;
+import com.forge.leetcode.entity.LeetCodeSnapshot;
+import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.recommendation.dto.RecommendationResponse;
 import com.forge.recommendation.service.RecommendationService;
 import com.forge.revision.dto.RevisionResponse;
@@ -33,6 +35,7 @@ public class DashboardService {
     private final RecommendationService recommendationService;
     private final JournalRepository journalRepository;
     private final TopicRepository topicRepository;
+    private final LeetCodeSnapshotRepository snapshotRepository;
 
     public DashboardResponse getDashboard() {
         UUID userId = SecurityUtils.getCurrentUserId();
@@ -63,6 +66,24 @@ public class DashboardService {
                 "Energy: " + todayJournal.getEnergy() + "/5, Mood: " + todayJournal.getMood() + "/5" :
                 "No journal entry today yet.";
 
+        DashboardResponse.LeetCodeStats lcStats = null;
+        LeetCodeSnapshot snapshot = snapshotRepository.findByUserId(userId).orElse(null);
+        if (snapshot != null) {
+            lcStats = new DashboardResponse.LeetCodeStats(
+                    snapshot.getTotalSolved(),
+                    snapshot.getEasySolved(),
+                    snapshot.getMediumSolved(),
+                    snapshot.getHardSolved(),
+                    snapshot.getRanking(),
+                    snapshot.getStreak(),
+                    snapshot.getTotalActiveDays(),
+                    snapshot.getContestRating(),
+                    snapshot.getContestRanking(),
+                    snapshot.getContestAttendedCount(),
+                    snapshot.getLastSyncedAt()
+            );
+        }
+
         return new DashboardResponse(
                 greeting,
                 currentFocus,
@@ -74,7 +95,8 @@ public class DashboardService {
                 new DashboardResponse.KnowledgeHealth(avgMastery, avgConfidence, allTopics.size(), masteredCount),
                 new DashboardResponse.WeeklyProgress(0, 0, 0.0, 0),
                 journalSummary,
-                List.of()
+                List.of(),
+                lcStats
         );
     }
 }

@@ -32,4 +32,6 @@ public interface TopicRepository extends JpaRepository<Topic, UUID> {
     long countByUserId(UUID userId);
 
     long countByUserIdAndCategory(UUID userId, String category);
+
+    List<Topic> findByUserIdAndSource(UUID userId, String source);
 }

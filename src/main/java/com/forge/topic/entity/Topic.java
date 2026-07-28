@@ -52,4 +52,7 @@ public class Topic extends BaseEntity {
 
     @Column(name = "estimated_retention", columnDefinition = "DOUBLE DEFAULT 100.0")
     private Double estimatedRetention = 100.0;
+
+    @Column(length = 20)
+    private String source = "MANUAL";
 }
