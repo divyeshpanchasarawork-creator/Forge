@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { parseApiError } from '@/lib/error';
@@ -21,6 +21,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const { login, register } = useAuth();
   const navigate = useNavigate();
 
@@ -53,6 +54,13 @@ export default function LoginPage() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      formRef.current?.requestSubmit();
     }
   };
 
@@ -173,7 +181,7 @@ export default function LoginPage() {
                 {isRegister ? 'Create your account in seconds' : 'Welcome back. Sign in to continue.'}
               </p>
 
-              <form onSubmit={handleSubmit} className="mt-5 flex flex-1 flex-col space-y-3.5">
+              <form ref={formRef} onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="mt-5 flex flex-1 flex-col space-y-3.5">
                 {isRegister ? (
                   <>
                     <div>

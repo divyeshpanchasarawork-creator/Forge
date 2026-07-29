@@ -28,6 +28,14 @@ export default function PracticePage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recommendations'] }),
   });
 
+  const generateMutation = useMutation({
+    mutationFn: () => recommendationsApi.generate(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+
   const handleSync = async () => {
     setSyncing(true);
     try {
@@ -124,7 +132,15 @@ export default function PracticePage() {
           <CardContent className="py-10 text-center">
             <Sparkles className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
             <p className="font-medium">Queue is clear</p>
-            <p className="text-sm text-muted-foreground">Generate a new Roadmap plan to get fresh practice suggestions.</p>
+            <p className="text-sm text-muted-foreground mb-4">Generate fresh problem suggestions based on your weak areas.</p>
+            <button
+              onClick={() => generateMutation.mutate()}
+              disabled={generateMutation.isPending}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw className={`h-4 w-4 ${generateMutation.isPending ? 'animate-spin' : ''}`} />
+              {generateMutation.isPending ? 'Generating...' : 'Generate Queue'}
+            </button>
           </CardContent>
         </Card>
       )}

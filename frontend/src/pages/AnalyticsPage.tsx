@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { analyticsApi } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
-import { TrendingUp, BookOpen, Flame, Target, Zap } from 'lucide-react';
+import { TrendingUp, BookOpen, Code2, Flame, Target, Zap } from 'lucide-react';
 
 const levelLabels = [
   'Service', 'Service+', 'Mid Product', 'Product', 'Good Product',
