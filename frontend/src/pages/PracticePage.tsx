@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { Code, Target, ExternalLink, X, RefreshCw, Sparkles, Layers } from 'lucide-react';
 import { useState } from 'react';
+import { parseApiError } from '@/lib/error';
 
 export default function PracticePage() {
   const { user } = useAuth();
@@ -28,11 +29,17 @@ export default function PracticePage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recommendations'] }),
   });
 
+  const [generateError, setGenerateError] = useState('');
+
   const generateMutation = useMutation({
     mutationFn: () => recommendationsApi.generate(),
     onSuccess: () => {
+      setGenerateError('');
       queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+      onError: (err: unknown) => {
+      setGenerateError(parseApiError(err));
     },
   });
 
@@ -46,10 +53,12 @@ export default function PracticePage() {
     }
   };
 
-  const problemRecs = (recs || []).filter(r => r.problemSlug);
+  const sortedRecs = [...(recs || [])].sort((a, b) => a.priority - b.priority);
+  const problemRecs = sortedRecs.filter(r => r.problemSlug);
   const filteredRecs = filterTag
     ? problemRecs.filter(r => r.description?.toLowerCase().includes(filterTag.toLowerCase()))
     : problemRecs;
+  const hasRecs = sortedRecs.length > 0;
 
   const knowledgeMap = dashData?.knowledgeMap || [];
   const tp = dashData?.targetProgress;
@@ -76,15 +85,15 @@ export default function PracticePage() {
         </Card>
       )}
 
-      {problemRecs.length > 0 && (
+      {hasRecs ? (
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Target className="h-4 w-4 text-primary" />
-            <h2 className="text-lg font-semibold">Your Practice Queue</h2>
-            <span className="text-xs text-muted-foreground">({problemRecs.length} problem{problemRecs.length !== 1 ? 's' : ''})</span>
+            <h2 className="text-lg font-semibold">Practice Queue</h2>
+            <span className="text-xs text-muted-foreground">({sortedRecs.length} item{sortedRecs.length !== 1 ? 's' : ''})</span>
           </div>
           <div className="space-y-2">
-            {filteredRecs.map((rec) => (
+            {sortedRecs.map((rec) => (
               <div
                 key={rec.id}
                 className="group flex items-center gap-4 rounded-xl border border-border bg-card/50 px-5 py-4 transition-all hover:border-primary/20 hover:bg-card"
@@ -99,7 +108,7 @@ export default function PracticePage() {
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{rec.description}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{rec.reason || rec.description}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {rec.problemSlug && (
@@ -125,14 +134,17 @@ export default function PracticePage() {
             ))}
           </div>
         </div>
-      )}
-
-      {dashData?.leetcodeStats && problemRecs.length === 0 && (
+      ) : (
         <Card>
           <CardContent className="py-10 text-center">
             <Sparkles className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
             <p className="font-medium">Queue is clear</p>
-            <p className="text-sm text-muted-foreground mb-4">Generate fresh problem suggestions based on your weak areas.</p>
+            <p className="text-sm text-muted-foreground mb-4">Generate fresh recommendations based on your weak areas.</p>
+            {generateError && (
+              <div className="mb-4 rounded-lg bg-destructive/10 px-4 py-2 text-xs text-destructive">
+                {generateError}
+              </div>
+            )}
             <button
               onClick={() => generateMutation.mutate()}
               disabled={generateMutation.isPending}
