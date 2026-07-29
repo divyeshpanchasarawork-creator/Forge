@@ -3,7 +3,7 @@ import { recommendationsApi, dashboardApi, leetcodeApi } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { Code, Target, ExternalLink, X, RefreshCw, Sparkles, Layers, TrendingUp } from 'lucide-react';
+import { Code, Target, ExternalLink, X, RefreshCw, Sparkles, Layers } from 'lucide-react';
 import { useState } from 'react';
 
 export default function PracticePage() {

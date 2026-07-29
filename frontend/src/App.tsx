@@ -8,6 +8,7 @@ import PracticePage from '@/pages/PracticePage';
 import RevisionPage from '@/pages/RevisionPage';
 import JournalPage from '@/pages/JournalPage';
 import AnalyticsPage from '@/pages/AnalyticsPage';
+import MemoryPage from '@/pages/MemoryPage';
 import ProfilePage from '@/pages/ProfilePage';
 import AppLayout from '@/components/layout/AppLayout';
 
@@ -42,6 +43,7 @@ export default function App() {
               <Route path="revision" element={<RevisionPage />} />
               <Route path="journal" element={<JournalPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />
+              <Route path="memory" element={<MemoryPage />} />
               <Route path="profile" element={<ProfilePage />} />
             </Route>
           </Routes>

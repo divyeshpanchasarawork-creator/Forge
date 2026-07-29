@@ -13,6 +13,7 @@ import com.forge.leetcode.entity.ProblemSuggestion;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.leetcode.repository.LeetCodeTagStatRepository;
 import com.forge.leetcode.repository.ProblemSuggestionRepository;
+import com.forge.recommendation.service.RecommendationEngine;
 import com.forge.topic.entity.Topic;
 import com.forge.topic.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ public class LeetCodeFetchService {
     private final UserRepository userRepository;
     private final TopicRepository topicRepository;
     private final LeetCodeTopicMapper topicMapper;
+    private final RecommendationEngine recommendationEngine;
 
     @Transactional
     public LeetCodeStatsResponse syncUserProfile(UUID userId) {
@@ -64,6 +66,7 @@ public class LeetCodeFetchService {
         syncTopicsFromTags(user, matchedUser);
         fetchAndSaveProblemSuggestions(user, matchedUser);
 
+        recommendationEngine.generateForUser(userId, true);
         log.info("LeetCode sync complete for user: {} (solved: {})", lcUsername, snapshot.getTotalSolved());
         return toStatsResponse(snapshot, userId);
     }
@@ -179,9 +182,6 @@ public class LeetCodeFetchService {
             return;
         }
 
-        problemSuggestionRepository.deleteByUserId(userId);
-        problemSuggestionRepository.flush();
-
         List<ProblemSuggestion> suggestions = new ArrayList<>();
         for (String tagSlug : weakTagSlugs) {
             List<LeetCodeProblemListResponse.Question> problems = leetCodeClient.fetchProblemsByTag(tagSlug, 3);
@@ -212,6 +212,8 @@ public class LeetCodeFetchService {
             }
         }
 
+        problemSuggestionRepository.deleteByUserId(userId);
+        problemSuggestionRepository.flush();
         problemSuggestionRepository.saveAll(suggestions);
         log.info("Saved {} problem suggestions for {} weak tags (user {})", suggestions.size(), weakTagSlugs.size(), userId);
     }

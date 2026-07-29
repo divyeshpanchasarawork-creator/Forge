@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { analyticsApi } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
-import { TrendingUp, Code2, BookOpen, Flame, Trophy, Target, Brain, Zap } from 'lucide-react';
+import { TrendingUp, BookOpen, Flame, Target, Zap } from 'lucide-react';
 
 const levelLabels = [
   'Service', 'Service+', 'Mid Product', 'Product', 'Good Product',
@@ -61,7 +61,6 @@ export default function AnalyticsPage() {
     fullMark: 100,
   })) || [];
 
-  const lc = data.leetcodeOverview;
   const tl = data.targetLevel || 5;
   const rs = data.readinessScore || 0;
 
@@ -124,51 +123,6 @@ export default function AnalyticsPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* LeetCode Overview */}
-      {lc && (
-        <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5">
-          <div className="mb-3 flex items-center gap-2">
-            <Code2 className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-semibold text-primary">LeetCode Overview</h2>
-            {lc.ranking && (
-              <span className="ml-auto flex items-center gap-1 rounded-full bg-yellow-500/10 px-2.5 py-0.5 text-xs font-medium text-yellow-400">
-                <Trophy className="h-3 w-3" />
-                Rank #{lc.ranking.toLocaleString()}
-              </span>
-            )}
-          </div>
-          <div className="grid grid-cols-3 gap-4 md:grid-cols-6">
-            <div className="text-center">
-              <p className="text-2xl font-bold">{lc.totalSolved}</p>
-              <p className="text-xs text-muted-foreground">Solved</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-400">{lc.easySolved}</p>
-              <p className="text-xs text-muted-foreground">Easy ({lc.easyBeatsPct != null ? `${lc.easyBeatsPct.toFixed(1)}%` : '-'})</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-yellow-400">{lc.mediumSolved}</p>
-              <p className="text-xs text-muted-foreground">Medium ({lc.mediumBeatsPct != null ? `${lc.mediumBeatsPct.toFixed(1)}%` : '-'})</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-red-400">{lc.hardSolved}</p>
-              <p className="text-xs text-muted-foreground">Hard ({lc.hardBeatsPct != null ? `${lc.hardBeatsPct.toFixed(1)}%` : '-'})</p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1">
-                <Flame className="h-4 w-4 text-orange-400" />
-                <p className="text-2xl font-bold text-orange-400">{lc.streak}</p>
-              </div>
-              <p className="text-xs text-muted-foreground">Streak</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold">{lc.totalActiveDays}</p>
-              <p className="text-xs text-muted-foreground">Active Days</p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">

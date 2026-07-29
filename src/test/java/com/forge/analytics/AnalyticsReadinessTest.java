@@ -78,8 +78,6 @@ class AnalyticsReadinessTest {
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findStrongTopicsByUserId(userId)).thenReturn(List.of(topic));
         when(topicRepository.countByUserId(userId)).thenReturn(1L);
-        when(revisionRepository.countByUserIdAndCompleted(eq(userId), eq(true))).thenReturn(10L);
-        when(revisionRepository.countByUserIdAndCompleted(eq(userId), eq(false))).thenReturn(5L);
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(userId);
@@ -104,8 +102,6 @@ class AnalyticsReadinessTest {
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findStrongTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.countByUserId(userId)).thenReturn(0L);
-        when(revisionRepository.countByUserIdAndCompleted(eq(userId), eq(true))).thenReturn(0L);
-        when(revisionRepository.countByUserIdAndCompleted(eq(userId), eq(false))).thenReturn(0L);
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(userId);

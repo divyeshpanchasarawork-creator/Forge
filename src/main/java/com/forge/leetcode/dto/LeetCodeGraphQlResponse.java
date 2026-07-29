@@ -45,7 +45,6 @@ public class LeetCodeGraphQlResponse {
         private List<BeatsStat> problemsSolvedBeatsStats;
         private UserCalendar userCalendar;
         private TagProblemCountGroup tagProblemCounts;
-        private List<LanguageStat> languageProblemCount;
     }
 
     @Getter
@@ -94,15 +93,6 @@ public class LeetCodeGraphQlResponse {
         private String tagName;
         @JsonProperty("tagSlug")
         private String tagSlug;
-        private int problemsSolved;
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class LanguageStat {
-        private String languageName;
         private int problemsSolved;
     }
 

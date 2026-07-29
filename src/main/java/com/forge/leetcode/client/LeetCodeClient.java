@@ -75,10 +75,10 @@ public class LeetCodeClient {
             """;
 
     private static final String PROBLEMS_BY_TAG_QUERY = """
-            query problemsetQuestionList($filters: ProblemListFilterInput) {
+            query problemsetQuestionList($limit: Int, $filters: ProblemListFilterInput) {
               problemsetQuestionList: questionList(
                 categorySlug: "algorithms"
-                limit: 5
+                limit: $limit
                 skip: 0
                 filters: $filters
               ) {
@@ -143,7 +143,7 @@ public class LeetCodeClient {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(Map.of(
                             "query", PROBLEMS_BY_TAG_QUERY,
-                            "variables", Map.of("filters", Map.of("tags", List.of(tagSlug))),
+                            "variables", Map.of("limit", limit, "filters", Map.of("tags", List.of(tagSlug))),
                             "operationName", "problemsetQuestionList"
                     ))
                     .retrieve()
@@ -155,29 +155,6 @@ public class LeetCodeClient {
             }
         } catch (Exception e) {
             log.warn("Failed to fetch problems for tag {}: {}", tagSlug, e.getMessage());
-        }
-        return List.of();
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<LeetCodeProblemListResponse.Question> fetchProblemsByDifficulty(String difficulty, int limit) {
-        try {
-            LeetCodeProblemListResponse response = restClient.post()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of(
-                            "query", PROBLEMS_BY_TAG_QUERY,
-                            "variables", Map.of("filters", Map.of("difficulty", difficulty)),
-                            "operationName", "problemsetQuestionList"
-                    ))
-                    .retrieve()
-                    .body(LeetCodeProblemListResponse.class);
-
-            if (response != null && response.getData() != null
-                    && response.getData().getProblemsetQuestionList() != null) {
-                return response.getData().getProblemsetQuestionList().getQuestions();
-            }
-        } catch (Exception e) {
-            log.warn("Failed to fetch {} problems: {}", difficulty, e.getMessage());
         }
         return List.of();
     }

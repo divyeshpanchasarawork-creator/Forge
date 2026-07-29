@@ -3,6 +3,7 @@ package com.forge.recommendation.service;
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.common.exception.ResourceNotFoundException;
+import com.forge.common.util.ReadinessCalculator;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.entity.LeetCodeTagStat;
 import com.forge.leetcode.entity.ProblemSuggestion;
@@ -93,10 +94,10 @@ public class RecommendationEngine {
         int medium = snapshot.getMediumSolved() != null ? snapshot.getMediumSolved() : 0;
         int hard = snapshot.getHardSolved() != null ? snapshot.getHardSolved() : 0;
 
-        int targetTotal = getTargetTotal(target);
-        int targetHardPct = getTargetHardPct(target);
-        int targetMediumPct = getTargetMediumPct(target);
-        int targetEasyPct = getTargetEasyPct(target);
+        int targetTotal = ReadinessCalculator.getTargetTotal(target);
+        int targetHardPct = ReadinessCalculator.getTargetHardPct(target);
+        int targetMediumPct = ReadinessCalculator.getTargetMediumPct(target);
+        int targetEasyPct = ReadinessCalculator.getTargetEasyPct(target);
 
         if (total < targetTotal) {
             recs.add(createRecommendation(
@@ -138,34 +139,6 @@ public class RecommendationEngine {
         }
 
         return recs;
-    }
-
-    private int getTargetTotal(int level) {
-        if (level <= 2) return level <= 1 ? 50 : 80;
-        if (level <= 4) return level == 3 ? 120 : 180;
-        if (level <= 6) return level == 5 ? 250 : 320;
-        if (level <= 8) return level == 7 ? 400 : 500;
-        return level == 9 ? 600 : 800;
-    }
-
-    private int getTargetHardPct(int level) {
-        if (level <= 2) return 0;
-        if (level <= 4) return level == 3 ? 10 : 15;
-        if (level <= 6) return level == 5 ? 25 : 35;
-        if (level <= 8) return level == 7 ? 50 : 60;
-        return level == 9 ? 70 : 80;
-    }
-
-    private int getTargetMediumPct(int level) {
-        if (level <= 2) return level == 1 ? 20 : 30;
-        if (level <= 4) return level == 3 ? 40 : 50;
-        if (level <= 6) return level == 5 ? 55 : 50;
-        if (level <= 8) return level == 7 ? 40 : 35;
-        return level == 9 ? 25 : 20;
-    }
-
-    private int getTargetEasyPct(int level) {
-        return 100 - getTargetHardPct(level) - getTargetMediumPct(level);
     }
 
     private List<Recommendation> checkNextMilestone(LeetCodeSnapshot snapshot) {

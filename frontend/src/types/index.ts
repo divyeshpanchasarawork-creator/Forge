@@ -24,15 +24,6 @@ export interface TopicRequest {
   notes?: string;
 }
 
-export interface ProblemSuggestion {
-  id: string;
-  title: string;
-  titleSlug: string;
-  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
-  topicTagSlug: string;
-  topicTagName: string;
-}
-
 export interface Revision {
   id: string;
   topicId: string;
@@ -140,12 +131,6 @@ export interface DashboardResponse {
     notStartedTopics: number;
     overdueRevisions: number;
   };
-  weeklyProgress: {
-    problemsSolved: number;
-    topicsReviewed: number;
-    hoursStudied: number;
-    revisionsCompleted: number;
-  };
   recentJournal: string;
   recentProblems: string[];
   leetcodeStats: LeetCodeStats | null;
@@ -193,31 +178,37 @@ export interface LeetCodeTagStat {
   skillLevel: string;
 }
 
+export interface MemoryResponse {
+  fadingConcepts: {
+    topicId: string;
+    title: string;
+    category: string;
+    confidence: number;
+    mastery: number;
+    daysSinceRevision: number;
+    estimatedRetention: number | null;
+  }[];
+  patternsDiscovered: MemoryEntry[];
+  pastMistakes: MemoryEntry[];
+  insights: MemoryEntry[];
+}
+
+export interface MemoryEntry {
+  date: string;
+  content: string;
+  topicTitle: string | null;
+  topicCategory: string | null;
+}
+
 export interface AnalyticsResponse {
   totalProblems: number;
   totalTopics: number;
-  totalStudyHours: number;
   averageMastery: number;
-  averageConfidence: number;
   problemsByDifficulty: { easy: number; medium: number; hard: number };
   masteryByCategory: { category: string; averageMastery: number }[];
-  revisionCompletionRate: number;
-  learningTrend: { date: string; problemsSolved: number; hoursStudied: number }[];
   weakestTopics: { title: string; confidence: number; mastery: number; category: string }[];
   strongestTopics: { title: string; confidence: number; mastery: number; category: string }[];
   currentStreak: number;
-  leetcodeOverview: {
-    totalSolved: number;
-    easySolved: number;
-    mediumSolved: number;
-    hardSolved: number;
-    ranking: number | null;
-    streak: number;
-    totalActiveDays: number;
-    easyBeatsPct: number | null;
-    mediumBeatsPct: number | null;
-    hardBeatsPct: number | null;
-  } | null;
   targetLevel: number;
   readinessScore: number;
 }

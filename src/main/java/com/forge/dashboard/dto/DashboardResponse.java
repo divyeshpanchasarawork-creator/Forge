@@ -24,7 +24,6 @@ public class DashboardResponse {
     private List<TopicResponse> weakTopics;
     private List<TopicResponse> strongTopics;
     private KnowledgeHealth knowledgeHealth;
-    private WeeklyProgress weeklyProgress;
     private String recentJournal;
     private List<String> recentProblems;
     private LeetCodeStats leetcodeStats;
@@ -92,17 +91,6 @@ public class DashboardResponse {
         private int mastery;
         private int confidence;
         private String status;
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class WeeklyProgress {
-        private long problemsSolved;
-        private long topicsReviewed;
-        private Double hoursStudied;
-        private long revisionsCompleted;
     }
 
     @Getter

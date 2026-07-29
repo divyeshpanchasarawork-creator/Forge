@@ -1,5 +1,5 @@
 import api from './client';
-import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Topic, TopicRequest, PagedResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, LeetCodeStats } from '@/types';
+import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, LeetCodeStats, MemoryResponse } from '@/types';
 
 export const authApi = {
   login: (username: string, password: string) =>
@@ -20,23 +20,6 @@ export const dashboardApi = {
   get: () => api.get<ApiResponse<DashboardResponse>>('/dashboard'),
 };
 
-export const topicsApi = {
-  getAll: (page = 0, size = 20, category?: string, status?: string) => {
-    const params = new URLSearchParams({ page: String(page), size: String(size) });
-    if (category) params.append('category', category);
-    if (status) params.append('status', status);
-    return api.get<ApiResponse<PagedResponse<Topic>>>(`/topics?${params}`);
-  },
-  getById: (id: string) => api.get<ApiResponse<Topic>>(`/topics/${id}`),
-  create: (data: TopicRequest) => api.post<ApiResponse<Topic>>('/topics', data),
-  update: (id: string, data: TopicRequest) => api.put<ApiResponse<Topic>>(`/topics/${id}`, data),
-  delete: (id: string) => api.delete(`/topics/${id}`),
-  getWeak: () => api.get<ApiResponse<Topic[]>>('/topics/weak'),
-  getStrong: () => api.get<ApiResponse<Topic[]>>('/topics/strong'),
-};
-
-
-
 export const revisionsApi = {
   getToday: () => api.get<ApiResponse<Revision[]>>('/revisions/today'),
   getPending: () => api.get<ApiResponse<Revision[]>>('/revisions/pending'),
@@ -50,16 +33,16 @@ export const recommendationsApi = {
 };
 
 export const journalsApi = {
-  getAll: (page = 0, size = 20) =>
-    api.get<ApiResponse<PagedResponse<Journal>>>(`/journals?page=${page}&size=${size}`),
-  getToday: () => api.get<ApiResponse<Journal>>('/journals/today'),
   getRecent: () => api.get<ApiResponse<Journal[]>>('/journals/recent'),
   save: (data: JournalRequest) => api.post<ApiResponse<Journal>>('/journals', data),
 };
 
 export const analyticsApi = {
   get: () => api.get<ApiResponse<AnalyticsResponse>>('/analytics'),
-  getWeekly: () => api.get<ApiResponse<any>>('/analytics/weekly'),
+};
+
+export const memoryApi = {
+  get: () => api.get<ApiResponse<MemoryResponse>>('/memory'),
 };
 
 export const leetcodeApi = {

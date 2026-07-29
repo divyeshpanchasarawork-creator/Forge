@@ -1,7 +1,6 @@
 package com.forge.analytics.controller;
 
 import com.forge.analytics.dto.AnalyticsResponse;
-import com.forge.analytics.dto.WeeklyProgressResponse;
 import com.forge.analytics.service.AnalyticsService;
 import com.forge.common.dto.ApiResponse;
 import lombok.RequiredArgsConstructor;
@@ -20,10 +19,5 @@ public class AnalyticsController {
     @GetMapping
     public ResponseEntity<ApiResponse<AnalyticsResponse>> getAnalytics() {
         return ResponseEntity.ok(ApiResponse.success(analyticsService.getAnalytics()));
-    }
-
-    @GetMapping("/weekly")
-    public ResponseEntity<ApiResponse<WeeklyProgressResponse>> getWeeklyProgress() {
-        return ResponseEntity.ok(ApiResponse.success(analyticsService.getWeeklyProgress()));
     }
 }

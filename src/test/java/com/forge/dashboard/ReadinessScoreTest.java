@@ -8,7 +8,6 @@ import com.forge.dashboard.service.DashboardService;
 import com.forge.journal.repository.JournalRepository;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
-import com.forge.recommendation.service.RecommendationEngine;
 import com.forge.recommendation.service.RecommendationService;
 import com.forge.revision.service.RevisionService;
 import com.forge.topic.entity.Topic;
@@ -37,7 +36,6 @@ class ReadinessScoreTest {
     @Mock private TopicService topicService;
     @Mock private RevisionService revisionService;
     @Mock private RecommendationService recommendationService;
-    @Mock private RecommendationEngine recommendationEngine;
     @Mock private JournalRepository journalRepository;
     @Mock private TopicRepository topicRepository;
     @Mock private LeetCodeSnapshotRepository snapshotRepository;
@@ -50,7 +48,7 @@ class ReadinessScoreTest {
     void setUp() {
         dashboardService = new DashboardService(
                 userRepository, topicService, revisionService, recommendationService,
-                recommendationEngine, journalRepository, topicRepository, snapshotRepository
+                journalRepository, topicRepository, snapshotRepository
         );
         userId = UUID.randomUUID();
         user = new User();
@@ -80,7 +78,6 @@ class ReadinessScoreTest {
         topic.setStatus("MASTERED");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(recommendationEngine.generateForUser(any(), anyBoolean())).thenReturn(List.of());
         when(recommendationService.getActiveRecommendations()).thenReturn(List.of());
         when(topicService.getWeakTopics()).thenReturn(List.of());
         when(topicService.getStrongTopics()).thenReturn(List.of());
@@ -123,7 +120,6 @@ class ReadinessScoreTest {
         topic.setStatus("IN_PROGRESS");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(recommendationEngine.generateForUser(any(), anyBoolean())).thenReturn(List.of());
         when(recommendationService.getActiveRecommendations()).thenReturn(List.of());
         when(topicService.getWeakTopics()).thenReturn(List.of());
         when(topicService.getStrongTopics()).thenReturn(List.of());
@@ -159,7 +155,6 @@ class ReadinessScoreTest {
         snapshot.setContestAttendedCount(1);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(recommendationEngine.generateForUser(any(), anyBoolean())).thenReturn(List.of());
         when(recommendationService.getActiveRecommendations()).thenReturn(List.of());
         when(topicService.getWeakTopics()).thenReturn(List.of());
         when(topicService.getStrongTopics()).thenReturn(List.of());

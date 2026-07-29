@@ -31,6 +31,13 @@ Layered monolith. Packages by feature (auth, topic, problem, revision, recommend
 ## Testing
 Run: `mvn test`
 
+## Design Decisions & Refactors
+- Delete-after-fetch in LeetCode sync: delete runs after successful fetch+save to avoid wiping topics on API failure
+- Recommendations no longer auto-generated on dashboard load; only on explicit sync or manual generate
+- Readiness score logic extracted into shared `ReadinessCalculator` utility (used by `DashboardService`, `AnalyticsService`, `RecommendationEngine`)
+- Memory page surfaces fading concepts, patterns, mistakes, and insights from journal entries
+- KpiCard component simplified (no trend/trendValue props)
+
 ## Key Dependencies
 - Spring Boot 4.0.7, Spring Security 7, Spring Data JPA
 - PostgreSQL (prod), H2 (dev)

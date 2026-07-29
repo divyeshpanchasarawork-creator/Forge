@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Code2, RefreshCw, PenLine, BarChart3, User, Flame, LogOut, Lightbulb } from 'lucide-react';
+import { LayoutDashboard, Code2, RefreshCw, PenLine, BarChart3, User, Flame, LogOut, Lightbulb, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/problems', icon: Code2, label: 'Practice' },
   { to: '/revision', icon: RefreshCw, label: 'Revision' },
   { to: '/journal', icon: PenLine, label: 'Journal' },
+  { to: '/memory', icon: Brain, label: 'Memory' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/profile', icon: User, label: 'Profile' },
 ];

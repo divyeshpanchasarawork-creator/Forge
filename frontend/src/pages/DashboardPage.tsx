@@ -5,8 +5,7 @@ import KpiCard from '@/components/ui/KpiCard';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Flame, Target, RefreshCw, TrendingUp, TrendingDown, BookOpen, Zap,
-  Trophy, Code2, AlertTriangle, Clock, Brain, BarChart3, Layers,
-  CheckCircle, Circle, ArrowRight, Lightbulb
+  Code2, AlertTriangle, Clock, Brain, Layers
 } from 'lucide-react';
 
 const masteryColor = (m: number) => {

@@ -3,7 +3,7 @@ import { revisionsApi } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import KpiCard from '@/components/ui/KpiCard';
 import { useAuth } from '@/contexts/AuthContext';
-import { CheckCircle, Clock, Calendar, ListTodo, TrendingUp, Brain, Target } from 'lucide-react';
+import { CheckCircle, Clock, Calendar, ListTodo, TrendingUp, Brain } from 'lucide-react';
 
 export default function RevisionPage() {
   const { user } = useAuth();

@@ -4,13 +4,13 @@ import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.common.exception.ResourceNotFoundException;
 import com.forge.common.util.GreetingUtil;
+import com.forge.common.util.ReadinessCalculator;
 import com.forge.common.util.SecurityUtils;
 import com.forge.dashboard.dto.DashboardResponse;
 import com.forge.journal.repository.JournalRepository;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.recommendation.dto.RecommendationResponse;
-import com.forge.recommendation.service.RecommendationEngine;
 import com.forge.recommendation.service.RecommendationService;
 import com.forge.revision.dto.RevisionResponse;
 import com.forge.revision.service.RevisionService;
@@ -34,7 +34,6 @@ public class DashboardService {
     private final TopicService topicService;
     private final RevisionService revisionService;
     private final RecommendationService recommendationService;
-    private final RecommendationEngine recommendationEngine;
     private final JournalRepository journalRepository;
     private final TopicRepository topicRepository;
     private final LeetCodeSnapshotRepository snapshotRepository;
@@ -43,8 +42,6 @@ public class DashboardService {
         UUID userId = SecurityUtils.getCurrentUserId();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-
-        recommendationEngine.generateForUser(userId, true);
 
         String greeting = GreetingUtil.getGreeting(user.getDisplayName());
 
@@ -106,7 +103,6 @@ public class DashboardService {
                 weakTopics,
                 strongTopics,
                 new DashboardResponse.KnowledgeHealth(avgMastery, avgConfidence, avgRetention, allTopics.size(), masteredCount, inProgressCount, notStartedCount, overdueCount),
-                new DashboardResponse.WeeklyProgress(0, 0, 0.0, 0),
                 journalSummary,
                 List.of(),
                 lcStats,
@@ -128,26 +124,20 @@ public class DashboardService {
             currentHard = snapshot.getHardSolved() != null ? snapshot.getHardSolved() : 0;
         }
 
-        int targetTotal = getTargetTotal(targetLevel);
-        int targetHardPct = getTargetHardPct(targetLevel);
-        int targetMediumPct = getTargetMediumPct(targetLevel);
-        int targetEasyPct = getTargetEasyPct(targetLevel);
+        int targetTotal = ReadinessCalculator.getTargetTotal(targetLevel);
+        int targetHardPct = ReadinessCalculator.getTargetHardPct(targetLevel);
+        int targetMediumPct = ReadinessCalculator.getTargetMediumPct(targetLevel);
+        int targetEasyPct = ReadinessCalculator.getTargetEasyPct(targetLevel);
 
         int targetEasy = (targetEasyPct * targetTotal) / 100;
         int targetMedium = (targetMediumPct * targetTotal) / 100;
         int targetHard = (targetHardPct * targetTotal) / 100;
 
-        double problemScore = Math.min(100.0, (double) totalSolved / targetTotal * 100);
-        double easyScore = targetEasy > 0 ? Math.min(100.0, (double) currentEasy / targetEasy * 100) : 100.0;
-        double mediumScore = targetMedium > 0 ? Math.min(100.0, (double) currentMedium / targetMedium * 100) : 100.0;
-        double hardScore = targetHard > 0 ? Math.min(100.0, (double) currentHard / targetHard * 100) : 100.0;
-        double topicScore = allTopics.isEmpty() ? 0 : (double) allTopics.stream().filter(t -> t.getConfidence() >= 5).count() / Math.max(allTopics.size(), 1) * 100;
-
-        double readiness = (problemScore * 0.30) + ((easyScore + mediumScore + hardScore) / 3.0 * 0.35) + (topicScore * 0.35);
+        int readiness = ReadinessCalculator.computeReadinessScore(targetLevel, allTopics, snapshot);
 
         return new DashboardResponse.TargetProgress(
                 targetLevel,
-                (int) Math.round(Math.min(100, readiness)),
+                readiness,
                 totalSolved,
                 targetTotal,
                 new DashboardResponse.DifficultyGap(currentEasy, currentMedium, currentHard, targetEasy, targetMedium, targetHard)
@@ -180,31 +170,4 @@ public class DashboardService {
         return result;
     }
 
-    private int getTargetTotal(int level) {
-        if (level <= 2) return level <= 1 ? 50 : 80;
-        if (level <= 4) return level == 3 ? 120 : 180;
-        if (level <= 6) return level == 5 ? 250 : 320;
-        if (level <= 8) return level == 7 ? 400 : 500;
-        return level == 9 ? 600 : 800;
-    }
-
-    private int getTargetHardPct(int level) {
-        if (level <= 2) return 0;
-        if (level <= 4) return level == 3 ? 10 : 15;
-        if (level <= 6) return level == 5 ? 25 : 35;
-        if (level <= 8) return level == 7 ? 50 : 60;
-        return level == 9 ? 70 : 80;
-    }
-
-    private int getTargetMediumPct(int level) {
-        if (level <= 2) return level == 1 ? 20 : 30;
-        if (level <= 4) return level == 3 ? 40 : 50;
-        if (level <= 6) return level == 5 ? 55 : 50;
-        if (level <= 8) return level == 7 ? 40 : 35;
-        return level == 9 ? 25 : 20;
-    }
-
-    private int getTargetEasyPct(int level) {
-        return 100 - getTargetHardPct(level) - getTargetMediumPct(level);
-    }
 }
