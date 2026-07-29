@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -32,31 +33,170 @@ public class RecommendationEngine {
     private final LeetCodeSnapshotRepository snapshotRepository;
     private final LeetCodeTagStatRepository tagStatRepository;
 
-    public List<Recommendation> generateForUser(UUID userId) {
+    public List<Recommendation> generateForUser(UUID userId, boolean persist) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
         List<Recommendation> recs = new ArrayList<>();
-        recs.addAll(checkLowConfidenceTopics(userId));
-        recs.addAll(checkOverdueRevisions(userId));
-        recs.addAll(checkMasteryThreshold(userId));
+        recs.addAll(checkLowConfidenceTopics(userId, user));
+        recs.addAll(checkOverdueRevisions(userId, user));
 
         LeetCodeSnapshot snapshot = snapshotRepository.findByUserId(userId).orElse(null);
+        int streak = (snapshot != null && snapshot.getStreak() != null) ? snapshot.getStreak() : 0;
+
         if (snapshot != null) {
             recs.addAll(generateLcRecommendations(userId, snapshot));
+            recs.addAll(checkNextMilestone(snapshot));
+            recs.addAll(checkDifficultyGap(snapshot, user));
         } else if (user.getLeetcodeUsername() != null && !user.getLeetcodeUsername().isBlank()) {
             recs.add(createRecommendation(
                     "Connect your LeetCode profile",
                     "You have a LeetCode username set but haven't synced yet. Sync to get personalized insights.",
                     "Sync your LeetCode profile to unlock data-driven recommendations.",
-                    1, "SYNC_LEETCODE", user));
+                    scorePriority(2, streak), "SYNC_LEETCODE", user));
         }
 
         recs.forEach(r -> r.setUser(user));
 
-        return recs.stream()
+        List<Recommendation> sorted = recs.stream()
                 .sorted(Comparator.comparing(Recommendation::getPriority))
                 .toList();
+
+        if (persist) {
+            recommendationRepository.deleteByUserIdAndDismissed(userId, false);
+            recommendationRepository.saveAll(sorted);
+            log.info("Generated and saved {} recommendations for user {}", sorted.size(), userId);
+        }
+
+        return sorted;
+    }
+
+    public List<Recommendation> generateForUser(UUID userId) {
+        return generateForUser(userId, false);
+    }
+
+    private int scorePriority(int basePriority, int streak) {
+        int streakPenalty = (streak < 3) ? 2 : 0;
+        return basePriority + streakPenalty;
+    }
+
+    private List<Recommendation> checkDifficultyGap(LeetCodeSnapshot snapshot, User user) {
+        List<Recommendation> recs = new ArrayList<>();
+        int target = user.getTargetLevel() != null ? user.getTargetLevel() : 5;
+
+        if (snapshot.getMediumSolved() == null) return recs;
+        int total = snapshot.getTotalSolved() != null ? snapshot.getTotalSolved() : 0;
+        int easy = snapshot.getEasySolved() != null ? snapshot.getEasySolved() : 0;
+        int medium = snapshot.getMediumSolved() != null ? snapshot.getMediumSolved() : 0;
+        int hard = snapshot.getHardSolved() != null ? snapshot.getHardSolved() : 0;
+
+        int targetTotal = getTargetTotal(target);
+        int targetHardPct = getTargetHardPct(target);
+        int targetMediumPct = getTargetMediumPct(target);
+        int targetEasyPct = getTargetEasyPct(target);
+
+        if (total < targetTotal) {
+            recs.add(createRecommendation(
+                    "Solve " + (targetTotal - total) + " more problems for Level " + target,
+                    "You've solved " + total + " / " + targetTotal + " problems. " + (targetTotal - total) + " more to go.",
+                    "Your target level " + target + " requires at least " + targetTotal + " problems. Stay consistent.",
+                    total > targetTotal / 2 ? 3 : 2, "MILESTONE", user));
+        }
+
+        int idealHard = (targetHardPct * targetTotal) / 100;
+        if (hard < idealHard / 2) {
+            recs.add(createRecommendation(
+                    "Focus on Hard problems for Level " + target,
+                    "You've solved " + hard + " Hard problems. At Level " + target + ", aim for " + idealHard + ".",
+                    "Hard problems are weighted heavily at your target level. Practice them regularly.",
+                    easy > hard ? 1 : 2, "TRY_HARD", user));
+        }
+
+        int idealMedium = (targetMediumPct * targetTotal) / 100;
+        if (medium < idealMedium / 2) {
+            recs.add(createRecommendation(
+                    "Build your Medium count for Level " + target,
+                    "You've solved " + medium + " Medium problems. Target: ~" + idealMedium + ".",
+                    "Medium problems form the backbone of most interviews at Level " + target + ".",
+                    medium < idealMedium / 3 ? 1 : 2, "LEVEL_UP", user));
+        }
+
+        return recs;
+    }
+
+    private int getTargetTotal(int level) {
+        if (level <= 2) return level <= 1 ? 50 : 80;
+        if (level <= 4) return level == 3 ? 120 : 180;
+        if (level <= 6) return level == 5 ? 250 : 320;
+        if (level <= 8) return level == 7 ? 400 : 500;
+        return level == 9 ? 600 : 800;
+    }
+
+    private int getTargetHardPct(int level) {
+        if (level <= 2) return 0;
+        if (level <= 4) return level == 3 ? 10 : 15;
+        if (level <= 6) return level == 5 ? 25 : 35;
+        if (level <= 8) return level == 7 ? 50 : 60;
+        return level == 9 ? 70 : 80;
+    }
+
+    private int getTargetMediumPct(int level) {
+        if (level <= 2) return level == 1 ? 20 : 30;
+        if (level <= 4) return level == 3 ? 40 : 50;
+        if (level <= 6) return level == 5 ? 55 : 50;
+        if (level <= 8) return level == 7 ? 40 : 35;
+        return level == 9 ? 25 : 20;
+    }
+
+    private int getTargetEasyPct(int level) {
+        return 100 - getTargetHardPct(level) - getTargetMediumPct(level);
+    }
+
+    private List<Recommendation> checkNextMilestone(LeetCodeSnapshot snapshot) {
+        List<Recommendation> recs = new ArrayList<>();
+
+        int easy = snapshot.getEasySolved() != null ? snapshot.getEasySolved() : 0;
+        int medium = snapshot.getMediumSolved() != null ? snapshot.getMediumSolved() : 0;
+        int hard = snapshot.getHardSolved() != null ? snapshot.getHardSolved() : 0;
+        int total = snapshot.getTotalSolved() != null ? snapshot.getTotalSolved() : 0;
+
+        int nextRoundMilestone = ((total / 50) + 1) * 50;
+        int toGo = nextRoundMilestone - total;
+        if (toGo > 0 && toGo <= 20) {
+            recs.add(createRecommendation(
+                    "Reach " + nextRoundMilestone + " problems solved",
+                    "You're only " + toGo + " problems away from " + nextRoundMilestone + " total solved!",
+                    "Milestones build momentum. Set a short-term goal to close the gap.",
+                    2, "MILESTONE", null));
+        }
+
+        int nextMediumMilestone = ((medium / 25) + 1) * 25;
+        int mediumToGo = nextMediumMilestone - medium;
+        if (mediumToGo > 0 && mediumToGo <= 10) {
+            recs.add(createRecommendation(
+                    "Solve " + mediumToGo + " more Medium problems",
+                    mediumToGo + " more Medium problems will get you to " + nextMediumMilestone + ".",
+                    "Medium problems are the sweet spot for interview preparation.",
+                    2, "MILESTONE", null));
+        }
+
+        if (easy > 0 && medium == 0 && hard == 0) {
+            recs.add(createRecommendation(
+                    "Start solving harder problems",
+                    "All your solved problems are Easy. Challenge yourself with Medium and Hard.",
+                    "Progressive difficulty builds depth. Try a Medium problem next.",
+                    2, "LEVEL_UP", null));
+        }
+
+        if (easy > 20 && (medium == 0 || medium < easy / 3)) {
+            recs.add(createRecommendation(
+                    "Transition from Easy to Medium",
+                    "You've built a solid Easy foundation. Now focus on Medium problems.",
+                    "Interviews at most companies go beyond Easy. Medium problems are the next step.",
+                    2, "LEVEL_UP", null));
+        }
+
+        return recs;
     }
 
     private List<Recommendation> generateLcRecommendations(UUID userId, LeetCodeSnapshot snapshot) {
@@ -71,7 +211,7 @@ public class RecommendationEngine {
                     "Practice " + tag.getTagName(),
                     "You've only solved " + tag.getProblemsSolved() + " problem(s) in " + tag.getTagName() + ".",
                     "Building breadth across tags strengthens your problem-solving toolkit.",
-                    1, "PRACTICE_TAG", user));
+                    tag.getProblemsSolved() <= 2 ? 1 : 2, "PRACTICE_TAG", user));
         }
 
         if (snapshot.getEasySolved() > 0) {
@@ -118,54 +258,53 @@ public class RecommendationEngine {
         return recs;
     }
 
-    private List<Recommendation> checkLowConfidenceTopics(UUID userId) {
+    private List<Recommendation> checkLowConfidenceTopics(UUID userId, User user) {
         List<Topic> weakTopics = topicRepository.findWeakTopicsByUserId(userId);
         List<Recommendation> recs = new ArrayList<>();
+        int target = user.getTargetLevel() != null ? user.getTargetLevel() : 5;
 
         for (Topic topic : weakTopics) {
+            int adjustedPriority = target >= 7 ? 1 : (target >= 4 ? 2 : 3);
             recs.add(createRecommendation(
                     "Review " + topic.getTitle(),
                     "Your confidence in " + topic.getTitle() + " is only " + topic.getConfidence() + "/10.",
                     "Low confidence indicates weak understanding. Regular review helps build mastery.",
-                    1, "REVIEW", userRepository.getReferenceById(userId)));
+                    adjustedPriority, "REVIEW", user));
         }
 
-        return recs;
-    }
-
-    private List<Recommendation> checkOverdueRevisions(UUID userId) {
-        List<Topic> overdueTopics = topicRepository.findTopicsNeedingRevisionByUserId(userId);
-        List<Recommendation> recs = new ArrayList<>();
-        User user = userRepository.getReferenceById(userId);
-
-        for (Topic topic : overdueTopics) {
-            if (topic.getLastRevision() != null) {
-                long daysSince = java.time.Duration.between(topic.getLastRevision(), LocalDateTime.now()).toDays();
-                if (daysSince > 14) {
-                    recs.add(createRecommendation(
-                            topic.getTitle() + " needs review",
-                            topic.getTitle() + " hasn't been reviewed in " + daysSince + " days.",
-                            "Spaced repetition requires regular review. Your retention drops without practice.",
-                            1, "REVIEW", user));
-                }
+        if (target >= 7) {
+            List<Topic> midTopics = topicRepository.findByUserId(userId,
+                    org.springframework.data.domain.PageRequest.of(0, 50)).getContent().stream()
+                    .filter(t -> t.getConfidence() >= 4 && t.getConfidence() < 7)
+                    .toList();
+            for (Topic topic : midTopics) {
+                recs.add(createRecommendation(
+                        "Deepen " + topic.getTitle(),
+                        topic.getTitle() + " confidence is " + topic.getConfidence() + "/10. At your target level, aim for 7+.",
+                        "For Level " + target + " companies, medium confidence isn't enough. Push for mastery.",
+                        2, "REVIEW", user));
             }
         }
 
         return recs;
     }
 
-    private List<Recommendation> checkMasteryThreshold(UUID userId) {
-        List<Topic> strongTopics = topicRepository.findStrongTopicsByUserId(userId);
+    private List<Recommendation> checkOverdueRevisions(UUID userId, User user) {
+        List<Topic> overdueTopics = topicRepository.findTopicsNeedingRevisionByUserId(userId);
         List<Recommendation> recs = new ArrayList<>();
-        User user = userRepository.getReferenceById(userId);
+        int target = user.getTargetLevel() != null ? user.getTargetLevel() : 5;
+        int overdueThreshold = target >= 7 ? 7 : (target >= 4 ? 14 : 21);
 
-        for (Topic topic : strongTopics) {
-            if (topic.getMastery() > 80) {
-                recs.add(createRecommendation(
-                        "Ready for advanced " + topic.getTitle(),
-                        "Great progress on " + topic.getTitle() + "! Mastery: " + topic.getMastery() + "%",
-                        "High mastery means you're ready to tackle more complex concepts in this area.",
-                        3, "ADVANCE", user));
+        for (Topic topic : overdueTopics) {
+            if (topic.getLastRevision() != null) {
+                long daysSince = java.time.Duration.between(topic.getLastRevision(), LocalDateTime.now()).toDays();
+                if (daysSince > overdueThreshold) {
+                    recs.add(createRecommendation(
+                            topic.getTitle() + " needs review",
+                            topic.getTitle() + " hasn't been reviewed in " + daysSince + " days.",
+                            "Spaced repetition requires regular review. Your retention drops without practice.",
+                            1, "REVIEW", user));
+                }
             }
         }
 

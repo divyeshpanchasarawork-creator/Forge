@@ -1,50 +1,51 @@
-# Forge Session State — Jul 28, 2026
+# Session State — Phase 2 Complete
 
-## Current Status
-- **GitHub repo:** https://github.com/divyeshpanchasarawork-creator/Forge.git (4 commits on `main`)
-- **Render:** Blueprint deployed, auto-redeploying after latest push (`b9240d1` — flyway fix). Waiting for **Live** status.
-- **Vercel:** Not started yet.
-- **Tests:** `mvn test` passes, `npm run build` passes.
+## Completed
+- **Sprint 1**: Security + Cold Start
+  - JWT secret defaults removed (fails fast if not set)
+  - Password validation: 8+ chars with uppercase, lowercase, digit, special
+  - Rate limiting: 5 req/min/IP on `/api/auth/**`
+  - httpOnly cookies for JWT (`forge_token`) + refresh token (`forge_refresh`)
+  - `/api/auth/refresh` endpoint
+  - `/api/auth/logout` endpoint (clears cookies)
+  - JwtAuthenticationFilter reads from cookie then Authorization header
+  - Frontend: sessionStorage + refresh token fallback; 3x retry with backoff on 502/503/504
+  - `spring.main.lazy-initialization=true` in prod profile
 
-## What Was Done This Session
-1. **Flame favicon** — replaced purple "F" with flame SVG, added `apple-touch-icon`
-2. **Login page redesign** — split layout (branding left, auth card right), features section, footer
-3. **Auth card fix** — fixed `min-height` to prevent card resizing on sign-in/register toggle
-4. **Registration errors** — frontend now parses backend messages for "username taken" / "email in use"
-5. **CORS** — env-driven via `cors.allowed-origins` property (defaults to `https://forge-psi.vercel.app`)
-6. **Swagger disabled in prod** via `application-prod.properties`
-7. **Health endpoint** — `/api/health` (public, no auth required)
-8. **Security config** — added `/api/health` to `permitAll()`
-9. **Migrations consolidated** — V1 (complete schema) + V2 (dev seed user). Deleted V3/V4/V5.
-10. **render.yaml fixed** — `databases:` top-level key, env vars: `DB_HOST`/`DB_PORT`/`DB_NAME`/`DATABASE_USERNAME`/`DATABASE_PASSWORD`
-11. **Dockerfile** — multi-stage build (Maven build + JRE runtime), uses `${JAVA_OPTS}` env var
-12. **Dead code removed** — `App.css`, empty `assets/` dir
-13. **Flyway fix** — added `flyway-database-postgresql` dependency (Render uses PostgreSQL 18.4)
+- **Sprint 2**: N+1 Queries + Indexes
+  - Revision repository: all queries use `JOIN FETCH r.topic`
+  - Problem repository: `@EntityGraph(attributePaths = {"topics"})` on finder methods
+  - Revision `findByIdWithTopic()` for the completion flow
+  - V3 migration: `idx_revisions_user_id`, `idx_recommendations_user_id`
 
-## What's Next
-1. **Check Render deploy** — go to Render dashboard → forge-api → check if it's **Live**
-2. **Get the backend URL** — something like `https://forge-api-xxxx.onrender.com`
-3. **Deploy frontend to Vercel:**
-   - New Project → Import GitHub repo
-   - Root Directory: `frontend/`
-   - Framework: Vite (auto-detected)
-   - Env var: `VITE_API_URL` = `https://forge-api-xxxx.onrender.com/api`
-4. **Update CORS** — set `cors.allowed-origins` env var on Render to the actual Vercel URL (e.g., `https://forge-xxxx.vercel.app`)
-5. **Verify** — register a user, login, test LeetCode sync
+- **Sprint 3**: SM-2 Scheduling
+  - `easinessFactor`, `repetitionInterval`, `lastQuality` fields on Topic entity
+  - V4 migration for SM-2 columns
+  - `SpacedRepetitionService` implements SM-2 algorithm
+  - `completeRevision` accepts quality param (0-5), uses SM-2 for interval/boost
+  - Mastery boost formula: `min(10, 3 + quality*1.5 - revisionCount*0.3)`
 
-## Key Files
-- `render.yaml` — Render Blueprint config (Docker-based)
-- `Dockerfile` — multi-stage Java 21 build
-- `.dockerignore` — excludes target/, node_modules/, .git
-- `src/main/resources/application-prod.properties` — prod config (DB URL from `DB_HOST`/`DB_PORT`/`DB_NAME`)
-- `src/main/resources/db/migration/V1__init.sql` — complete schema
-- `src/main/resources/db/migration/V2__seed_default_user.sql` — dev seed (username: `forge`, password: `forge123`)
-- `frontend/src/pages/LoginPage.tsx` — landing page + auth
-- `frontend/src/api/index.ts` — all API calls including auth
+- **Sprint 4**: AI Review Engine
+  - Enhanced `RecommendationEngine` with priority scoring + milestone recommendations
+  - Next milestone: rounds to nearest 50, 25-Medium thresholds
+  - Frontend Roadmap page with priority badges (High/Medium/Low), dismiss button
+  - Roadmap link in sidebar + route in App.tsx
 
-## Architecture Notes
-- Backend: Spring Boot 4.0.7, Java 21, Spring Security 7, PostgreSQL (prod) / H2 (dev)
-- Frontend: React 19, TypeScript, Vite, TanStack Query
-- Auth: JWT (jjwt 0.12.6), BCrypt passwords
-- LeetCode: GraphQL client with 5-min cache, topic auto-mapper
-- Deployment: Render (backend + PostgreSQL), Vercel (frontend SPA)
+- **Sprint 5**: KPI Cards
+  - `KpiCard` component with icon, value, label, tooltip, trend support
+  - Dashboard uses KpiCards with tooltip explanations
+
+- **Sprint 6**: Code Consolidation
+  - `LoadingSkeleton` component for loading states
+  - `parseApiError` utility for consistent error messages
+  - LoginPage updated to use `parseApiError`
+
+- **Sprint 7**: Documentation
+  - AGENTS.md updated with all new conventions
+  - SESSION_STATE.md created (this file)
+
+## Deployment Notes
+- Backend: Render uses Dockerfile multi-stage build
+- Frontend: Vercel, `VITE_API_URL` must be set to `https://forge-api-a4uy.onrender.com/api`
+- `jwt.secret` env var must be set on Render (no default)
+- Cold start: ~30s on Render free tier; frontend retries 3x with 5s/10s/15s backoff

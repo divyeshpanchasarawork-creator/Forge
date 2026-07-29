@@ -26,6 +26,8 @@ public class AnalyticsResponse {
     private List<TopicSummary> strongestTopics;
     private long currentStreak;
     private LeetCodeOverview leetcodeOverview;
+    private Integer targetLevel;
+    private Integer readinessScore;
 
     @Getter
     @Setter

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import LoginPage from '@/pages/LoginPage';
 import DashboardPage from '@/pages/DashboardPage';
+import RoadmapPage from '@/pages/RoadmapPage';
 import TopicsPage from '@/pages/TopicsPage';
 import ProblemsPage from '@/pages/ProblemsPage';
 import RevisionPage from '@/pages/RevisionPage';
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route index element={<DashboardPage />} />
+              <Route path="roadmap" element={<RoadmapPage />} />
               <Route path="topics" element={<TopicsPage />} />
               <Route path="problems" element={<ProblemsPage />} />
               <Route path="revision" element={<RevisionPage />} />

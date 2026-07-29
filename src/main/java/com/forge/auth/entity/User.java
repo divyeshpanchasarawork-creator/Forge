@@ -30,4 +30,7 @@ public class User extends BaseEntity {
 
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
+
+    @Column(name = "target_level")
+    private Integer targetLevel = 5;
 }

@@ -2,6 +2,8 @@ package com.forge.analytics.service;
 
 import com.forge.analytics.dto.AnalyticsResponse;
 import com.forge.analytics.dto.WeeklyProgressResponse;
+import com.forge.auth.entity.User;
+import com.forge.auth.repository.UserRepository;
 import com.forge.common.util.SecurityUtils;
 import com.forge.journal.entity.Journal;
 import com.forge.journal.repository.JournalRepository;
@@ -26,6 +28,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AnalyticsService {
 
+    private final UserRepository userRepository;
     private final ProblemRepository problemRepository;
     private final TopicRepository topicRepository;
     private final RevisionRepository revisionRepository;
@@ -124,6 +127,11 @@ public class AnalyticsService {
             );
         }
 
+        User user = userRepository.findById(userId).orElse(null);
+        int targetLevel = user != null && user.getTargetLevel() != null ? user.getTargetLevel() : 5;
+
+        int readinessScore = computeReadinessScore(targetLevel, allTopics, lcSnapshot);
+
         return new AnalyticsResponse(
                 totalProblems,
                 totalTopics,
@@ -137,7 +145,9 @@ public class AnalyticsService {
                 weakest,
                 strongest,
                 streak,
-                lcOverview
+                lcOverview,
+                targetLevel,
+                readinessScore
         );
     }
 
@@ -157,6 +167,66 @@ public class AnalyticsService {
                 revisionsCompleted,
                 weekJournals.size()
         );
+    }
+
+    private int computeReadinessScore(int targetLevel, List<Topic> allTopics, LeetCodeSnapshot snapshot) {
+        int totalSolved = 0;
+        int easy = 0;
+        int medium = 0;
+        int hard = 0;
+        if (snapshot != null) {
+            totalSolved = snapshot.getTotalSolved() != null ? snapshot.getTotalSolved() : 0;
+            easy = snapshot.getEasySolved() != null ? snapshot.getEasySolved() : 0;
+            medium = snapshot.getMediumSolved() != null ? snapshot.getMediumSolved() : 0;
+            hard = snapshot.getHardSolved() != null ? snapshot.getHardSolved() : 0;
+        }
+
+        int targetTotal = getTargetTotal(targetLevel);
+        int targetHPct = getTargetHardPct(targetLevel);
+        int targetMPct = getTargetMediumPct(targetLevel);
+        int targetEPct = getTargetEasyPct(targetLevel);
+
+        int targetHardTotal = (targetHPct * targetTotal) / 100;
+        int targetMediumTotal = (targetMPct * targetTotal) / 100;
+        int targetEasyTotal = (targetEPct * targetTotal) / 100;
+
+        double problemScore = Math.min(100.0, (double) totalSolved / targetTotal * 100);
+        double easyScore = targetEasyTotal > 0 ? Math.min(100.0, (double) easy / targetEasyTotal * 100) : 100.0;
+        double mediumScore = targetMediumTotal > 0 ? Math.min(100.0, (double) medium / targetMediumTotal * 100) : 100.0;
+        double hardScore = targetHardTotal > 0 ? Math.min(100.0, (double) hard / targetHardTotal * 100) : 100.0;
+        double topicScore = allTopics.isEmpty() ? 0 :
+                (double) allTopics.stream().filter(t -> t.getConfidence() >= 5).count() / allTopics.size() * 100;
+
+        double readiness = (problemScore * 0.30) + ((easyScore + mediumScore + hardScore) / 3.0 * 0.35) + (topicScore * 0.35);
+        return (int) Math.round(Math.min(100, readiness));
+    }
+
+    private int getTargetTotal(int level) {
+        if (level <= 2) return level <= 1 ? 50 : 80;
+        if (level <= 4) return level == 3 ? 120 : 180;
+        if (level <= 6) return level == 5 ? 250 : 320;
+        if (level <= 8) return level == 7 ? 400 : 500;
+        return level == 9 ? 600 : 800;
+    }
+
+    private int getTargetHardPct(int level) {
+        if (level <= 2) return 0;
+        if (level <= 4) return level == 3 ? 10 : 15;
+        if (level <= 6) return level == 5 ? 25 : 35;
+        if (level <= 8) return level == 7 ? 50 : 60;
+        return level == 9 ? 70 : 80;
+    }
+
+    private int getTargetMediumPct(int level) {
+        if (level <= 2) return level == 1 ? 20 : 30;
+        if (level <= 4) return level == 3 ? 40 : 50;
+        if (level <= 6) return level == 5 ? 55 : 50;
+        if (level <= 8) return level == 7 ? 40 : 35;
+        return level == 9 ? 25 : 20;
+    }
+
+    private int getTargetEasyPct(int level) {
+        return 100 - getTargetHardPct(level) - getTargetMediumPct(level);
     }
 
     private long calculateStreak(UUID userId) {

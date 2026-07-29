@@ -38,11 +38,28 @@ public class AuthService {
 
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
         String token = jwtTokenProvider.generateToken(principal);
+        String refreshToken = jwtTokenProvider.generateRefreshToken(principal);
 
         User user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", principal.getId()));
 
-        return new LoginResponse(token, "Bearer", toUserInfo(user));
+        return new LoginResponse(token, refreshToken, "Bearer", toUserInfo(user));
+    }
+
+    public LoginResponse refresh(String refreshTokenValue) {
+        if (!jwtTokenProvider.validateRefreshToken(refreshTokenValue)) {
+            throw new BadRequestException("Invalid or expired refresh token");
+        }
+
+        UUID userId = jwtTokenProvider.getUserIdFromToken(refreshTokenValue);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+        UserPrincipal principal = new UserPrincipal(user.getId(), user.getUsername(), user.getPassword());
+        String token = jwtTokenProvider.generateToken(principal);
+        String refreshToken = jwtTokenProvider.generateRefreshToken(principal);
+
+        return new LoginResponse(token, refreshToken, "Bearer", toUserInfo(user));
     }
 
     public void register(RegisterRequest request) {
@@ -81,6 +98,7 @@ public class AuthService {
         if (request.getEmail() != null) user.setEmail(request.getEmail());
         if (request.getLeetcodeUsername() != null) user.setLeetcodeUsername(request.getLeetcodeUsername());
         if (request.getAvatarUrl() != null) user.setAvatarUrl(request.getAvatarUrl());
+        if (request.getTargetLevel() != null) user.setTargetLevel(request.getTargetLevel());
 
         user = userRepository.save(user);
         log.info("Profile updated for user: {}", user.getUsername());
@@ -93,7 +111,8 @@ public class AuthService {
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getEmail(),
-                user.getLeetcodeUsername()
+                user.getLeetcodeUsername(),
+                user.getTargetLevel()
         );
     }
 }

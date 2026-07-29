@@ -12,6 +12,7 @@ import lombok.Setter;
 public class LoginResponse {
 
     private String token;
+    private String refreshToken;
     private String tokenType;
     private UserInfo user;
 
@@ -25,5 +26,6 @@ public class LoginResponse {
         private String displayName;
         private String email;
         private String leetcodeUsername;
+        private Integer targetLevel;
     }
 }

@@ -55,4 +55,13 @@ public class Topic extends BaseEntity {
 
     @Column(length = 20)
     private String source = "MANUAL";
+
+    @Column(name = "easiness_factor", columnDefinition = "DOUBLE PRECISION DEFAULT 2.5")
+    private Double easinessFactor = 2.5;
+
+    @Column(name = "repetition_interval", columnDefinition = "INTEGER DEFAULT 0")
+    private Integer repetitionInterval = 0;
+
+    @Column(name = "last_quality")
+    private Integer lastQuality;
 }

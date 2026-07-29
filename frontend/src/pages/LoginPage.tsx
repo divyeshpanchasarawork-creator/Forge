@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { parseApiError } from '@/lib/error';
 import { Flame, BarChart3, BookOpen, Code2, RefreshCw, Zap, Target, ArrowRight, Sparkles, ChevronDown } from 'lucide-react';
 
 const features = [
@@ -39,20 +40,16 @@ export default function LoginPage() {
         await login(username, password);
         navigate('/');
       }
-    } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.response?.data || err?.message || '';
-      if (typeof msg === 'string') {
-        if (msg.toLowerCase().includes('email already')) {
-          setError('This email is already registered.');
-        } else if (msg.toLowerCase().includes('username already')) {
-          setError('This username is already taken.');
-        } else if (isRegister) {
-          setError('Registration failed. Please check your details.');
-        } else {
-          setError('Invalid username or password.');
-        }
+    } catch (err: unknown) {
+      const msg = parseApiError(err);
+      if (msg.toLowerCase().includes('email already') || msg.toLowerCase().includes('already registered')) {
+        setError('This email is already registered.');
+      } else if (msg.toLowerCase().includes('username already')) {
+        setError('This username is already taken.');
+      } else if (isRegister) {
+        setError('Registration failed. Please check your details.');
       } else {
-        setError(isRegister ? 'Registration failed.' : 'Invalid username or password.');
+        setError('Invalid username or password.');
       }
     } finally {
       setLoading(false);
@@ -197,7 +194,7 @@ export default function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-foreground placeholder:text-muted-foreground/50 transition-all focus:border-primary focus:bg-secondary focus:outline-none focus:ring-1 focus:ring-primary"
-                        placeholder="minimum 6 characters"
+                        placeholder="min 8 chars, upper+lower+digit+special"
                         required
                       />
                     </div>

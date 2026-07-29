@@ -6,9 +6,13 @@ export const authApi = {
     api.post<ApiResponse<LoginResponse>>('/auth/login', { username, password }),
   register: (data: { email: string; password: string }) =>
     api.post<ApiResponse<void>>('/auth/register', data),
+  refresh: () =>
+    api.post<ApiResponse<LoginResponse>>('/auth/refresh'),
+  logout: () =>
+    api.post<ApiResponse<void>>('/auth/logout'),
   getProfile: () =>
     api.get<ApiResponse<LoginResponse['user']>>('/auth/profile'),
-  updateProfile: (data: { displayName?: string; email?: string; leetcodeUsername?: string }) =>
+  updateProfile: (data: { displayName?: string; email?: string; leetcodeUsername?: string; targetLevel?: number }) =>
     api.put<ApiResponse<LoginResponse['user']>>('/auth/profile', data),
 };
 
@@ -45,11 +49,12 @@ export const problemsApi = {
 export const revisionsApi = {
   getToday: () => api.get<ApiResponse<Revision[]>>('/revisions/today'),
   getPending: () => api.get<ApiResponse<Revision[]>>('/revisions/pending'),
-  complete: (id: string) => api.post<ApiResponse<Revision>>(`/revisions/${id}/complete`),
+  complete: (id: string, quality = 4) => api.post<ApiResponse<Revision>>(`/revisions/${id}/complete?quality=${quality}`),
 };
 
 export const recommendationsApi = {
   getActive: () => api.get<ApiResponse<Recommendation[]>>('/recommendations'),
+  generate: () => api.post<ApiResponse<Recommendation[]>>('/recommendations/generate'),
   dismiss: (id: string) => api.put<ApiResponse<Recommendation>>(`/recommendations/${id}/dismiss`),
 };
 

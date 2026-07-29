@@ -2,7 +2,31 @@ import { useQuery } from '@tanstack/react-query';
 import { analyticsApi } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
-import { TrendingUp, Code2, BookOpen, Flame, Trophy } from 'lucide-react';
+import { TrendingUp, Code2, BookOpen, Flame, Trophy, Target, Brain, Zap } from 'lucide-react';
+
+const levelLabels = [
+  'Service', 'Service+', 'Mid Product', 'Product', 'Good Product',
+  'Strong Product', 'Top Tech', 'Big Tech', 'Elite', 'God Tier',
+];
+
+const levelColors = [
+  'text-green-400', 'text-green-400', 'text-lime-400', 'text-yellow-400', 'text-yellow-400',
+  'text-amber-400', 'text-orange-400', 'text-orange-400', 'text-red-400', 'text-purple-400',
+];
+
+const readinessColor = (score: number) => {
+  if (score >= 80) return 'text-green-400';
+  if (score >= 50) return 'text-yellow-400';
+  if (score >= 30) return 'text-orange-400';
+  return 'text-red-400';
+};
+
+const readinessBg = (score: number) => {
+  if (score >= 80) return 'bg-green-500';
+  if (score >= 50) return 'bg-yellow-500';
+  if (score >= 30) return 'bg-orange-500';
+  return 'bg-red-500';
+};
 
 export default function AnalyticsPage() {
   const { data, isLoading } = useQuery({
@@ -38,10 +62,68 @@ export default function AnalyticsPage() {
   })) || [];
 
   const lc = data.leetcodeOverview;
+  const tl = data.targetLevel || 5;
+  const rs = data.readinessScore || 0;
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Analytics</h1>
+
+      {/* Company Readiness – Hero */}
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-4 w-4 text-primary" />
+            Company Readiness
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {/* Readiness gauge */}
+            <div className="rounded-xl bg-secondary/50 p-6 text-center">
+              <p className={`text-5xl font-bold ${readinessColor(rs)}`}>{rs}</p>
+              <p className="mt-1 text-sm text-muted-foreground">Readiness Score</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                for <span className="font-medium text-primary">Level {tl} — {levelLabels[tl - 1]}</span>
+              </p>
+              <div className="mt-4 h-3 overflow-hidden rounded-full bg-secondary">
+                <div
+                  className={`h-3 rounded-full transition-all ${readinessBg(rs)}`}
+                  style={{ width: `${rs}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Level ladder */}
+            <div className="space-y-1">
+              {levelLabels.map((label, i) => {
+                const lvl = i + 1;
+                const isCurrent = lvl === tl;
+                const isReached = lvl <= tl && lvl <= Math.ceil(tl * (rs / 100));
+                return (
+                  <div
+                    key={lvl}
+                    className={`flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm transition-all ${
+                      isCurrent ? 'bg-primary/10 border border-primary/20' : ''
+                    } ${isReached ? 'opacity-100' : 'opacity-40'}`}
+                  >
+                    <span className={`w-6 text-xs font-bold ${levelColors[i]}`}>
+                      L{lvl}
+                    </span>
+                    <span className={`flex-1 ${isCurrent ? 'font-medium text-primary' : ''}`}>
+                      {label}
+                    </span>
+                    {isCurrent && <Zap className="h-3 w-3 text-primary" />}
+                    {isReached && !isCurrent && (
+                      <span className="text-xs text-green-400">✓</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* LeetCode Overview */}
       {lc && (
@@ -114,7 +196,7 @@ export default function AnalyticsPage() {
             <TrendingUp className="h-4 w-4 text-yellow-400" />
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{data.averageMastery}%</p>
+            <p className="text-3xl font-bold">{Math.round(data.averageMastery)}%</p>
           </CardContent>
         </Card>
         <Card>
@@ -130,7 +212,6 @@ export default function AnalyticsPage() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Difficulty Distribution */}
         <Card>
           <CardHeader>
             <CardTitle>Problems by Difficulty</CardTitle>
@@ -147,7 +228,6 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        {/* Mastery Radar */}
         <Card>
           <CardHeader>
             <CardTitle>Mastery by Category</CardTitle>

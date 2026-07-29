@@ -2,7 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { topicsApi } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Plus, Trash2 } from 'lucide-react';
+import KpiCard from '@/components/ui/KpiCard';
+import { Plus, Trash2, Layers, CheckCircle, RefreshCw, Circle } from 'lucide-react';
 import { useState } from 'react';
 
 const categories = ['Data Structures', 'Algorithms', 'System Design', 'Backend', 'Frontend', 'DevOps'];
@@ -53,6 +54,14 @@ export default function TopicsPage() {
         >
           <Plus className="h-4 w-4" /> Add Topic
         </button>
+      </div>
+
+      {/* Topic KPIs */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <KpiCard icon={<Layers className="h-5 w-5 text-primary" />} value={data?.totalElements || 0} label="Total Topics" tooltip="Total number of topics across all categories." />
+        <KpiCard icon={<CheckCircle className="h-5 w-5 text-green-400" />} value={topics.filter((t: any) => t.status === 'MASTERED').length} label="Mastered (page)" tooltip="Topics with mastery >= 80% shown on this page." />
+        <KpiCard icon={<RefreshCw className="h-5 w-5 text-yellow-400" />} value={topics.filter((t: any) => t.status === 'IN_PROGRESS').length} label="In Progress" tooltip="Topics actively being worked on." />
+        <KpiCard icon={<Circle className="h-5 w-5 text-muted-foreground" />} value={topics.filter((t: any) => !t.status || t.status === 'NOT_STARTED').length} label="Not Started" tooltip="Topics not yet begun." />
       </div>
 
       {showAdd && (

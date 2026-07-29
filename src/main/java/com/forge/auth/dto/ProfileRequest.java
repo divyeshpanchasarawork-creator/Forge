@@ -11,4 +11,5 @@ public class ProfileRequest {
     private String email;
     private String leetcodeUsername;
     private String avatarUrl;
+    private Integer targetLevel;
 }

@@ -1,10 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { revisionsApi } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { CheckCircle, Clock } from 'lucide-react';
+import KpiCard from '@/components/ui/KpiCard';
+import { useAuth } from '@/contexts/AuthContext';
+import { CheckCircle, Clock, Calendar, ListTodo, TrendingUp, Brain, Target } from 'lucide-react';
 
 export default function RevisionPage() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
+  const targetLevel = user?.targetLevel ?? 5;
+  const overdueThreshold = targetLevel >= 7 ? '7 days' : targetLevel >= 4 ? '14 days' : '21 days';
 
   const { data: todayRevisions, isLoading: loadingToday } = useQuery({
     queryKey: ['revisions', 'today'],
@@ -37,6 +42,28 @@ export default function RevisionPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Revision</h1>
+
+      {/* SM-2 context */}
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+        <div className="flex items-start gap-3">
+          <Brain className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-primary">Spaced Repetition (SM-2)</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Revisions are scheduled using the SM-2 algorithm. Topics you review well (quality 4-5) get longer gaps.
+              At your target level (<strong>Level {targetLevel}</strong>), topics overdue beyond <strong>{overdueThreshold}</strong> need immediate attention.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Revision KPIs */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <KpiCard icon={<Clock className="h-5 w-5 text-orange-400" />} value={todayRevisions?.length || 0} label="Due Today" tooltip="Revisions scheduled for today." />
+        <KpiCard icon={<ListTodo className="h-5 w-5 text-yellow-400" />} value={pendingRevisions?.length || 0} label="Total Pending" tooltip="All pending revisions not yet completed." />
+        <KpiCard icon={<Calendar className="h-5 w-5 text-blue-400" />} value={todayRevisions?.filter((r: any) => r.completed).length || 0} label="Completed Today" tooltip="Revisions completed today." />
+        <KpiCard icon={<TrendingUp className="h-5 w-5 text-green-400" />} value={todayRevisions && todayRevisions.length > 0 ? 'Due' : 'Clear'} label="Status" tooltip={todayRevisions?.length > 0 ? 'Revisions are due today.' : 'No revisions due — you are on track.'} />
+      </div>
 
       {/* Today's Revisions */}
       <Card>

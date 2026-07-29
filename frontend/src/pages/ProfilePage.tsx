@@ -1,22 +1,44 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { User, Code2, Save, RefreshCw, Trophy, Flame, TrendingUp } from 'lucide-react';
+import { User, Code2, Save, RefreshCw, Trophy, Flame, TrendingUp, Target } from 'lucide-react';
 import { authApi, leetcodeApi } from '@/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+const targetLevels = [
+  { level: 1, label: 'Service-based', companies: 'TCS, Infosys, Wipro', easyPct: 80, mediumPct: 20, hardPct: 0, targetTotal: 50, color: 'text-green-400' },
+  { level: 2, label: 'Service-based+', companies: 'Cognizant, Accenture', easyPct: 70, mediumPct: 30, hardPct: 0, targetTotal: 80, color: 'text-green-400' },
+  { level: 3, label: 'Mid-tier Product', companies: 'Paytm, Zomato', easyPct: 50, mediumPct: 40, hardPct: 10, targetTotal: 120, color: 'text-lime-400' },
+  { level: 4, label: 'Product', companies: 'Swiggy, Ola', easyPct: 35, mediumPct: 50, hardPct: 15, targetTotal: 180, color: 'text-yellow-400' },
+  { level: 5, label: 'Good Product', companies: 'Uber, Flipkart, Cred', easyPct: 20, mediumPct: 55, hardPct: 25, targetTotal: 250, color: 'text-yellow-400' },
+  { level: 6, label: 'Strong Product', companies: 'Stripe, Atlassian', easyPct: 15, mediumPct: 50, hardPct: 35, targetTotal: 320, color: 'text-amber-400' },
+  { level: 7, label: 'Top Tech', companies: 'Google, Microsoft, Amazon', easyPct: 10, mediumPct: 40, hardPct: 50, targetTotal: 400, color: 'text-orange-400' },
+  { level: 8, label: 'Big Tech', companies: 'Meta, Apple, Netflix', easyPct: 5, mediumPct: 35, hardPct: 60, targetTotal: 500, color: 'text-orange-400' },
+  { level: 9, label: 'Elite', companies: 'FAANG+, Uber ATG', easyPct: 5, mediumPct: 25, hardPct: 70, targetTotal: 600, color: 'text-red-400' },
+  { level: 10, label: 'God Tier', companies: 'OpenAI, Quant, DeepMind', easyPct: 0, mediumPct: 20, hardPct: 80, targetTotal: 800, color: 'text-purple-400' },
+];
+
 export default function ProfilePage() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const queryClient = useQueryClient();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [email, setEmail] = useState(user?.email || '');
   const [leetcodeUsername, setLeetcodeUsername] = useState(user?.leetcodeUsername || '');
+  const [targetLevel, setTargetLevel] = useState(user?.targetLevel ?? 5);
   const [saved, setSaved] = useState(false);
+  const [syncVisible, setSyncVisible] = useState(!!user?.leetcodeUsername);
+
+  const currentConfig = targetLevels[targetLevel - 1] || targetLevels[4];
+
+  useEffect(() => {
+    setSyncVisible(!!leetcodeUsername);
+  }, [leetcodeUsername]);
 
   const profileMutation = useMutation({
-    mutationFn: () => authApi.updateProfile({ displayName, email, leetcodeUsername }),
-    onSuccess: () => {
+    mutationFn: () => authApi.updateProfile({ displayName, email, leetcodeUsername, targetLevel }),
+    onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
+      setUser?.(res.data.data);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     },
@@ -42,6 +64,75 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Profile</h1>
+
+      {/* Target Level */}
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-4 w-4 text-primary" />
+            Target Level
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <p className="text-sm text-muted-foreground">
+            Set your career target. Everything — recommendations, difficulty mix, problem targets — adapts to this level.
+          </p>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Your Target: <span className="text-primary">Level {targetLevel}</span></span>
+              <span className={`text-sm font-semibold ${currentConfig.color}`}>{currentConfig.label}</span>
+            </div>
+
+            <input
+              type="range"
+              min={1}
+              max={10}
+              value={targetLevel}
+              onChange={(e) => setTargetLevel(Number(e.target.value))}
+              className="w-full accent-primary"
+            />
+
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>1 — Service</span>
+              <span>5 — Product</span>
+              <span>10 — Elite</span>
+            </div>
+          </div>
+
+          {/* Live preview */}
+          <div className="rounded-xl bg-secondary/50 p-5 space-y-4">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="text-center">
+                <p className="text-lg font-bold text-primary">{currentConfig.targetTotal}</p>
+                <p className="text-xs text-muted-foreground">Target Problems</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-bold text-green-400">{currentConfig.easyPct}%</p>
+                <p className="text-xs text-muted-foreground">Easy</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-bold text-yellow-400">{currentConfig.mediumPct}%</p>
+                <p className="text-xs text-muted-foreground">Medium</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-bold text-red-400">{currentConfig.hardPct}%</p>
+                <p className="text-xs text-muted-foreground">Hard</p>
+              </div>
+            </div>
+
+            <div className="flex h-3 overflow-hidden rounded-full bg-secondary">
+              <div className="bg-green-400 transition-all" style={{ width: `${currentConfig.easyPct}%` }} />
+              <div className="bg-yellow-400 transition-all" style={{ width: `${currentConfig.mediumPct}%` }} />
+              <div className="bg-red-400 transition-all" style={{ width: `${currentConfig.hardPct}%` }} />
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center">
+              {currentConfig.companies}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -100,7 +191,7 @@ export default function ProfilePage() {
             />
           </div>
 
-          {user?.leetcodeUsername && (
+          {syncVisible && (
             <button
               onClick={() => syncMutation.mutate()}
               disabled={syncMutation.isPending}

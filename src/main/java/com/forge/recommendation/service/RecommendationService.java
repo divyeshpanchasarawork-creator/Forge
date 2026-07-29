@@ -7,23 +7,33 @@ import com.forge.recommendation.entity.Recommendation;
 import com.forge.recommendation.mapper.RecommendationMapper;
 import com.forge.recommendation.repository.RecommendationRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecommendationService {
 
     private final RecommendationRepository recommendationRepository;
+    private final RecommendationEngine recommendationEngine;
     private final RecommendationMapper recommendationMapper;
 
     public List<RecommendationResponse> getActiveRecommendations() {
         UUID userId = SecurityUtils.getCurrentUserId();
-        return recommendationRepository.findByUserIdAndDismissedOrderByPriorityAscCreatedAtDesc(userId, false).stream()
+        return recommendationRepository.findByUserIdAndDismissedOrderByPriorityAscCreatedAtDesc(userId, false)
+                .stream()
+                .map(recommendationMapper::toResponse)
+                .toList();
+    }
+
+    @Transactional
+    public List<RecommendationResponse> generateRecommendations() {
+        UUID userId = SecurityUtils.getCurrentUserId();
+        List<Recommendation> recs = recommendationEngine.generateForUser(userId, true);
+        return recs.stream()
                 .map(recommendationMapper::toResponse)
                 .toList();
     }
@@ -33,7 +43,6 @@ public class RecommendationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Recommendation", "id", id));
         rec.setDismissed(true);
         rec = recommendationRepository.save(rec);
-        log.info("Recommendation dismissed: {}", rec.getTitle());
         return recommendationMapper.toResponse(rec);
     }
 }

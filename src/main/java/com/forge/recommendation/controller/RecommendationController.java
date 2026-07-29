@@ -22,6 +22,12 @@ public class RecommendationController {
         return ResponseEntity.ok(ApiResponse.success(recommendationService.getActiveRecommendations()));
     }
 
+    @PostMapping("/generate")
+    public ResponseEntity<ApiResponse<List<RecommendationResponse>>> generateRecommendations() {
+        List<RecommendationResponse> recs = recommendationService.generateRecommendations();
+        return ResponseEntity.ok(ApiResponse.success("Recommendations generated", recs));
+    }
+
     @PutMapping("/{id}/dismiss")
     public ResponseEntity<ApiResponse<RecommendationResponse>> dismissRecommendation(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Recommendation dismissed", recommendationService.dismissRecommendation(id)));

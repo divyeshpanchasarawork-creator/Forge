@@ -105,6 +105,7 @@ export interface JournalRequest {
 
 export interface LoginResponse {
   token: string;
+  refreshToken: string;
   tokenType: string;
   user: {
     id: string;
@@ -112,6 +113,7 @@ export interface LoginResponse {
     displayName: string;
     email: string | null;
     leetcodeUsername: string | null;
+    targetLevel: number;
   };
 }
 
@@ -141,8 +143,12 @@ export interface DashboardResponse {
   knowledgeHealth: {
     averageMastery: number;
     averageConfidence: number;
+    averageRetention: number;
     totalTopics: number;
     masteredTopics: number;
+    inProgressTopics: number;
+    notStartedTopics: number;
+    overdueRevisions: number;
   };
   weeklyProgress: {
     problemsSolved: number;
@@ -153,6 +159,26 @@ export interface DashboardResponse {
   recentJournal: string;
   recentProblems: string[];
   leetcodeStats: LeetCodeStats | null;
+  targetProgress: {
+    targetLevel: number;
+    readinessScore: number;
+    totalSolved: number;
+    targetTotal: number;
+    difficultyGap: {
+      currentEasy: number;
+      currentMedium: number;
+      currentHard: number;
+      targetEasy: number;
+      targetMedium: number;
+      targetHard: number;
+    };
+  };
+  knowledgeMap: {
+    category: string;
+    topics: { id: string; title: string; mastery: number; confidence: number; status: string }[];
+    averageMastery: number;
+    averageConfidence: number;
+  }[];
 }
 
 export interface LeetCodeStats {
@@ -202,4 +228,6 @@ export interface AnalyticsResponse {
     mediumBeatsPct: number | null;
     hardBeatsPct: number | null;
   } | null;
+  targetLevel: number;
+  readinessScore: number;
 }

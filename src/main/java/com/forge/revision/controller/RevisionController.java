@@ -28,7 +28,9 @@ public class RevisionController {
     }
 
     @PostMapping("/{id}/complete")
-    public ResponseEntity<ApiResponse<RevisionResponse>> completeRevision(@PathVariable UUID id) {
-        return ResponseEntity.ok(ApiResponse.success("Revision completed", revisionService.completeRevision(id)));
+    public ResponseEntity<ApiResponse<RevisionResponse>> completeRevision(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "4") int quality) {
+        return ResponseEntity.ok(ApiResponse.success("Revision completed", revisionService.completeRevision(id, quality)));
     }
 }

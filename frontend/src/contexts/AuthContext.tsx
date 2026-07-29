@@ -7,6 +7,7 @@ interface User {
   displayName: string;
   email: string | null;
   leetcodeUsername: string | null;
+  targetLevel: number;
 }
 
 interface AuthContextType {
@@ -17,32 +18,65 @@ interface AuthContextType {
   register: (data: { email: string; password: string }) => Promise<void>;
   logout: () => void;
   loading: boolean;
+  setUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(localStorage.getItem('forge_token'));
+  const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (token) {
-      authApi.getProfile().then((res) => {
-        setUser(res.data.data);
-      }).catch(() => {
-        localStorage.removeItem('forge_token');
-        setToken(null);
-      }).finally(() => setLoading(false));
-    } else {
-      setLoading(false);
+    let cancelled = false;
+
+    async function init() {
+      const storedToken = sessionStorage.getItem('forge_token');
+
+      if (storedToken) {
+        setToken(storedToken);
+        try {
+          const res = await authApi.getProfile();
+          if (cancelled) return;
+          setUser(res.data.data);
+        } catch {
+          if (cancelled) return;
+          sessionStorage.removeItem('forge_token');
+          setToken(null);
+          await tryRefreshToken();
+        }
+      } else {
+        await tryRefreshToken();
+      }
+
+      if (!cancelled) setLoading(false);
     }
-  }, [token]);
+
+    async function tryRefreshToken() {
+      try {
+        const res = await authApi.refresh();
+        if (cancelled) return;
+        const data = res.data.data;
+        sessionStorage.setItem('forge_token', data.token);
+        setToken(data.token);
+        setUser(data.user);
+      } catch {
+        if (cancelled) return;
+        setToken(null);
+        setUser(null);
+      }
+    }
+
+    init();
+
+    return () => { cancelled = true; };
+  }, []);
 
   const login = async (username: string, password: string) => {
     const response = await authApi.login(username, password);
     const data = response.data.data;
-    localStorage.setItem('forge_token', data.token);
+    sessionStorage.setItem('forge_token', data.token);
     setToken(data.token);
     setUser(data.user);
   };
@@ -52,13 +86,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('forge_token');
+    authApi.logout().catch(() => {});
+    sessionStorage.removeItem('forge_token');
     setToken(null);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated: !!token, token, user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ isAuthenticated: !!token, token, user, login, register, logout, loading, setUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -28,7 +28,7 @@ public class MorningScheduler {
         for (User user : users) {
             List<Topic> needingRevision = topicRepository.findTopicsNeedingRevisionByUserId(user.getId());
             log.info("User {} has {} topics needing revision", user.getUsername(), needingRevision.size());
-            recommendationEngine.generateForUser(user.getId());
+            recommendationEngine.generateForUser(user.getId(), true);
         }
         log.info("Morning scheduler completed for {} users.", users.size());
     }

@@ -6,11 +6,11 @@ import com.forge.common.exception.ResourceNotFoundException;
 import com.forge.common.util.GreetingUtil;
 import com.forge.common.util.SecurityUtils;
 import com.forge.dashboard.dto.DashboardResponse;
-import com.forge.journal.entity.Journal;
 import com.forge.journal.repository.JournalRepository;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.recommendation.dto.RecommendationResponse;
+import com.forge.recommendation.service.RecommendationEngine;
 import com.forge.recommendation.service.RecommendationService;
 import com.forge.revision.dto.RevisionResponse;
 import com.forge.revision.service.RevisionService;
@@ -19,11 +19,12 @@ import com.forge.topic.entity.Topic;
 import com.forge.topic.repository.TopicRepository;
 import com.forge.topic.service.TopicService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +34,7 @@ public class DashboardService {
     private final TopicService topicService;
     private final RevisionService revisionService;
     private final RecommendationService recommendationService;
+    private final RecommendationEngine recommendationEngine;
     private final JournalRepository journalRepository;
     private final TopicRepository topicRepository;
     private final LeetCodeSnapshotRepository snapshotRepository;
@@ -41,6 +43,8 @@ public class DashboardService {
         UUID userId = SecurityUtils.getCurrentUserId();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+        recommendationEngine.generateForUser(userId, true);
 
         String greeting = GreetingUtil.getGreeting(user.getDisplayName());
 
@@ -56,10 +60,14 @@ public class DashboardService {
 
         List<TopicResponse> strongTopics = topicService.getStrongTopics();
 
-        List<Topic> allTopics = topicRepository.findByUserId(userId, org.springframework.data.domain.PageRequest.of(0, 1000)).getContent();
+        List<Topic> allTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).getContent();
         int avgMastery = allTopics.isEmpty() ? 0 : (int) allTopics.stream().mapToInt(Topic::getMastery).average().orElse(0);
         int avgConfidence = allTopics.isEmpty() ? 0 : (int) allTopics.stream().mapToInt(Topic::getConfidence).average().orElse(0);
+        double avgRetention = allTopics.isEmpty() ? 0.0 : allTopics.stream().mapToDouble(t -> t.getEstimatedRetention() != null ? t.getEstimatedRetention() : 100.0).average().orElse(0.0);
         long masteredCount = allTopics.stream().filter(t -> "MASTERED".equals(t.getStatus())).count();
+        long inProgressCount = allTopics.stream().filter(t -> "IN_PROGRESS".equals(t.getStatus())).count();
+        long notStartedCount = allTopics.stream().filter(t -> t.getStatus() == null || "NOT_STARTED".equals(t.getStatus())).count();
+        long overdueCount = topicRepository.findTopicsNeedingRevisionByUserId(userId).size();
 
         var todayJournal = journalRepository.findByUserIdAndEntryDate(userId, LocalDate.now()).orElse(null);
         String journalSummary = todayJournal != null ?
@@ -84,6 +92,11 @@ public class DashboardService {
             );
         }
 
+        int targetLevel = user.getTargetLevel() != null ? user.getTargetLevel() : 5;
+        DashboardResponse.TargetProgress targetProgress = computeTargetProgress(targetLevel, allTopics, snapshot);
+
+        List<DashboardResponse.KnowledgeMapCategory> knowledgeMap = buildKnowledgeMap(allTopics);
+
         return new DashboardResponse(
                 greeting,
                 currentFocus,
@@ -92,11 +105,106 @@ public class DashboardService {
                 recommendations,
                 weakTopics,
                 strongTopics,
-                new DashboardResponse.KnowledgeHealth(avgMastery, avgConfidence, allTopics.size(), masteredCount),
+                new DashboardResponse.KnowledgeHealth(avgMastery, avgConfidence, avgRetention, allTopics.size(), masteredCount, inProgressCount, notStartedCount, overdueCount),
                 new DashboardResponse.WeeklyProgress(0, 0, 0.0, 0),
                 journalSummary,
                 List.of(),
-                lcStats
+                lcStats,
+                targetProgress,
+                knowledgeMap
         );
+    }
+
+    private DashboardResponse.TargetProgress computeTargetProgress(int targetLevel, List<Topic> allTopics, LeetCodeSnapshot snapshot) {
+        int totalSolved = 0;
+        int currentEasy = 0;
+        int currentMedium = 0;
+        int currentHard = 0;
+
+        if (snapshot != null) {
+            totalSolved = snapshot.getTotalSolved() != null ? snapshot.getTotalSolved() : 0;
+            currentEasy = snapshot.getEasySolved() != null ? snapshot.getEasySolved() : 0;
+            currentMedium = snapshot.getMediumSolved() != null ? snapshot.getMediumSolved() : 0;
+            currentHard = snapshot.getHardSolved() != null ? snapshot.getHardSolved() : 0;
+        }
+
+        int targetTotal = getTargetTotal(targetLevel);
+        int targetHardPct = getTargetHardPct(targetLevel);
+        int targetMediumPct = getTargetMediumPct(targetLevel);
+        int targetEasyPct = getTargetEasyPct(targetLevel);
+
+        int targetEasy = (targetEasyPct * targetTotal) / 100;
+        int targetMedium = (targetMediumPct * targetTotal) / 100;
+        int targetHard = (targetHardPct * targetTotal) / 100;
+
+        double problemScore = Math.min(100.0, (double) totalSolved / targetTotal * 100);
+        double easyScore = targetEasy > 0 ? Math.min(100.0, (double) currentEasy / targetEasy * 100) : 100.0;
+        double mediumScore = targetMedium > 0 ? Math.min(100.0, (double) currentMedium / targetMedium * 100) : 100.0;
+        double hardScore = targetHard > 0 ? Math.min(100.0, (double) currentHard / targetHard * 100) : 100.0;
+        double topicScore = allTopics.isEmpty() ? 0 : (double) allTopics.stream().filter(t -> t.getConfidence() >= 5).count() / Math.max(allTopics.size(), 1) * 100;
+
+        double readiness = (problemScore * 0.30) + ((easyScore + mediumScore + hardScore) / 3.0 * 0.35) + (topicScore * 0.35);
+
+        return new DashboardResponse.TargetProgress(
+                targetLevel,
+                (int) Math.round(Math.min(100, readiness)),
+                totalSolved,
+                targetTotal,
+                new DashboardResponse.DifficultyGap(currentEasy, currentMedium, currentHard, targetEasy, targetMedium, targetHard)
+        );
+    }
+
+    private List<DashboardResponse.KnowledgeMapCategory> buildKnowledgeMap(List<Topic> allTopics) {
+        Map<String, List<Topic>> grouped = allTopics.stream()
+                .filter(t -> t.getCategory() != null)
+                .collect(Collectors.groupingBy(Topic::getCategory, LinkedHashMap::new, Collectors.toList()));
+
+        List<DashboardResponse.KnowledgeMapCategory> result = new ArrayList<>();
+        for (Map.Entry<String, List<Topic>> entry : grouped.entrySet()) {
+            List<Topic> topics = entry.getValue();
+            int avgMastery = (int) topics.stream().mapToInt(Topic::getMastery).average().orElse(0);
+            int avgConf = (int) topics.stream().mapToInt(Topic::getConfidence).average().orElse(0);
+
+            List<DashboardResponse.TopicSummary> summaries = topics.stream()
+                    .map(t -> new DashboardResponse.TopicSummary(
+                            t.getId().toString(),
+                            t.getTitle(),
+                            t.getMastery(),
+                            t.getConfidence(),
+                            t.getStatus()))
+                    .sorted(Comparator.comparingInt(DashboardResponse.TopicSummary::getMastery))
+                    .toList();
+
+            result.add(new DashboardResponse.KnowledgeMapCategory(entry.getKey(), summaries, avgMastery, avgConf));
+        }
+        return result;
+    }
+
+    private int getTargetTotal(int level) {
+        if (level <= 2) return level <= 1 ? 50 : 80;
+        if (level <= 4) return level == 3 ? 120 : 180;
+        if (level <= 6) return level == 5 ? 250 : 320;
+        if (level <= 8) return level == 7 ? 400 : 500;
+        return level == 9 ? 600 : 800;
+    }
+
+    private int getTargetHardPct(int level) {
+        if (level <= 2) return 0;
+        if (level <= 4) return level == 3 ? 10 : 15;
+        if (level <= 6) return level == 5 ? 25 : 35;
+        if (level <= 8) return level == 7 ? 50 : 60;
+        return level == 9 ? 70 : 80;
+    }
+
+    private int getTargetMediumPct(int level) {
+        if (level <= 2) return level == 1 ? 20 : 30;
+        if (level <= 4) return level == 3 ? 40 : 50;
+        if (level <= 6) return level == 5 ? 55 : 50;
+        if (level <= 8) return level == 7 ? 40 : 35;
+        return level == 9 ? 25 : 20;
+    }
+
+    private int getTargetEasyPct(int level) {
+        return 100 - getTargetHardPct(level) - getTargetMediumPct(level);
     }
 }

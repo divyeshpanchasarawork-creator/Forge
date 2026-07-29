@@ -15,18 +15,33 @@ import java.util.UUID;
 @Component
 public class JwtTokenProvider {
 
-    @Value("${jwt.secret:Zm9yZ2Utc2VjcmV0LWtleS1mb3ItZGV2LWVudmlyb25tZW50LW9ubHk=}")
+    @Value("${jwt.secret}")
     private String jwtSecret;
 
-    @Value("${jwt.expiration:86400000}")
+    @Value("${jwt.expiration:1800000}")
     private long jwtExpiration;
+
+    @Value("${jwt.refresh-expiration:604800000}")
+    private long refreshExpiration;
 
     public String generateToken(UserPrincipal principal) {
         return Jwts.builder()
                 .subject(principal.getId().toString())
                 .claim("username", principal.getUsername())
+                .claim("type", "access")
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public String generateRefreshToken(UserPrincipal principal) {
+        return Jwts.builder()
+                .subject(principal.getId().toString())
+                .claim("username", principal.getUsername())
+                .claim("type", "refresh")
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + refreshExpiration))
                 .signWith(getSigningKey())
                 .compact();
     }
@@ -51,6 +66,28 @@ public class JwtTokenProvider {
             log.warn("Invalid JWT token: {}", e.getMessage());
             return false;
         }
+    }
+
+    public boolean validateRefreshToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return "refresh".equals(claims.get("type", String.class));
+        } catch (JwtException | IllegalArgumentException e) {
+            log.warn("Invalid refresh token: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    public long getExpirationMs() {
+        return jwtExpiration;
+    }
+
+    public long getRefreshExpirationMs() {
+        return refreshExpiration;
     }
 
     private SecretKey getSigningKey() {

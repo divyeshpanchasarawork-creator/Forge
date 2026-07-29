@@ -30,6 +30,7 @@ public class RevisionService {
     private final TopicRepository topicRepository;
     private final UserRepository userRepository;
     private final RevisionMapper revisionMapper;
+    private final SpacedRepetitionService spacedRepetitionService;
 
     public List<RevisionResponse> getTodayRevisions() {
         UUID userId = SecurityUtils.getCurrentUserId();
@@ -44,8 +45,8 @@ public class RevisionService {
     }
 
     @Transactional
-    public RevisionResponse completeRevision(UUID id) {
-        Revision revision = revisionRepository.findById(id)
+    public RevisionResponse completeRevision(UUID id, int quality) {
+        Revision revision = revisionRepository.findByIdWithTopic(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Revision", "id", id));
 
         if (revision.getCompleted()) {
@@ -56,20 +57,19 @@ public class RevisionService {
         revision.setCompletionDate(LocalDateTime.now());
         revisionRepository.save(revision);
 
-        // Update topic
         Topic topic = revision.getTopic();
         topic.setRevisionCount(topic.getRevisionCount() + 1);
         topic.setLastRevision(LocalDateTime.now());
 
-        // Spaced repetition: next revision in (revisionCount^1.5 * 2) days
-        long nextDays = (long) Math.pow(topic.getRevisionCount(), 1.5) * 2;
-        topic.setNextRevision(LocalDateTime.now().plusDays(nextDays));
+        SpacedRepetitionService.Sm2Result sm2 = spacedRepetitionService.calculate(topic, quality);
+        topic.setEasinessFactor(sm2.easinessFactor());
+        topic.setRepetitionInterval(sm2.intervalDays());
+        topic.setLastQuality(quality);
+        topic.setNextRevision(LocalDateTime.now().plusDays(sm2.intervalDays()));
 
-        // Recalculate mastery
-        int masteryBoost = (int) Math.min(10, (10.0 / topic.getRevisionCount()) * (topic.getConfidence() / 10.0));
-        topic.setMastery(Math.min(100, topic.getMastery() + masteryBoost));
+        int masteryBoost = sm2.masteryBoost();
+        topic.setMastery(Math.max(0, Math.min(100, (topic.getMastery() != null ? topic.getMastery() : 0) + masteryBoost)));
 
-        // Update status
         if (topic.getMastery() >= 80) {
             topic.setStatus("MASTERED");
         } else if (topic.getMastery() > 0 || topic.getRevisionCount() > 0) {
@@ -77,7 +77,8 @@ public class RevisionService {
         }
 
         topicRepository.save(topic);
-        log.info("Revision completed for topic: {}, mastery now: {}", topic.getTitle(), topic.getMastery());
+        log.info("Revision completed for topic: {}, mastery now: {}, next interval: {}d, EF: {}",
+                topic.getTitle(), topic.getMastery(), sm2.intervalDays(), sm2.easinessFactor());
 
         return revisionMapper.toResponse(revision);
     }
