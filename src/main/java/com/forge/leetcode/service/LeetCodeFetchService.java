@@ -5,11 +5,14 @@ import com.forge.auth.repository.UserRepository;
 import com.forge.common.exception.ResourceNotFoundException;
 import com.forge.leetcode.client.LeetCodeClient;
 import com.forge.leetcode.dto.LeetCodeGraphQlResponse;
+import com.forge.leetcode.dto.LeetCodeProblemListResponse;
 import com.forge.leetcode.dto.LeetCodeStatsResponse;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.entity.LeetCodeTagStat;
+import com.forge.leetcode.entity.ProblemSuggestion;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.leetcode.repository.LeetCodeTagStatRepository;
+import com.forge.leetcode.repository.ProblemSuggestionRepository;
 import com.forge.topic.entity.Topic;
 import com.forge.topic.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +33,7 @@ public class LeetCodeFetchService {
     private final LeetCodeClient leetCodeClient;
     private final LeetCodeSnapshotRepository snapshotRepository;
     private final LeetCodeTagStatRepository tagStatRepository;
+    private final ProblemSuggestionRepository problemSuggestionRepository;
     private final UserRepository userRepository;
     private final TopicRepository topicRepository;
     private final LeetCodeTopicMapper topicMapper;
@@ -58,6 +62,7 @@ public class LeetCodeFetchService {
         LeetCodeSnapshot snapshot = saveSnapshot(userId, data, matchedUser);
         saveTagStats(userId, matchedUser);
         syncTopicsFromTags(user, matchedUser);
+        fetchAndSaveProblemSuggestions(user, matchedUser);
 
         log.info("LeetCode sync complete for user: {} (solved: {})", lcUsername, snapshot.getTotalSolved());
         return toStatsResponse(snapshot, userId);
@@ -153,6 +158,62 @@ public class LeetCodeFetchService {
 
         List<Topic> topics = topicMapper.mapToTopics(user, allTags, "mixed");
         topicRepository.saveAll(topics);
+    }
+
+    private void fetchAndSaveProblemSuggestions(User user, LeetCodeGraphQlResponse.MatchedUser matchedUser) {
+        UUID userId = user.getId();
+        List<LeetCodeGraphQlResponse.TagCount> allTags = new ArrayList<>();
+        if (matchedUser.getTagProblemCounts() != null) {
+            if (matchedUser.getTagProblemCounts().getFundamental() != null) allTags.addAll(matchedUser.getTagProblemCounts().getFundamental());
+            if (matchedUser.getTagProblemCounts().getIntermediate() != null) allTags.addAll(matchedUser.getTagProblemCounts().getIntermediate());
+            if (matchedUser.getTagProblemCounts().getAdvanced() != null) allTags.addAll(matchedUser.getTagProblemCounts().getAdvanced());
+        }
+
+        List<String> weakTagSlugs = allTags.stream()
+                .filter(t -> t.getProblemsSolved() < 5 && t.getProblemsSolved() > 0)
+                .map(LeetCodeGraphQlResponse.TagCount::getTagSlug)
+                .toList();
+
+        if (weakTagSlugs.isEmpty()) {
+            log.debug("No weak tags to fetch problem suggestions for user {}", userId);
+            return;
+        }
+
+        problemSuggestionRepository.deleteByUserId(userId);
+        problemSuggestionRepository.flush();
+
+        List<ProblemSuggestion> suggestions = new ArrayList<>();
+        for (String tagSlug : weakTagSlugs) {
+            List<LeetCodeProblemListResponse.Question> problems = leetCodeClient.fetchProblemsByTag(tagSlug, 3);
+            for (LeetCodeProblemListResponse.Question q : problems) {
+                boolean exists = suggestions.stream()
+                        .anyMatch(s -> s.getTitleSlug().equals(q.getTitleSlug()));
+                if (!exists) {
+                    ProblemSuggestion suggestion = new ProblemSuggestion();
+                    suggestion.setUser(user);
+                    suggestion.setTitle(q.getTitle());
+                    suggestion.setTitleSlug(q.getTitleSlug());
+                    suggestion.setDifficulty(q.getDifficulty());
+                    suggestion.setTopicTagSlug(tagSlug);
+                    suggestion.setTopicTagName(
+                            allTags.stream()
+                                    .filter(t -> t.getTagSlug().equals(tagSlug))
+                                    .findFirst().map(LeetCodeGraphQlResponse.TagCount::getTagName)
+                                    .orElse(tagSlug)
+                    );
+                    suggestions.add(suggestion);
+                }
+            }
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+
+        problemSuggestionRepository.saveAll(suggestions);
+        log.info("Saved {} problem suggestions for {} weak tags (user {})", suggestions.size(), weakTagSlugs.size(), userId);
     }
 
     private LeetCodeStatsResponse toStatsResponse(LeetCodeSnapshot snapshot, UUID userId) {

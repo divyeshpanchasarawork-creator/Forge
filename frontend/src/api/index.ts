@@ -1,5 +1,5 @@
 import api from './client';
-import type { ApiResponse, LoginResponse, DashboardResponse, Topic, TopicRequest, PagedResponse, Problem, ProblemRequest, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, LeetCodeStats } from '@/types';
+import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Topic, TopicRequest, PagedResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, LeetCodeStats } from '@/types';
 
 export const authApi = {
   login: (username: string, password: string) =>
@@ -12,7 +12,7 @@ export const authApi = {
     api.post<ApiResponse<void>>('/auth/logout'),
   getProfile: () =>
     api.get<ApiResponse<LoginResponse['user']>>('/auth/profile'),
-  updateProfile: (data: { displayName?: string; email?: string; leetcodeUsername?: string; targetLevel?: number }) =>
+  updateProfile: (data: { displayName?: string; email?: string; leetcodeUsername?: string; targetLevel?: number; preferredAnalysisTime?: string }) =>
     api.put<ApiResponse<LoginResponse['user']>>('/auth/profile', data),
 };
 
@@ -35,16 +35,7 @@ export const topicsApi = {
   getStrong: () => api.get<ApiResponse<Topic[]>>('/topics/strong'),
 };
 
-export const problemsApi = {
-  getAll: (page = 0, size = 20, difficulty?: string) => {
-    const params = new URLSearchParams({ page: String(page), size: String(size) });
-    if (difficulty) params.append('difficulty', difficulty);
-    return api.get<ApiResponse<PagedResponse<Problem>>>(`/problems?${params}`);
-  },
-  create: (data: ProblemRequest) => api.post<ApiResponse<Problem>>('/problems', data),
-  update: (id: string, data: ProblemRequest) => api.put<ApiResponse<Problem>>(`/problems/${id}`, data),
-  delete: (id: string) => api.delete(`/problems/${id}`),
-};
+
 
 export const revisionsApi = {
   getToday: () => api.get<ApiResponse<Revision[]>>('/revisions/today'),
@@ -54,7 +45,7 @@ export const revisionsApi = {
 
 export const recommendationsApi = {
   getActive: () => api.get<ApiResponse<Recommendation[]>>('/recommendations'),
-  generate: () => api.post<ApiResponse<Recommendation[]>>('/recommendations/generate'),
+  generate: () => api.post<ApiResponse<GenerateResponse>>('/recommendations/generate'),
   dismiss: (id: string) => api.put<ApiResponse<Recommendation>>(`/recommendations/${id}/dismiss`),
 };
 

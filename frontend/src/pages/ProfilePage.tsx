@@ -25,6 +25,7 @@ export default function ProfilePage() {
   const [email, setEmail] = useState(user?.email || '');
   const [leetcodeUsername, setLeetcodeUsername] = useState(user?.leetcodeUsername || '');
   const [targetLevel, setTargetLevel] = useState(user?.targetLevel ?? 5);
+  const [preferredAnalysisTime, setPreferredAnalysisTime] = useState(user?.preferredAnalysisTime || '');
   const [saved, setSaved] = useState(false);
   const [syncVisible, setSyncVisible] = useState(!!user?.leetcodeUsername);
 
@@ -35,7 +36,7 @@ export default function ProfilePage() {
   }, [leetcodeUsername]);
 
   const profileMutation = useMutation({
-    mutationFn: () => authApi.updateProfile({ displayName, email, leetcodeUsername, targetLevel }),
+    mutationFn: () => authApi.updateProfile({ displayName, email, leetcodeUsername, targetLevel, preferredAnalysisTime: preferredAnalysisTime || undefined }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       setUser?.(res.data.data);
@@ -130,6 +131,39 @@ export default function ProfilePage() {
             <p className="text-xs text-muted-foreground text-center">
               {currentConfig.companies}
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Analysis Schedule */}
+      <Card className="border-primary/20">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <RefreshCw className="h-4 w-4 text-primary" />
+            Analysis Schedule
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Set a preferred time for daily analysis. When enabled, Forge will auto-generate your roadmap
+            once daily within 15 minutes of your chosen time (max 4/day).
+          </p>
+          <div className="flex items-center gap-3">
+            <select
+              value={preferredAnalysisTime}
+              onChange={(e) => setPreferredAnalysisTime(e.target.value)}
+              className="rounded-lg border border-input bg-secondary px-4 py-2.5 text-foreground focus:border-primary focus:outline-none"
+            >
+              <option value="">No scheduled analysis</option>
+              {Array.from({ length: 48 }, (_, i) => {
+                const h = String(Math.floor(i / 2)).padStart(2, '0');
+                const m = i % 2 === 0 ? '00' : '30';
+                return <option key={i} value={`${h}:${m}`}>{`${h}:${m}`}</option>;
+              })}
+            </select>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Generations used today: {user?.dailyGenerationsUsed ?? 0} / 4
           </div>
         </CardContent>
       </Card>

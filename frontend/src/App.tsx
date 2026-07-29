@@ -4,8 +4,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import LoginPage from '@/pages/LoginPage';
 import DashboardPage from '@/pages/DashboardPage';
 import RoadmapPage from '@/pages/RoadmapPage';
-import TopicsPage from '@/pages/TopicsPage';
-import ProblemsPage from '@/pages/ProblemsPage';
+import PracticePage from '@/pages/PracticePage';
 import RevisionPage from '@/pages/RevisionPage';
 import JournalPage from '@/pages/JournalPage';
 import AnalyticsPage from '@/pages/AnalyticsPage';
@@ -39,8 +38,7 @@ export default function App() {
             <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
               <Route index element={<DashboardPage />} />
               <Route path="roadmap" element={<RoadmapPage />} />
-              <Route path="topics" element={<TopicsPage />} />
-              <Route path="problems" element={<ProblemsPage />} />
+              <Route path="problems" element={<PracticePage />} />
               <Route path="revision" element={<RevisionPage />} />
               <Route path="journal" element={<JournalPage />} />
               <Route path="analytics" element={<AnalyticsPage />} />

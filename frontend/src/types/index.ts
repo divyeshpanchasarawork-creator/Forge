@@ -24,35 +24,13 @@ export interface TopicRequest {
   notes?: string;
 }
 
-export interface Problem {
+export interface ProblemSuggestion {
   id: string;
   title: string;
-  leetcodeId: string | null;
+  titleSlug: string;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD';
-  timeTaken: number | null;
-  attempts: number;
-  confidence: number;
-  mistakes: string | null;
-  summary: string | null;
-  notes: string | null;
-  solutionUrl: string | null;
-  solvedAt: string | null;
-  topics: { id: string; title: string; category: string }[];
-  createdAt: string;
-}
-
-export interface ProblemRequest {
-  title: string;
-  leetcodeId?: string;
-  difficulty: string;
-  timeTaken?: number;
-  attempts?: number;
-  confidence?: number;
-  mistakes?: string;
-  summary?: string;
-  notes?: string;
-  solutionUrl?: string;
-  topicIds?: string[];
+  topicTagSlug: string;
+  topicTagName: string;
 }
 
 export interface Revision {
@@ -75,6 +53,9 @@ export interface Recommendation {
   priority: number;
   action: string;
   dismissed: boolean;
+  problemSlug: string | null;
+  problemTitle: string | null;
+  problemDifficulty: string | null;
   createdAt: string;
 }
 
@@ -103,6 +84,12 @@ export interface JournalRequest {
   lessons?: string;
 }
 
+export interface GenerateResponse {
+  recommendations: Recommendation[];
+  remainingGenerations: number;
+  dailyLimit: number;
+}
+
 export interface LoginResponse {
   token: string;
   refreshToken: string;
@@ -114,6 +101,9 @@ export interface LoginResponse {
     email: string | null;
     leetcodeUsername: string | null;
     targetLevel: number;
+    preferredAnalysisTime: string | null;
+    dailyGenerationsUsed: number;
+    lastGenerationDate: string | null;
   };
 }
 

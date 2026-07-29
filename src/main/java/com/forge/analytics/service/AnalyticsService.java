@@ -9,7 +9,6 @@ import com.forge.journal.entity.Journal;
 import com.forge.journal.repository.JournalRepository;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
-import com.forge.problem.repository.ProblemRepository;
 import com.forge.revision.repository.RevisionRepository;
 import com.forge.topic.entity.Topic;
 import com.forge.topic.repository.TopicRepository;
@@ -29,7 +28,6 @@ import java.util.stream.Collectors;
 public class AnalyticsService {
 
     private final UserRepository userRepository;
-    private final ProblemRepository problemRepository;
     private final TopicRepository topicRepository;
     private final RevisionRepository revisionRepository;
     private final JournalRepository journalRepository;
@@ -42,13 +40,10 @@ public class AnalyticsService {
         List<Topic> weakTopics = topicRepository.findWeakTopicsByUserId(userId);
         List<Topic> strongTopics = topicRepository.findStrongTopicsByUserId(userId);
 
-        long totalProblems = problemRepository.countByUserId(userId);
         long totalTopics = topicRepository.countByUserId(userId);
 
         LeetCodeSnapshot lcSnapshot = snapshotRepository.findByUserId(userId).orElse(null);
-        if (lcSnapshot != null) {
-            totalProblems = lcSnapshot.getTotalSolved();
-        }
+        long totalProblems = lcSnapshot != null ? lcSnapshot.getTotalSolved() : 0;
 
         Double totalStudyHours = allTopics.stream()
                 .mapToDouble(t -> t.getMastery() != null ? t.getMastery() : 0)
@@ -62,18 +57,9 @@ public class AnalyticsService {
                 .mapToInt(Topic::getConfidence)
                 .average().orElse(0);
 
-        long easy;
-        long medium;
-        long hard;
-        if (lcSnapshot != null) {
-            easy = lcSnapshot.getEasySolved();
-            medium = lcSnapshot.getMediumSolved();
-            hard = lcSnapshot.getHardSolved();
-        } else {
-            easy = problemRepository.countByUserIdAndDifficulty(userId, "EASY");
-            medium = problemRepository.countByUserIdAndDifficulty(userId, "MEDIUM");
-            hard = problemRepository.countByUserIdAndDifficulty(userId, "HARD");
-        }
+        long easy = lcSnapshot != null ? lcSnapshot.getEasySolved() : 0;
+        long medium = lcSnapshot != null ? lcSnapshot.getMediumSolved() : 0;
+        long hard = lcSnapshot != null ? lcSnapshot.getHardSolved() : 0;
 
         List<AnalyticsResponse.CategoryMastery> categoryMastery = allTopics.stream()
                 .collect(Collectors.groupingBy(Topic::getCategory))

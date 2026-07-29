@@ -35,4 +35,13 @@ public class Recommendation extends BaseEntity {
 
     @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean dismissed = false;
+
+    @Column(name = "problem_slug", length = 255)
+    private String problemSlug;
+
+    @Column(name = "problem_title", length = 255)
+    private String problemTitle;
+
+    @Column(name = "problem_difficulty", length = 50)
+    private String problemDifficulty;
 }

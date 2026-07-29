@@ -4,8 +4,10 @@ import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.entity.LeetCodeTagStat;
+import com.forge.leetcode.entity.ProblemSuggestion;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.leetcode.repository.LeetCodeTagStatRepository;
+import com.forge.leetcode.repository.ProblemSuggestionRepository;
 import com.forge.recommendation.entity.Recommendation;
 import com.forge.recommendation.repository.RecommendationRepository;
 import com.forge.recommendation.service.RecommendationEngine;
@@ -34,6 +36,7 @@ class RecommendationEngineTest {
     @Mock private UserRepository userRepository;
     @Mock private LeetCodeSnapshotRepository snapshotRepository;
     @Mock private LeetCodeTagStatRepository tagStatRepository;
+    @Mock private ProblemSuggestionRepository problemSuggestionRepository;
 
     private RecommendationEngine engine;
     private UUID userId;
@@ -41,7 +44,7 @@ class RecommendationEngineTest {
 
     @BeforeEach
     void setUp() {
-        engine = new RecommendationEngine(topicRepository, recommendationRepository, userRepository, snapshotRepository, tagStatRepository);
+        engine = new RecommendationEngine(topicRepository, recommendationRepository, userRepository, snapshotRepository, tagStatRepository, problemSuggestionRepository);
         userId = UUID.randomUUID();
         user = new User();
         user.setId(userId);

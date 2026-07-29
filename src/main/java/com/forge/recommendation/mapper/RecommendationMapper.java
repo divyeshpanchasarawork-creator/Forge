@@ -16,6 +16,9 @@ public class RecommendationMapper {
                 rec.getPriority(),
                 rec.getAction(),
                 rec.getDismissed(),
+                rec.getProblemSlug(),
+                rec.getProblemTitle(),
+                rec.getProblemDifficulty(),
                 rec.getCreatedAt()
         );
     }

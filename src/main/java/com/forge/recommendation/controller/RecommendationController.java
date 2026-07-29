@@ -1,13 +1,12 @@
 package com.forge.recommendation.controller;
 
 import com.forge.common.dto.ApiResponse;
-import com.forge.recommendation.dto.RecommendationResponse;
+import com.forge.recommendation.dto.GenerateResponse;
 import com.forge.recommendation.service.RecommendationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -18,18 +17,18 @@ public class RecommendationController {
     private final RecommendationService recommendationService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<RecommendationResponse>>> getRecommendations() {
+    public ResponseEntity<ApiResponse<?>> getRecommendations() {
         return ResponseEntity.ok(ApiResponse.success(recommendationService.getActiveRecommendations()));
     }
 
     @PostMapping("/generate")
-    public ResponseEntity<ApiResponse<List<RecommendationResponse>>> generateRecommendations() {
-        List<RecommendationResponse> recs = recommendationService.generateRecommendations();
-        return ResponseEntity.ok(ApiResponse.success("Recommendations generated", recs));
+    public ResponseEntity<ApiResponse<GenerateResponse>> generateRecommendations() {
+        GenerateResponse response = recommendationService.generateRecommendations();
+        return ResponseEntity.ok(ApiResponse.success("Recommendations generated", response));
     }
 
     @PutMapping("/{id}/dismiss")
-    public ResponseEntity<ApiResponse<RecommendationResponse>> dismissRecommendation(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<?>> dismissRecommendation(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success("Recommendation dismissed", recommendationService.dismissRecommendation(id)));
     }
 }

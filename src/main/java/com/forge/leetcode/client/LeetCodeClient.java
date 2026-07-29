@@ -1,11 +1,13 @@
 package com.forge.leetcode.client;
 
 import com.forge.leetcode.dto.LeetCodeGraphQlResponse;
+import com.forge.leetcode.dto.LeetCodeProblemListResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -72,6 +74,27 @@ public class LeetCodeClient {
             }
             """;
 
+    private static final String PROBLEMS_BY_TAG_QUERY = """
+            query problemsetQuestionList($filters: ProblemListFilterInput) {
+              problemsetQuestionList: questionList(
+                categorySlug: "algorithms"
+                limit: 5
+                skip: 0
+                filters: $filters
+              ) {
+                questions {
+                  title
+                  titleSlug
+                  difficulty
+                  topicTags {
+                    name
+                    slug
+                  }
+                }
+              }
+            }
+            """;
+
     public LeetCodeClient() {
         this.restClient = RestClient.builder()
                 .baseUrl(GRAPHQL_URL)
@@ -112,6 +135,51 @@ public class LeetCodeClient {
             log.error("Failed to fetch LeetCode profile for {}: {}", username, e.getMessage());
             return null;
         }
+    }
+
+    public List<LeetCodeProblemListResponse.Question> fetchProblemsByTag(String tagSlug, int limit) {
+        try {
+            LeetCodeProblemListResponse response = restClient.post()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                            "query", PROBLEMS_BY_TAG_QUERY,
+                            "variables", Map.of("filters", Map.of("tags", List.of(tagSlug))),
+                            "operationName", "problemsetQuestionList"
+                    ))
+                    .retrieve()
+                    .body(LeetCodeProblemListResponse.class);
+
+            if (response != null && response.getData() != null
+                    && response.getData().getProblemsetQuestionList() != null) {
+                return response.getData().getProblemsetQuestionList().getQuestions();
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch problems for tag {}: {}", tagSlug, e.getMessage());
+        }
+        return List.of();
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<LeetCodeProblemListResponse.Question> fetchProblemsByDifficulty(String difficulty, int limit) {
+        try {
+            LeetCodeProblemListResponse response = restClient.post()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                            "query", PROBLEMS_BY_TAG_QUERY,
+                            "variables", Map.of("filters", Map.of("difficulty", difficulty)),
+                            "operationName", "problemsetQuestionList"
+                    ))
+                    .retrieve()
+                    .body(LeetCodeProblemListResponse.class);
+
+            if (response != null && response.getData() != null
+                    && response.getData().getProblemsetQuestionList() != null) {
+                return response.getData().getProblemsetQuestionList().getQuestions();
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch {} problems: {}", difficulty, e.getMessage());
+        }
+        return List.of();
     }
 
     private record CachedResponse(LeetCodeGraphQlResponse response, long timestamp) {}

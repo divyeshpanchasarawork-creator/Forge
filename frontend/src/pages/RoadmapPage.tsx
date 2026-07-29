@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { recommendationsApi } from '@/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Card, CardContent } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { Lightbulb, X, RefreshCw, AlertTriangle, TrendingUp, Target, Clock, Sparkles } from 'lucide-react';
+import { Lightbulb, X, RefreshCw, AlertTriangle, TrendingUp, Target, Sparkles, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
 
 const priorityConfig: Record<number, { label: string; class: string }> = {
   1: { label: 'High', class: 'bg-red-500/10 text-red-400 border-red-500/20' },
@@ -31,6 +33,7 @@ export default function RoadmapPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const targetLevel = user?.targetLevel ?? 5;
+  const [remaining, setRemaining] = useState<number | null>(null);
 
   const { data: recommendations, isLoading } = useQuery({
     queryKey: ['recommendations'],
@@ -39,7 +42,9 @@ export default function RoadmapPage() {
 
   const generateMutation = useMutation({
     mutationFn: () => recommendationsApi.generate(),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      const gen = res.data.data;
+      setRemaining(gen.remainingGenerations);
       queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
@@ -53,6 +58,7 @@ export default function RoadmapPage() {
   });
 
   const isGenerating = generateMutation.isPending;
+  const sorted = [...(recommendations || [])].sort((a, b) => a.priority - b.priority);
 
   if (isLoading) {
     return (
@@ -64,8 +70,6 @@ export default function RoadmapPage() {
     );
   }
 
-  const sorted = [...(recommendations || [])].sort((a, b) => a.priority - b.priority);
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -76,11 +80,10 @@ export default function RoadmapPage() {
           className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
         >
           <RefreshCw className={`h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
-          {isGenerating ? 'Generating...' : 'Generate New Plan'}
+          {isGenerating ? 'Generating...' : remaining !== null ? `Generate (${remaining} left)` : 'Generate New Plan'}
         </button>
       </div>
 
-      {/* Target level context */}
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
         <div className="flex items-center gap-2">
           <Target className="h-4 w-4 text-primary" />
@@ -125,9 +128,25 @@ export default function RoadmapPage() {
                       <span className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${config.class}`}>
                         {config.label}
                       </span>
+                      {rec.problemDifficulty && (
+                        <Badge variant={rec.problemDifficulty === 'EASY' ? 'success' : rec.problemDifficulty === 'HARD' ? 'destructive' : 'warning'}>
+                          {rec.problemDifficulty}
+                        </Badge>
+                      )}
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">{rec.description}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground/60">{rec.reason}</p>
+                    {rec.problemSlug && (
+                      <a
+                        href={`https://leetcode.com/problems/${rec.problemSlug}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Solve on LeetCode
+                      </a>
+                    )}
                   </div>
                   <button
                     onClick={() => dismissMutation.mutate(rec.id)}

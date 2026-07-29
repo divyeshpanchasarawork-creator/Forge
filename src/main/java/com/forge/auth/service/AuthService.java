@@ -99,6 +99,8 @@ public class AuthService {
         if (request.getLeetcodeUsername() != null) user.setLeetcodeUsername(request.getLeetcodeUsername());
         if (request.getAvatarUrl() != null) user.setAvatarUrl(request.getAvatarUrl());
         if (request.getTargetLevel() != null) user.setTargetLevel(request.getTargetLevel());
+        if (request.getPreferredAnalysisTime() != null)
+            user.setPreferredAnalysisTime(java.time.LocalTime.parse(request.getPreferredAnalysisTime()));
 
         user = userRepository.save(user);
         log.info("Profile updated for user: {}", user.getUsername());
@@ -112,7 +114,10 @@ public class AuthService {
                 user.getDisplayName(),
                 user.getEmail(),
                 user.getLeetcodeUsername(),
-                user.getTargetLevel()
+                user.getTargetLevel(),
+                user.getPreferredAnalysisTime() != null ? user.getPreferredAnalysisTime().toString() : null,
+                user.getDailyGenerationsUsed() != null ? user.getDailyGenerationsUsed() : 0,
+                user.getLastGenerationDate() != null ? user.getLastGenerationDate().toString() : null
         );
     }
 }

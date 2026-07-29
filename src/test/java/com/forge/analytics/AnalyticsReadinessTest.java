@@ -7,7 +7,6 @@ import com.forge.common.util.SecurityUtils;
 import com.forge.journal.repository.JournalRepository;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
-import com.forge.problem.repository.ProblemRepository;
 import com.forge.revision.repository.RevisionRepository;
 import com.forge.topic.entity.Topic;
 import com.forge.topic.repository.TopicRepository;
@@ -30,7 +29,6 @@ import static org.mockito.Mockito.*;
 class AnalyticsReadinessTest {
 
     @Mock private UserRepository userRepository;
-    @Mock private ProblemRepository problemRepository;
     @Mock private TopicRepository topicRepository;
     @Mock private RevisionRepository revisionRepository;
     @Mock private JournalRepository journalRepository;
@@ -43,7 +41,7 @@ class AnalyticsReadinessTest {
     @BeforeEach
     void setUp() {
         analyticsService = new AnalyticsService(
-                userRepository, problemRepository, topicRepository, revisionRepository,
+                userRepository, topicRepository, revisionRepository,
                 journalRepository, snapshotRepository
         );
         userId = UUID.randomUUID();
@@ -80,7 +78,6 @@ class AnalyticsReadinessTest {
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findStrongTopicsByUserId(userId)).thenReturn(List.of(topic));
         when(topicRepository.countByUserId(userId)).thenReturn(1L);
-        when(problemRepository.countByUserId(userId)).thenReturn(0L);
         when(revisionRepository.countByUserIdAndCompleted(eq(userId), eq(true))).thenReturn(10L);
         when(revisionRepository.countByUserIdAndCompleted(eq(userId), eq(false))).thenReturn(5L);
 
@@ -107,7 +104,6 @@ class AnalyticsReadinessTest {
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findStrongTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.countByUserId(userId)).thenReturn(0L);
-        when(problemRepository.countByUserId(userId)).thenReturn(0L);
         when(revisionRepository.countByUserIdAndCompleted(eq(userId), eq(true))).thenReturn(0L);
         when(revisionRepository.countByUserIdAndCompleted(eq(userId), eq(false))).thenReturn(0L);
 

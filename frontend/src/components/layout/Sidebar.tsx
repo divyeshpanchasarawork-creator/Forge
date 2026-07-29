@@ -1,12 +1,11 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Code2, RefreshCw, PenLine, BarChart3, User, Flame, LogOut, Lightbulb } from 'lucide-react';
+import { LayoutDashboard, Code2, RefreshCw, PenLine, BarChart3, User, Flame, LogOut, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/roadmap', icon: Lightbulb, label: 'Roadmap' },
-  { to: '/topics', icon: BookOpen, label: 'Topics' },
   { to: '/problems', icon: Code2, label: 'Practice' },
   { to: '/revision', icon: RefreshCw, label: 'Revision' },
   { to: '/journal', icon: PenLine, label: 'Journal' },

@@ -12,4 +12,5 @@ public class ProfileRequest {
     private String leetcodeUsername;
     private String avatarUrl;
     private Integer targetLevel;
+    private String preferredAnalysisTime;
 }

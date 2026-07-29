@@ -33,4 +33,13 @@ public class User extends BaseEntity {
 
     @Column(name = "target_level")
     private Integer targetLevel = 5;
+
+    @Column(name = "preferred_analysis_time")
+    private java.time.LocalTime preferredAnalysisTime;
+
+    @Column(name = "daily_generations_used")
+    private Integer dailyGenerationsUsed = 0;
+
+    @Column(name = "last_generation_date")
+    private java.time.LocalDate lastGenerationDate;
 }
