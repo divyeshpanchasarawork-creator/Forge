@@ -1,4 +1,4 @@
-import { useState, useEffect, type ReactNode } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { Flame } from 'lucide-react';
 
 const POLL_INTERVAL = 4000;
@@ -7,6 +7,7 @@ const MAX_RETRIES = 15;
 export default function ColdStartGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<'loading' | 'ready' | 'timeout'>('loading');
   const [retries, setRetries] = useState(0);
+  const resolvedRef = useRef(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -18,12 +19,12 @@ export default function ColdStartGate({ children }: { children: ReactNode }) {
         credentials: 'include',
         signal: controller.signal,
       })
-        .then((res) => {
-          if (res.ok || res.status === 401) {
-            setState('ready');
-          }
+        .then(() => {
+          resolvedRef.current = true;
+          setState('ready');
         })
         .catch(() => {
+          if (resolvedRef.current) return;
           setRetries((r) => {
             const next = r + 1;
             if (next >= MAX_RETRIES) {
