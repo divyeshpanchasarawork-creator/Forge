@@ -1,0 +1,82 @@
+package com.forge.common.util;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
+
+import java.io.InputStream;
+import java.util.*;
+
+@Slf4j
+@Component
+public class ProblemLoader {
+
+    private final Map<String, List<ProblemEntry>> problemsByTag = new HashMap<>();
+    private final List<ProblemEntry> allProblems = new ArrayList<>();
+
+    @PostConstruct
+    public void init() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            InputStream is = getClass().getResourceAsStream("/problems.json");
+            if (is == null) {
+                log.warn("problems.json not found, practice queue will be empty");
+                return;
+            }
+            Map<String, List<Map<String, String>>> raw = mapper.readValue(is, new TypeReference<>() {});
+            for (var entry : raw.entrySet()) {
+                String tagSlug = entry.getKey();
+                List<ProblemEntry> tagProblems = new ArrayList<>();
+                for (Map<String, String> p : entry.getValue()) {
+                    ProblemEntry pe = new ProblemEntry(p.get("title"), p.get("titleSlug"), p.get("difficulty"));
+                    tagProblems.add(pe);
+                    allProblems.add(pe);
+                }
+                problemsByTag.put(tagSlug, tagProblems);
+            }
+            log.info("Loaded {} problems across {} tags", allProblems.size(), problemsByTag.size());
+        } catch (Exception e) {
+            log.error("Failed to load problems.json: {}", e.getMessage());
+        }
+    }
+
+    public List<ProblemEntry> getProblemsForTag(String tagSlug) {
+        return problemsByTag.getOrDefault(tagSlug, List.of());
+    }
+
+    public List<ProblemEntry> getProblemsForTags(List<String> tagSlugs) {
+        List<ProblemEntry> result = new ArrayList<>();
+        for (String slug : tagSlugs) {
+            result.addAll(getProblemsForTag(slug));
+        }
+        return result;
+    }
+
+    public List<ProblemEntry> getAllProblems() {
+        return allProblems;
+    }
+
+    public Set<String> getAllTagSlugs() {
+        return problemsByTag.keySet();
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    public static class ProblemEntry {
+        private String title;
+        private String titleSlug;
+        private String difficulty;
+
+        public ProblemEntry(String title, String titleSlug, String difficulty) {
+            this.title = title;
+            this.titleSlug = titleSlug;
+            this.difficulty = difficulty;
+        }
+    }
+}

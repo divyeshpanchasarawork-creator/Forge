@@ -1,0 +1,198 @@
+{
+  "array": [
+    {"title": "Two Sum", "titleSlug": "two-sum", "difficulty": "Easy"},
+    {"title": "Best Time to Buy and Sell Stock", "titleSlug": "best-time-to-buy-and-sell-stock", "difficulty": "Easy"},
+    {"title": "Product of Array Except Self", "titleSlug": "product-of-array-except-self", "difficulty": "Medium"},
+    {"title": "Maximum Subarray", "titleSlug": "maximum-subarray", "difficulty": "Medium"},
+    {"title": "Contains Duplicate", "titleSlug": "contains-duplicate", "difficulty": "Easy"},
+    {"title": "Merge Intervals", "titleSlug": "merge-intervals", "difficulty": "Medium"},
+    {"title": "Sort Colors", "titleSlug": "sort-colors", "difficulty": "Medium"},
+    {"title": "Subarray Sum Equals K", "titleSlug": "subarray-sum-equals-k", "difficulty": "Medium"},
+    {"title": "First Missing Positive", "titleSlug": "first-missing-positive", "difficulty": "Hard"},
+    {"title": "Insert Delete GetRandom O(1)", "titleSlug": "insert-delete-getrandom-o1", "difficulty": "Medium"}
+  ],
+  "hash-table": [
+    {"title": "Group Anagrams", "titleSlug": "group-anagrams", "difficulty": "Medium"},
+    {"title": "Longest Substring Without Repeating Characters", "titleSlug": "longest-substring-without-repeating-characters", "difficulty": "Medium"},
+    {"title": "Top K Frequent Elements", "titleSlug": "top-k-frequent-elements", "difficulty": "Medium"},
+    {"title": "Valid Sudoku", "titleSlug": "valid-sudoku", "difficulty": "Medium"},
+    {"title": "Longest Consecutive Sequence", "titleSlug": "longest-consecutive-sequence", "difficulty": "Medium"}
+  ],
+  "linked-list": [
+    {"title": "Reverse Linked List", "titleSlug": "reverse-linked-list", "difficulty": "Easy"},
+    {"title": "Merge Two Sorted Lists", "titleSlug": "merge-two-sorted-lists", "difficulty": "Easy"},
+    {"title": "Linked List Cycle", "titleSlug": "linked-list-cycle", "difficulty": "Easy"},
+    {"title": "Reorder List", "titleSlug": "reorder-list", "difficulty": "Medium"},
+    {"title": "Remove Nth Node From End of List", "titleSlug": "remove-nth-node-from-end-of-list", "difficulty": "Medium"},
+    {"title": "Merge k Sorted Lists", "titleSlug": "merge-k-sorted-lists", "difficulty": "Hard"}
+  ],
+  "stack": [
+    {"title": "Valid Parentheses", "titleSlug": "valid-parentheses", "difficulty": "Easy"},
+    {"title": "Min Stack", "titleSlug": "min-stack", "difficulty": "Medium"},
+    {"title": "Evaluate Reverse Polish Notation", "titleSlug": "evaluate-reverse-polish-notation", "difficulty": "Medium"},
+    {"title": "Daily Temperatures", "titleSlug": "daily-temperatures", "difficulty": "Medium"},
+    {"title": "Largest Rectangle in Histogram", "titleSlug": "largest-rectangle-in-histogram", "difficulty": "Hard"}
+  ],
+  "queue": [
+    {"title": "Implement Queue using Stacks", "titleSlug": "implement-queue-using-stacks", "difficulty": "Easy"},
+    {"title": "Design Circular Queue", "titleSlug": "design-circular-queue", "difficulty": "Medium"},
+    {"title": "Task Scheduler", "titleSlug": "task-scheduler", "difficulty": "Medium"}
+  ],
+  "tree": [
+    {"title": "Maximum Depth of Binary Tree", "titleSlug": "maximum-depth-of-binary-tree", "difficulty": "Easy"},
+    {"title": "Invert Binary Tree", "titleSlug": "invert-binary-tree", "difficulty": "Easy"},
+    {"title": "Validate Binary Search Tree", "titleSlug": "validate-binary-search-tree", "difficulty": "Medium"},
+    {"title": "Binary Tree Level Order Traversal", "titleSlug": "binary-tree-level-order-traversal", "difficulty": "Medium"},
+    {"title": "Serialize and Deserialize Binary Tree", "titleSlug": "serialize-and-deserialize-binary-tree", "difficulty": "Hard"},
+    {"title": "Lowest Common Ancestor of a Binary Tree", "titleSlug": "lowest-common-ancestor-of-a-binary-tree", "difficulty": "Medium"},
+    {"title": "Kth Smallest Element in a BST", "titleSlug": "kth-smallest-element-in-a-bst", "difficulty": "Medium"},
+    {"title": "Binary Tree Right Side View", "titleSlug": "binary-tree-right-side-view", "difficulty": "Medium"}
+  ],
+  "graph": [
+    {"title": "Number of Islands", "titleSlug": "number-of-islands", "difficulty": "Medium"},
+    {"title": "Clone Graph", "titleSlug": "clone-graph", "difficulty": "Medium"},
+    {"title": "Course Schedule", "titleSlug": "course-schedule", "difficulty": "Medium"},
+    {"title": "Course Schedule II", "titleSlug": "course-schedule-ii", "difficulty": "Medium"},
+    {"title": "Pacific Atlantic Water Flow", "titleSlug": "pacific-atlantic-water-flow", "difficulty": "Medium"},
+    {"title": "Graph Valid Tree", "titleSlug": "graph-valid-tree", "difficulty": "Medium"},
+    {"title": "Alien Dictionary", "titleSlug": "alien-dictionary", "difficulty": "Hard"}
+  ],
+  "binary-search": [
+    {"title": "Binary Search", "titleSlug": "binary-search", "difficulty": "Easy"},
+    {"title": "Find Minimum in Rotated Sorted Array", "titleSlug": "find-minimum-in-rotated-sorted-array", "difficulty": "Medium"},
+    {"title": "Search in Rotated Sorted Array", "titleSlug": "search-in-rotated-sorted-array", "difficulty": "Medium"},
+    {"title": "Time Based Key-Value Store", "titleSlug": "time-based-key-value-store", "difficulty": "Medium"},
+    {"title": "Median of Two Sorted Arrays", "titleSlug": "median-of-two-sorted-arrays", "difficulty": "Hard"}
+  ],
+  "two-pointers": [
+    {"title": "Valid Palindrome", "titleSlug": "valid-palindrome", "difficulty": "Easy"},
+    {"title": "3Sum", "titleSlug": "3sum", "difficulty": "Medium"},
+    {"title": "Container With Most Water", "titleSlug": "container-with-most-water", "difficulty": "Medium"},
+    {"title": "Trapping Rain Water", "titleSlug": "trapping-rain-water", "difficulty": "Hard"}
+  ],
+  "sliding-window": [
+    {"title": "Longest Repeating Character Replacement", "titleSlug": "longest-repeating-character-replacement", "difficulty": "Medium"},
+    {"title": "Permutation in String", "titleSlug": "permutation-in-string", "difficulty": "Medium"},
+    {"title": "Minimum Window Substring", "titleSlug": "minimum-window-substring", "difficulty": "Hard"},
+    {"title": "Sliding Window Maximum", "titleSlug": "sliding-window-maximum", "difficulty": "Hard"}
+  ],
+  "dynamic-programming": [
+    {"title": "Climbing Stairs", "titleSlug": "climbing-stairs", "difficulty": "Easy"},
+    {"title": "Coin Change", "titleSlug": "coin-change", "difficulty": "Medium"},
+    {"title": "Longest Increasing Subsequence", "titleSlug": "longest-increasing-subsequence", "difficulty": "Medium"},
+    {"title": "Longest Common Subsequence", "titleSlug": "longest-common-subsequence", "difficulty": "Medium"},
+    {"title": "Word Break", "titleSlug": "word-break", "difficulty": "Medium"},
+    {"title": "House Robber", "titleSlug": "house-robber", "difficulty": "Medium"},
+    {"title": "Decode Ways", "titleSlug": "decode-ways", "difficulty": "Medium"},
+    {"title": "Palindromic Substrings", "titleSlug": "palindromic-substrings", "difficulty": "Medium"},
+    {"title": "Maximum Product Subarray", "titleSlug": "maximum-product-subarray", "difficulty": "Medium"},
+    {"title": "Edit Distance", "titleSlug": "edit-distance", "difficulty": "Medium"}
+  ],
+  "recursion": [
+    {"title": "Letter Combinations of a Phone Number", "titleSlug": "letter-combinations-of-a-phone-number", "difficulty": "Medium"},
+    {"title": "Generate Parentheses", "titleSlug": "generate-parentheses", "difficulty": "Medium"},
+    {"title": "Pow(x, n)", "titleSlug": "powx-n", "difficulty": "Medium"}
+  ],
+  "backtracking": [
+    {"title": "Subsets", "titleSlug": "subsets", "difficulty": "Medium"},
+    {"title": "Permutations", "titleSlug": "permutations", "difficulty": "Medium"},
+    {"title": "Combination Sum", "titleSlug": "combination-sum", "difficulty": "Medium"},
+    {"title": "Word Search", "titleSlug": "word-search", "difficulty": "Medium"},
+    {"title": "N-Queens", "titleSlug": "n-queens", "difficulty": "Hard"}
+  ],
+  "greedy": [
+    {"title": "Jump Game", "titleSlug": "jump-game", "difficulty": "Medium"},
+    {"title": "Jump Game II", "titleSlug": "jump-game-ii", "difficulty": "Medium"},
+    {"title": "Gas Station", "titleSlug": "gas-station", "difficulty": "Medium"},
+    {"title": "Partition Labels", "titleSlug": "partition-labels", "difficulty": "Medium"},
+    {"title": "Meeting Rooms II", "titleSlug": "meeting-rooms-ii", "difficulty": "Medium"}
+  ],
+  "sorting": [
+    {"title": "Merge Sorted Array", "titleSlug": "merge-sorted-array", "difficulty": "Easy"},
+    {"title": "Kth Largest Element in an Array", "titleSlug": "kth-largest-element-in-an-array", "difficulty": "Medium"},
+    {"title": "Sort an Array", "titleSlug": "sort-an-array", "difficulty": "Medium"}
+  ],
+  "string": [
+    {"title": "Longest Palindromic Substring", "titleSlug": "longest-palindromic-substring", "difficulty": "Medium"},
+    {"title": "Encode and Decode Strings", "titleSlug": "encode-and-decode-strings", "difficulty": "Medium"},
+    {"title": "Implement Trie (Prefix Tree)", "titleSlug": "implement-trie-prefix-tree", "difficulty": "Medium"}
+  ],
+  "math": [
+    {"title": "Palindrome Number", "titleSlug": "palindrome-number", "difficulty": "Easy"},
+    {"title": "Plus One", "titleSlug": "plus-one", "difficulty": "Easy"},
+    {"title": "Sqrt(x)", "titleSlug": "sqrtx", "difficulty": "Easy"}
+  ],
+  "bit-manipulation": [
+    {"title": "Single Number", "titleSlug": "single-number", "difficulty": "Easy"},
+    {"title": "Number of 1 Bits", "titleSlug": "number-of-1-bits", "difficulty": "Easy"},
+    {"title": "Counting Bits", "titleSlug": "counting-bits", "difficulty": "Easy"},
+    {"title": "Sum of Two Integers", "titleSlug": "sum-of-two-integers", "difficulty": "Medium"},
+    {"title": "Reverse Bits", "titleSlug": "reverse-bits", "difficulty": "Easy"}
+  ],
+  "heap": [
+    {"title": "Kth Largest Element in a Stream", "titleSlug": "kth-largest-element-in-a-stream", "difficulty": "Easy"},
+    {"title": "Find Median from Data Stream", "titleSlug": "find-median-from-data-stream", "difficulty": "Hard"},
+    {"title": "Top K Frequent Words", "titleSlug": "top-k-frequent-words", "difficulty": "Medium"}
+  ],
+  "trie": [
+    {"title": "Design Add and Search Words Data Structure", "titleSlug": "design-add-and-search-words-data-structure", "difficulty": "Medium"},
+    {"title": "Word Search II", "titleSlug": "word-search-ii", "difficulty": "Hard"}
+  ],
+  "union-find": [
+    {"title": "Number of Connected Components in an Undirected Graph", "titleSlug": "number-of-connected-components-in-an-undirected-graph", "difficulty": "Medium"},
+    {"title": "Redundant Connection", "titleSlug": "redundant-connection", "difficulty": "Medium"}
+  ],
+  "segment-tree": [
+    {"title": "Range Sum Query - Mutable", "titleSlug": "range-sum-query-mutable", "difficulty": "Medium"},
+    {"title": "Count of Smaller Numbers After Self", "titleSlug": "count-of-smaller-numbers-after-self", "difficulty": "Hard"}
+  ],
+  "binary-indexed-tree": [
+    {"title": "Range Sum Query 2D - Mutable", "titleSlug": "range-sum-query-2d-mutable", "difficulty": "Hard"}
+  ],
+  "monotonic-stack": [
+    {"title": "Next Greater Element I", "titleSlug": "next-greater-element-i", "difficulty": "Easy"},
+    {"title": "Next Greater Element II", "titleSlug": "next-greater-element-ii", "difficulty": "Medium"},
+    {"title": "Asteroid Collision", "titleSlug": "asteroid-collision", "difficulty": "Medium"}
+  ],
+  "monotonic-queue": [
+    {"title": "Constrained Subsequence Sum", "titleSlug": "constrained-subsequence-sum", "difficulty": "Hard"}
+  ],
+  "shortest-path": [
+    {"title": "Network Delay Time", "titleSlug": "network-delay-time", "difficulty": "Medium"},
+    {"title": "Cheapest Flights Within K Stops", "titleSlug": "cheapest-flights-within-k-stops", "difficulty": "Medium"}
+  ],
+  "topological-sort": [
+    {"title": "Longest Increasing Path in a Matrix", "titleSlug": "longest-increasing-path-in-a-matrix", "difficulty": "Hard"},
+    {"title": "Minimum Height Trees", "titleSlug": "minimum-height-trees", "difficulty": "Medium"}
+  ],
+  "divide-and-conquer": [
+    {"title": "Majority Element", "titleSlug": "majority-element", "difficulty": "Easy"},
+    {"title": "Sort List", "titleSlug": "sort-list", "difficulty": "Medium"}
+  ],
+  "quickselect": [
+    {"title": "Kth Largest Element in an Array", "titleSlug": "kth-largest-element-in-an-array", "difficulty": "Medium"},
+    {"title": "Wiggle Sort II", "titleSlug": "wiggle-sort-ii", "difficulty": "Medium"}
+  ],
+  "randomized": [
+    {"title": "Shuffle an Array", "titleSlug": "shuffle-an-array", "difficulty": "Medium"},
+    {"title": "Linked List Random Node", "titleSlug": "linked-list-random-node", "difficulty": "Medium"}
+  ],
+  "iterator": [
+    {"title": "Peeking Iterator", "titleSlug": "peeking-iterator", "difficulty": "Medium"},
+    {"title": "Flatten Nested List Iterator", "titleSlug": "flatten-nested-list-iterator", "difficulty": "Medium"}
+  ],
+  "data-stream": [
+    {"title": "Moving Average from Data Stream", "titleSlug": "moving-average-from-data-stream", "difficulty": "Easy"},
+    {"title": "Logger Rate Limiter", "titleSlug": "logger-rate-limiter", "difficulty": "Easy"}
+  ],
+  "design": [
+    {"title": "LRU Cache", "titleSlug": "lru-cache", "difficulty": "Medium"},
+    {"title": "Insert Delete GetRandom O(1)", "titleSlug": "insert-delete-getrandom-o1", "difficulty": "Medium"}
+  ],
+  "database": [
+    {"title": "Combine Two Tables", "titleSlug": "combine-two-tables", "difficulty": "Easy"},
+    {"title": "Second Highest Salary", "titleSlug": "second-highest-salary", "difficulty": "Medium"},
+    {"title": "Nth Highest Salary", "titleSlug": "nth-highest-salary", "difficulty": "Medium"},
+    {"title": "Rank Scores", "titleSlug": "rank-scores", "difficulty": "Medium"}
+  ]
+}

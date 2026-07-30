@@ -44,4 +44,11 @@ public class Recommendation extends BaseEntity {
 
     @Column(name = "problem_difficulty", length = 50)
     private String problemDifficulty;
+
+    public Recommendation withProblem(String title, String slug, String difficulty) {
+        this.problemTitle = title;
+        this.problemSlug = slug;
+        this.problemDifficulty = difficulty;
+        return this;
+    }
 }

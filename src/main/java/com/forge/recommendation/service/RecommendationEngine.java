@@ -3,6 +3,8 @@ package com.forge.recommendation.service;
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.common.exception.ResourceNotFoundException;
+import com.forge.common.util.ProblemLoader;
+import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.ReadinessCalculator;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.entity.LeetCodeTagStat;
@@ -20,10 +22,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -36,6 +36,8 @@ public class RecommendationEngine {
     private final LeetCodeSnapshotRepository snapshotRepository;
     private final LeetCodeTagStatRepository tagStatRepository;
     private final ProblemSuggestionRepository problemSuggestionRepository;
+    private final ProblemLoader problemLoader;
+    private final ProblemScorer problemScorer;
 
     public List<Recommendation> generateForUser(UUID userId, boolean persist) {
         User user = userRepository.findById(userId)
@@ -97,7 +99,6 @@ public class RecommendationEngine {
         int targetTotal = ReadinessCalculator.getTargetTotal(target);
         int targetHardPct = ReadinessCalculator.getTargetHardPct(target);
         int targetMediumPct = ReadinessCalculator.getTargetMediumPct(target);
-        int targetEasyPct = ReadinessCalculator.getTargetEasyPct(target);
 
         if (total < targetTotal) {
             recs.add(createRecommendation(
@@ -109,17 +110,14 @@ public class RecommendationEngine {
 
         int idealHard = (targetHardPct * targetTotal) / 100;
         if (hard < idealHard / 2) {
-            List<ProblemSuggestion> hardSuggestions = problemSuggestionRepository.findByUserId(userId).stream()
-                    .filter(s -> "HARD".equals(s.getDifficulty()))
-                    .limit(1)
-                    .toList();
-            if (!hardSuggestions.isEmpty()) {
-                ProblemSuggestion ps = hardSuggestions.getFirst();
-                recs.add(createProblemRecommendation(
-                        "Try " + ps.getTitle() + " (Hard)",
+            ProblemLoader.ProblemEntry bestHard = pickBestProblem(userId, "Hard", null);
+            if (bestHard != null) {
+                recs.add(createRecommendation(
+                        "Try " + bestHard.getTitle() + " (Hard)",
                         "You've solved " + hard + " Hard problems. At Level " + target + ", aim for " + idealHard + ".",
                         "Hard problems are weighted heavily at your target level.",
-                        easy > hard ? 1 : 2, "TRY_HARD", ps, user));
+                        easy > hard ? 1 : 2, "TRY_HARD", user)
+                        .withProblem(bestHard.getTitle(), bestHard.getTitleSlug(), "Hard"));
             } else {
                 recs.add(createRecommendation(
                         "Focus on Hard problems for Level " + target,
@@ -199,25 +197,35 @@ public class RecommendationEngine {
         List<ProblemSuggestion> suggestions = problemSuggestionRepository.findByUserId(userId);
 
         for (LeetCodeTagStat tag : weakTags) {
-            List<ProblemSuggestion> tagSuggestions = suggestions.stream()
-                    .filter(s -> tag.getTagSlug().equals(s.getTopicTagSlug()))
-                    .limit(2)
-                    .toList();
-
-            if (!tagSuggestions.isEmpty()) {
-                for (ProblemSuggestion ps : tagSuggestions) {
-                    recs.add(createProblemRecommendation(
-                            "Try " + ps.getTitle() + " (" + ps.getDifficulty() + ")",
-                            "You've only solved " + tag.getProblemsSolved() + " problem(s) in " + tag.getTagName() + ".",
-                            "Building breadth across tags strengthens your problem-solving toolkit.",
-                            tag.getProblemsSolved() <= 2 ? 1 : 2, "PRACTICE_TAG", ps, user));
-                }
-            } else {
+            ProblemLoader.ProblemEntry best = pickBestProblem(userId, null, tag.getTagSlug());
+            if (best != null) {
                 recs.add(createRecommendation(
-                        "Practice " + tag.getTagName(),
+                        "Try " + best.getTitle() + " (" + best.getDifficulty() + ")",
                         "You've only solved " + tag.getProblemsSolved() + " problem(s) in " + tag.getTagName() + ".",
                         "Building breadth across tags strengthens your problem-solving toolkit.",
-                        tag.getProblemsSolved() <= 2 ? 1 : 2, "PRACTICE_TAG", user));
+                        tag.getProblemsSolved() <= 2 ? 1 : 2, "PRACTICE_TAG", user)
+                        .withProblem(best.getTitle(), best.getTitleSlug(), best.getDifficulty()));
+            } else {
+                List<ProblemSuggestion> tagSuggestions = suggestions.stream()
+                        .filter(s -> tag.getTagSlug().equals(s.getTopicTagSlug()))
+                        .limit(2)
+                        .toList();
+                if (!tagSuggestions.isEmpty()) {
+                    for (ProblemSuggestion ps : tagSuggestions) {
+                        recs.add(createRecommendation(
+                                "Try " + ps.getTitle() + " (" + ps.getDifficulty() + ")",
+                                "You've only solved " + tag.getProblemsSolved() + " problem(s) in " + tag.getTagName() + ".",
+                                "Building breadth across tags strengthens your problem-solving toolkit.",
+                                tag.getProblemsSolved() <= 2 ? 1 : 2, "PRACTICE_TAG", user)
+                                .withProblem(ps.getTitle(), ps.getTitleSlug(), ps.getDifficulty()));
+                    }
+                } else {
+                    recs.add(createRecommendation(
+                            "Practice " + tag.getTagName(),
+                            "You've only solved " + tag.getProblemsSolved() + " problem(s) in " + tag.getTagName() + ".",
+                            "Building breadth across tags strengthens your problem-solving toolkit.",
+                            tag.getProblemsSolved() <= 2 ? 1 : 2, "PRACTICE_TAG", user));
+                }
             }
         }
 
@@ -233,17 +241,14 @@ public class RecommendationEngine {
         }
 
         if (snapshot.getHardSolved() == 0 && snapshot.getMediumSolved() >= 10) {
-            List<ProblemSuggestion> hardSuggestions = suggestions.stream()
-                    .filter(s -> "HARD".equals(s.getDifficulty()))
-                    .limit(1)
-                    .toList();
-            if (!hardSuggestions.isEmpty()) {
-                ProblemSuggestion ps = hardSuggestions.getFirst();
-                recs.add(createProblemRecommendation(
-                        "Start with " + ps.getTitle() + " (Hard)",
+            ProblemLoader.ProblemEntry bestHard = pickBestProblem(userId, "Hard", null);
+            if (bestHard != null) {
+                recs.add(createRecommendation(
+                        "Start with " + bestHard.getTitle() + " (Hard)",
                         "With " + snapshot.getMediumSolved() + " Medium problems solved, you're ready for Hard.",
                         "Hard problems build deep algorithmic thinking.",
-                        2, "TRY_HARD", ps, user));
+                        2, "TRY_HARD", user)
+                        .withProblem(bestHard.getTitle(), bestHard.getTitleSlug(), "Hard"));
             } else {
                 recs.add(createRecommendation(
                         "Start tackling Hard problems",
@@ -278,6 +283,37 @@ public class RecommendationEngine {
         return recs;
     }
 
+    private ProblemLoader.ProblemEntry pickBestProblem(UUID userId, String difficulty, String tagSlug) {
+        List<LeetCodeTagStat> tagStats = tagStatRepository.findByUserId(userId);
+        List<String> candidateTags;
+        if (tagSlug != null) {
+            candidateTags = List.of(tagSlug);
+        } else {
+            candidateTags = tagStats.stream()
+                    .filter(ts -> ts.getProblemsSolved() != null && ts.getProblemsSolved() < 5)
+                    .map(LeetCodeTagStat::getTagSlug)
+                    .toList();
+            if (candidateTags.isEmpty()) {
+                candidateTags = tagStats.stream()
+                        .map(LeetCodeTagStat::getTagSlug)
+                        .toList();
+            }
+        }
+
+        List<ProblemScorer.ScoredProblem> scored = new ArrayList<>();
+        for (String ct : candidateTags) {
+            List<ProblemLoader.ProblemEntry> candidates = problemLoader.getProblemsForTag(ct);
+            for (ProblemLoader.ProblemEntry c : candidates) {
+                if (difficulty != null && !c.getDifficulty().equalsIgnoreCase(difficulty)) continue;
+                int score = problemScorer.score(userId, c, ct);
+                scored.add(new ProblemScorer.ScoredProblem(c, ct, score));
+            }
+        }
+
+        scored.sort((a, b) -> Integer.compare(b.score(), a.score()));
+        return scored.isEmpty() ? null : scored.getFirst().problem();
+    }
+
     private List<Recommendation> checkLowConfidenceTopics(UUID userId, User user) {
         List<Topic> weakTopics = topicRepository.findWeakTopicsByUserId(userId);
         List<Recommendation> recs = new ArrayList<>();
@@ -285,30 +321,37 @@ public class RecommendationEngine {
 
         for (Topic topic : weakTopics) {
             int adjustedPriority = target >= 7 ? 1 : (target >= 4 ? 2 : 3);
-            recs.add(createRecommendation(
-                    "Review " + topic.getTitle(),
-                    "Your confidence in " + topic.getTitle() + " is only " + topic.getConfidence() + "/10.",
-                    "Low confidence indicates weak understanding. Regular review helps build mastery.",
-                    adjustedPriority, "REVIEW", user));
+            ProblemLoader.ProblemEntry best = pickBestProblemForTopic(userId, topic.getTitle());
+            if (best != null) {
+                recs.add(createRecommendation(
+                        "Review " + topic.getTitle() + " with " + best.getTitle(),
+                        "Your confidence in " + topic.getTitle() + " is only " + topic.getConfidence() + "/10.",
+                        "Low confidence indicates weak understanding. Practice with a curated problem.",
+                        adjustedPriority, "REVIEW", user)
+                        .withProblem(best.getTitle(), best.getTitleSlug(), best.getDifficulty()));
+            } else {
+                recs.add(createRecommendation(
+                        "Review " + topic.getTitle(),
+                        "Your confidence in " + topic.getTitle() + " is only " + topic.getConfidence() + "/10.",
+                        "Low confidence indicates weak understanding. Regular review helps build mastery.",
+                        adjustedPriority, "REVIEW", user));
+            }
         }
 
         if (target >= 7) {
             List<Topic> midTopics = topicRepository.findByUserId(userId,
-                    org.springframework.data.domain.PageRequest.of(0, 50)).getContent().stream()
+                            org.springframework.data.domain.PageRequest.of(0, 50)).getContent().stream()
                     .filter(t -> t.getConfidence() >= 4 && t.getConfidence() < 7)
                     .toList();
             for (Topic topic : midTopics) {
-                List<ProblemSuggestion> topicSuggestions = problemSuggestionRepository.findByUserId(userId).stream()
-                        .filter(s -> topic.getTitle().equalsIgnoreCase(s.getTopicTagName()))
-                        .limit(1)
-                        .toList();
-                if (!topicSuggestions.isEmpty()) {
-                    ProblemSuggestion ps = topicSuggestions.getFirst();
-                    recs.add(createProblemRecommendation(
-                            "Deepen " + topic.getTitle() + " with " + ps.getTitle(),
+                ProblemLoader.ProblemEntry best = pickBestProblemForTopic(userId, topic.getTitle());
+                if (best != null) {
+                    recs.add(createRecommendation(
+                            "Deepen " + topic.getTitle() + " with " + best.getTitle(),
                             topic.getTitle() + " confidence is " + topic.getConfidence() + "/10. At your target level, aim for 7+.",
                             "For Level " + target + " companies, medium confidence isn't enough. Push for mastery.",
-                            2, "REVIEW", ps, user));
+                            2, "REVIEW", user)
+                            .withProblem(best.getTitle(), best.getTitleSlug(), best.getDifficulty()));
                 } else {
                     recs.add(createRecommendation(
                             "Deepen " + topic.getTitle(),
@@ -322,6 +365,30 @@ public class RecommendationEngine {
         return recs;
     }
 
+    private ProblemLoader.ProblemEntry pickBestProblemForTopic(UUID userId, String topicTitle) {
+        String topicSlug = topicTitle.toLowerCase().replace(' ', '-').replaceAll("[^a-z0-9-]", "");
+        List<ProblemLoader.ProblemEntry> candidates = problemLoader.getProblemsForTag(topicSlug);
+        if (candidates.isEmpty()) {
+            List<LeetCodeTagStat> tagStats = tagStatRepository.findByUserId(userId);
+            String matchingSlug = tagStats.stream()
+                    .filter(ts -> ts.getTagName().equalsIgnoreCase(topicTitle)
+                            || ts.getTagSlug().equalsIgnoreCase(topicSlug))
+                    .findFirst().map(LeetCodeTagStat::getTagSlug)
+                    .orElse(null);
+            if (matchingSlug != null) {
+                candidates = problemLoader.getProblemsForTag(matchingSlug);
+            }
+        }
+        if (candidates.isEmpty()) return null;
+
+        List<ProblemScorer.ScoredProblem> scored = candidates.stream()
+                .map(c -> new ProblemScorer.ScoredProblem(c, topicSlug, problemScorer.score(userId, c, topicSlug)))
+                .sorted((a, b) -> Integer.compare(b.score(), a.score()))
+                .toList();
+
+        return scored.isEmpty() ? null : scored.getFirst().problem();
+    }
+
     private List<Recommendation> checkOverdueRevisions(UUID userId, User user) {
         List<Topic> overdueTopics = topicRepository.findTopicsNeedingRevisionByUserId(userId);
         List<Recommendation> recs = new ArrayList<>();
@@ -332,11 +399,21 @@ public class RecommendationEngine {
             if (topic.getLastRevision() != null) {
                 long daysSince = Duration.between(topic.getLastRevision(), LocalDateTime.now()).toDays();
                 if (daysSince > overdueThreshold) {
-                    recs.add(createRecommendation(
-                            topic.getTitle() + " needs review",
-                            topic.getTitle() + " hasn't been reviewed in " + daysSince + " days.",
-                            "Spaced repetition requires regular review. Your retention drops without practice.",
-                            1, "REVIEW", user));
+                    ProblemLoader.ProblemEntry best = pickBestProblemForTopic(userId, topic.getTitle());
+                    if (best != null) {
+                        recs.add(createRecommendation(
+                                topic.getTitle() + " needs review via " + best.getTitle(),
+                                topic.getTitle() + " hasn't been reviewed in " + daysSince + " days.",
+                                "Spaced repetition requires regular review. Reinforce with a practice problem.",
+                                1, "REVIEW", user)
+                                .withProblem(best.getTitle(), best.getTitleSlug(), best.getDifficulty()));
+                    } else {
+                        recs.add(createRecommendation(
+                                topic.getTitle() + " needs review",
+                                topic.getTitle() + " hasn't been reviewed in " + daysSince + " days.",
+                                "Spaced repetition requires regular review. Your retention drops without practice.",
+                                1, "REVIEW", user));
+                    }
                 }
             }
         }
@@ -353,14 +430,6 @@ public class RecommendationEngine {
         rec.setAction(action);
         rec.setDismissed(false);
         rec.setUser(user);
-        return rec;
-    }
-
-    private Recommendation createProblemRecommendation(String title, String description, String reason, int priority, String action, ProblemSuggestion ps, User user) {
-        Recommendation rec = createRecommendation(title, description, reason, priority, action, user);
-        rec.setProblemSlug(ps.getTitleSlug());
-        rec.setProblemTitle(ps.getTitle());
-        rec.setProblemDifficulty(ps.getDifficulty());
         return rec;
     }
 }

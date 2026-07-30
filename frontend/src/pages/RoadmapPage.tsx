@@ -1,10 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { recommendationsApi } from '@/api';
+import { recommendationsApi, roadmapApi } from '@/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { Lightbulb, X, RefreshCw, AlertTriangle, TrendingUp, Target, Sparkles, ExternalLink } from 'lucide-react';
-import { useState } from 'react';
+import { Lightbulb, X, RefreshCw, AlertTriangle, TrendingUp, Target, Sparkles, ExternalLink, Brain, BookOpen } from 'lucide-react';
 
 const priorityConfig: Record<number, { label: string; class: string }> = {
   1: { label: 'High', class: 'bg-red-500/10 text-red-400 border-red-500/20' },
@@ -29,13 +28,29 @@ function getDefaultIcon(action: string) {
   return actionIcons[action] || Lightbulb;
 }
 
+const readinessColor = (score: number) => {
+  if (score >= 70) return 'text-green-400';
+  if (score >= 40) return 'text-yellow-400';
+  return 'text-red-400';
+};
+
+const readinessBg = (score: number) => {
+  if (score >= 70) return 'bg-green-500/10';
+  if (score >= 40) return 'bg-yellow-500/10';
+  return 'bg-red-500/10';
+};
+
 export default function RoadmapPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const targetLevel = user?.targetLevel ?? 5;
-  const [remaining, setRemaining] = useState<number | null>(null);
 
-  const { data: recommendations, isLoading } = useQuery({
+  const { data: analysis, isLoading: analysisLoading } = useQuery({
+    queryKey: ['roadmap-analysis'],
+    queryFn: () => roadmapApi.getAnalysis().then((res) => res.data.data),
+  });
+
+  const { data: recommendations, isLoading: recsLoading } = useQuery({
     queryKey: ['recommendations'],
     queryFn: () => recommendationsApi.getActive().then((res) => res.data.data || []),
   });
@@ -43,9 +58,8 @@ export default function RoadmapPage() {
   const generateMutation = useMutation({
     mutationFn: () => recommendationsApi.generate(),
     onSuccess: (res) => {
-      const gen = res.data.data;
-      setRemaining(gen.remainingGenerations);
       queryClient.invalidateQueries({ queryKey: ['recommendations'] });
+      queryClient.invalidateQueries({ queryKey: ['roadmap-analysis'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
@@ -60,11 +74,13 @@ export default function RoadmapPage() {
   const isGenerating = generateMutation.isPending;
   const sorted = [...(recommendations || [])].sort((a, b) => a.priority - b.priority);
 
-  if (isLoading) {
+  if (analysisLoading || recsLoading) {
     return (
       <div className="space-y-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-28 animate-pulse rounded-2xl bg-secondary" />
+        <div className="h-32 animate-pulse rounded-2xl bg-secondary" />
+        <div className="h-24 animate-pulse rounded-2xl bg-secondary" />
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-28 animate-pulse rounded-xl bg-secondary" />
         ))}
       </div>
     );
@@ -80,9 +96,76 @@ export default function RoadmapPage() {
           className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
         >
           <RefreshCw className={`h-4 w-4 ${isGenerating ? 'animate-spin' : ''}`} />
-          {isGenerating ? 'Generating...' : remaining !== null ? `Generate (${remaining} left)` : 'Generate New Plan'}
+          {isGenerating ? 'Generating...' : 'Generate New Plan'}
         </button>
       </div>
+
+      {/* Personalized Analysis Hero Card */}
+      {analysis && (
+        <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Brain className="h-5 w-5 text-primary" />
+            <h2 className="font-semibold">Your Personal Analysis</h2>
+          </div>
+          <p className="text-sm leading-relaxed text-muted-foreground">{analysis.paragraph}</p>
+
+          <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div className="rounded-xl bg-secondary/50 p-3 text-center">
+              <p className="text-xl font-bold text-primary">Level {analysis.currentLevel}</p>
+              <p className="text-xs text-muted-foreground">Target</p>
+            </div>
+            <div className={`rounded-xl ${readinessBg(analysis.readinessScore)} p-3 text-center`}>
+              <p className={`text-xl font-bold ${readinessColor(analysis.readinessScore)}`}>{analysis.readinessScore}%</p>
+              <p className="text-xs text-muted-foreground">Readiness</p>
+            </div>
+            <div className="rounded-xl bg-secondary/50 p-3 text-center">
+              <p className="text-xl font-bold truncate" title={analysis.focusArea}>{analysis.focusArea}</p>
+              <p className="text-xs text-muted-foreground">Focus Area</p>
+            </div>
+            <div className="rounded-xl bg-secondary/50 p-3 text-center">
+              <p className="text-xl font-bold">{analysis.estimatedTimeToNextLevel}</p>
+              <p className="text-xs text-muted-foreground">To Next Level</p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-4 text-xs">
+            <span className="rounded-full bg-secondary px-3 py-1 text-muted-foreground">
+              Next milestone: {analysis.nextMilestone}
+            </span>
+            <span className="rounded-full bg-secondary px-3 py-1 text-muted-foreground">
+              Suggested split: {analysis.recommendedDifficultySplit}
+            </span>
+          </div>
+
+          {/* Strong & Weak Tags */}
+          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+            {analysis.strongTags.length > 0 && (
+              <div>
+                <p className="mb-2 text-xs font-semibold text-green-400">Strong Areas</p>
+                <div className="flex flex-wrap gap-2">
+                  {analysis.strongTags.map((t) => (
+                    <span key={t.slug} className="rounded-full bg-green-500/10 px-2.5 py-1 text-xs text-green-400">
+                      {t.name} ({t.solved})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {analysis.weakTags.length > 0 && (
+              <div>
+                <p className="mb-2 text-xs font-semibold text-red-400">Needs Work</p>
+                <div className="flex flex-wrap gap-2">
+                  {analysis.weakTags.map((t) => (
+                    <span key={t.slug} className="rounded-full bg-red-500/10 px-2.5 py-1 text-xs text-red-400">
+                      {t.name} ({t.solved})
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
         <div className="flex items-center gap-2">

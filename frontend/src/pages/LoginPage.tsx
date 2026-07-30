@@ -81,7 +81,7 @@ export default function LoginPage() {
       </div>
 
       {/* Navbar */}
-      <nav className="fixed top-0 z-20 w-full border-b border-white/5 bg-background/80 backdrop-blur-xl">
+      <nav className="fixed top-0 z-20 w-full border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <div className="flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
@@ -158,7 +158,7 @@ export default function LoginPage() {
 
           {/* Right - Auth Card */}
           <div id="auth-section" className="flex items-center justify-center pt-8 lg:pt-0">
-            <div className="w-full max-w-md rounded-2xl border border-white/10 bg-card/70 p-8 shadow-2xl shadow-black/30 backdrop-blur-xl" style={{ minHeight: '420px' }}>
+            <div className="w-full max-w-md rounded-2xl border border-border bg-card/70 p-8 shadow-2xl shadow-black/10 backdrop-blur-xl" style={{ minHeight: '420px' }}>
               {/* Tabs */}
               <div className="flex rounded-xl bg-secondary p-1">
                 <button
@@ -281,7 +281,7 @@ export default function LoginPage() {
       </section>
 
       {/* Features */}
-      <section id="features" className="relative border-t border-white/5 px-6 py-24">
+      <section id="features" className="relative border-t border-border px-6 py-24">
         <div className="pointer-events-none absolute inset-0 -z-10">
           <div className="absolute left-1/3 top-0 h-[400px] w-[400px] rounded-full bg-primary/3 blur-[100px]" />
         </div>
@@ -294,7 +294,7 @@ export default function LoginPage() {
             {features.map((f) => (
               <div
                 key={f.title}
-                className="group rounded-xl border border-white/5 bg-card/30 p-6 transition-all hover:border-primary/20 hover:bg-card/60 hover:shadow-lg hover:shadow-primary/5"
+                className="group rounded-xl border border-border bg-card/30 p-6 transition-all hover:border-primary/20 hover:bg-card/60 hover:shadow-lg hover:shadow-primary/5"
               >
                 <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/15">
                   <f.icon className="h-5 w-5 text-primary" />
@@ -308,7 +308,7 @@ export default function LoginPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 px-6 py-8">
+      <footer className="border-t border-border px-6 py-8">
         <div className="mx-auto flex max-w-6xl items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">

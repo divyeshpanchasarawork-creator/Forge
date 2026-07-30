@@ -1,66 +1,40 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { recommendationsApi, dashboardApi, leetcodeApi } from '@/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { useQuery } from '@tanstack/react-query';
+import { practiceApi, dashboardApi, leetcodeApi } from '@/api';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { Code, Target, ExternalLink, X, RefreshCw, Sparkles, Layers } from 'lucide-react';
+import { Code, RefreshCw, ExternalLink, Sparkles } from 'lucide-react';
 import { useState } from 'react';
-import { parseApiError } from '@/lib/error';
+
+const difficultyConfig: Record<string, { class: string }> = {
+  Easy: { class: 'bg-green-500/10 text-green-400 border-green-500/20' },
+  Medium: { class: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' },
+  Hard: { class: 'bg-red-500/10 text-red-400 border-red-500/20' },
+};
 
 export default function PracticePage() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-  const targetLevel = user?.targetLevel ?? 5;
   const [syncing, setSyncing] = useState(false);
-  const [filterTag, setFilterTag] = useState<string | null>(null);
 
   const { data: dashData } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => dashboardApi.get().then((res) => res.data.data),
   });
 
-  const { data: recs } = useQuery({
-    queryKey: ['recommendations'],
-    queryFn: () => recommendationsApi.getActive().then((res) => res.data.data || []),
-  });
-
-  const dismissMutation = useMutation({
-    mutationFn: recommendationsApi.dismiss,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recommendations'] }),
-  });
-
-  const [generateError, setGenerateError] = useState('');
-
-  const generateMutation = useMutation({
-    mutationFn: () => recommendationsApi.generate(),
-    onSuccess: () => {
-      setGenerateError('');
-      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    },
-      onError: (err: unknown) => {
-      setGenerateError(parseApiError(err));
-    },
+  const { data: queue, isLoading } = useQuery({
+    queryKey: ['practice-queue'],
+    queryFn: () => practiceApi.getQueue().then((res) => res.data.data || []),
   });
 
   const handleSync = async () => {
     setSyncing(true);
     try {
       await leetcodeApi.sync();
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     } finally {
       setSyncing(false);
     }
   };
 
-  const sortedRecs = [...(recs || [])].sort((a, b) => a.priority - b.priority);
-  const problemRecs = sortedRecs.filter(r => r.problemSlug);
-  const filteredRecs = filterTag
-    ? problemRecs.filter(r => r.description?.toLowerCase().includes(filterTag.toLowerCase()))
-    : problemRecs;
-  const hasRecs = sortedRecs.length > 0;
-
-  const knowledgeMap = dashData?.knowledgeMap || [];
   const tp = dashData?.targetProgress;
 
   return (
@@ -80,134 +54,68 @@ export default function PracticePage() {
       {!dashData?.leetcodeStats && (
         <Card className="border-amber-500/20 bg-amber-500/5">
           <CardContent className="p-4 text-sm">
-            Sync your LeetCode profile to get personalized problem recommendations based on your weak areas.
+            Sync your LeetCode profile to get curated practice problems based on your weak areas.
           </CardContent>
         </Card>
       )}
 
-      {hasRecs ? (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Target className="h-4 w-4 text-primary" />
-            <h2 className="text-lg font-semibold">Practice Queue</h2>
-            <span className="text-xs text-muted-foreground">({sortedRecs.length} item{sortedRecs.length !== 1 ? 's' : ''})</span>
-          </div>
-          <div className="space-y-2">
-            {sortedRecs.map((rec) => (
+      {isLoading ? (
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-20 animate-pulse rounded-xl bg-secondary" />
+          ))}
+        </div>
+      ) : queue && queue.length > 0 ? (
+        <div className="space-y-2">
+          {queue.map((problem) => {
+            const diff = difficultyConfig[problem.difficulty] || difficultyConfig.Medium;
+            return (
               <div
-                key={rec.id}
+                key={problem.titleSlug}
                 className="group flex items-center gap-4 rounded-xl border border-border bg-card/50 px-5 py-4 transition-all hover:border-primary/20 hover:bg-card"
               >
                 <Code className="h-5 w-5 shrink-0 text-primary" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium truncate">{rec.problemTitle || rec.title}</span>
-                    {rec.problemDifficulty && (
-                      <Badge variant={rec.problemDifficulty === 'EASY' ? 'success' : rec.problemDifficulty === 'HARD' ? 'destructive' : 'warning'} className="shrink-0">
-                        {rec.problemDifficulty}
-                      </Badge>
+                    <span className="text-sm font-medium truncate">{problem.title}</span>
+                    <Badge variant="outline" className={`shrink-0 border ${diff.class}`}>
+                      {problem.difficulty}
+                    </Badge>
+                    {problem.topicTag && (
+                      <span className="shrink-0 rounded-full bg-secondary px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                        {problem.topicTag}
+                      </span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{rec.reason || rec.description}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{problem.reason}</p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {rec.problemSlug && (
-                    <a
-                      href={`https://leetcode.com/problems/${rec.problemSlug}/`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      Solve
-                    </a>
-                  )}
-                  <button
-                    onClick={() => dismissMutation.mutate(rec.id)}
-                    className="rounded-lg p-1.5 text-muted-foreground/40 opacity-0 group-hover:opacity-100 hover:text-destructive transition-all"
-                    title="Dismiss"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
+                <a
+                  href={`https://leetcode.com/problems/${problem.titleSlug}/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex shrink-0 items-center gap-1 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Solve
+                </a>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       ) : (
         <Card>
           <CardContent className="py-10 text-center">
             <Sparkles className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-            <p className="font-medium">Queue is clear</p>
-            <p className="text-sm text-muted-foreground mb-4">Generate fresh recommendations based on your weak areas.</p>
-            {generateError && (
-              <div className="mb-4 rounded-lg bg-destructive/10 px-4 py-2 text-xs text-destructive">
-                {generateError}
-              </div>
-            )}
-            <button
-              onClick={() => generateMutation.mutate()}
-              disabled={generateMutation.isPending}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-            >
-              <RefreshCw className={`h-4 w-4 ${generateMutation.isPending ? 'animate-spin' : ''}`} />
-              {generateMutation.isPending ? 'Generating...' : 'Generate Queue'}
-            </button>
+            <p className="font-medium">No problems yet</p>
+            <p className="text-sm text-muted-foreground">Sync LeetCode to get curated problems based on your weak areas.</p>
           </CardContent>
         </Card>
-      )}
-
-      {knowledgeMap.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Layers className="h-4 w-4 text-primary" />
-            <h2 className="text-lg font-semibold">Browse by Topic</h2>
-          </div>
-          <div className="flex flex-wrap gap-2 mb-3">
-            {filterTag && (
-              <button
-                onClick={() => setFilterTag(null)}
-                className="rounded-full border border-border px-3 py-1 text-xs hover:bg-secondary transition-colors"
-              >
-                Clear filter
-              </button>
-            )}
-          </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {knowledgeMap.map((cat) => (
-              <Card key={cat.category} className="hover:border-primary/20 transition-colors">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">{cat.category}</CardTitle>
-                  <p className="text-xs text-muted-foreground">{cat.averageMastery}% avg mastery</p>
-                </CardHeader>
-                <CardContent className="space-y-1.5">
-                  {cat.topics.slice(0, 5).map((topic) => (
-                    <button
-                      key={topic.id}
-                      onClick={() => setFilterTag(topic.title === filterTag ? null : topic.title)}
-                      className={`w-full flex items-center justify-between rounded-lg px-3 py-2 text-xs transition-colors ${
-                        filterTag === topic.title
-                          ? 'bg-primary/10 text-primary'
-                          : 'hover:bg-secondary/50 text-muted-foreground'
-                      }`}
-                    >
-                      <span>{topic.title}</span>
-                      <Badge variant={topic.confidence < 4 ? 'destructive' : topic.confidence >= 7 ? 'success' : 'default'}>
-                        {topic.confidence}/10
-                      </Badge>
-                    </button>
-                  ))}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
       )}
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold">{problemRecs.length}</p>
+            <p className="text-2xl font-bold">{queue?.length || 0}</p>
             <p className="text-xs text-muted-foreground">In Queue</p>
           </CardContent>
         </Card>

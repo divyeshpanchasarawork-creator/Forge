@@ -7,6 +7,8 @@ import com.forge.leetcode.entity.LeetCodeTagStat;
 import com.forge.leetcode.entity.ProblemSuggestion;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.leetcode.repository.LeetCodeTagStatRepository;
+import com.forge.common.util.ProblemLoader;
+import com.forge.common.util.ProblemScorer;
 import com.forge.leetcode.repository.ProblemSuggestionRepository;
 import com.forge.recommendation.entity.Recommendation;
 import com.forge.recommendation.repository.RecommendationRepository;
@@ -37,6 +39,8 @@ class RecommendationEngineTest {
     @Mock private LeetCodeSnapshotRepository snapshotRepository;
     @Mock private LeetCodeTagStatRepository tagStatRepository;
     @Mock private ProblemSuggestionRepository problemSuggestionRepository;
+    @Mock private ProblemLoader problemLoader;
+    @Mock private ProblemScorer problemScorer;
 
     private RecommendationEngine engine;
     private UUID userId;
@@ -44,7 +48,7 @@ class RecommendationEngineTest {
 
     @BeforeEach
     void setUp() {
-        engine = new RecommendationEngine(topicRepository, recommendationRepository, userRepository, snapshotRepository, tagStatRepository, problemSuggestionRepository);
+        engine = new RecommendationEngine(topicRepository, recommendationRepository, userRepository, snapshotRepository, tagStatRepository, problemSuggestionRepository, problemLoader, problemScorer);
         userId = UUID.randomUUID();
         user = new User();
         user.setId(userId);

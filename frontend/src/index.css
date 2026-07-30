@@ -25,6 +25,28 @@
   --radius-sm: 0.25rem;
 }
 
+.light {
+  --color-background: #f8f7ff;
+  --color-foreground: #1a1a2e;
+  --color-card: #f0eeff;
+  --color-card-foreground: #1a1a2e;
+  --color-primary: #6d5dfc;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #e8e5ff;
+  --color-secondary-foreground: #1a1a2e;
+  --color-muted: #e8e5ff;
+  --color-muted-foreground: #6b6b80;
+  --color-accent: #e8e5ff;
+  --color-accent-foreground: #1a1a2e;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #d4d0eb;
+  --color-input: #d4d0eb;
+  --color-ring: #6d5dfc;
+  --color-sidebar: #f0eeff;
+  --color-sidebar-foreground: #1a1a2e;
+}
+
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);

@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import ColdStartGate from '@/components/layout/ColdStartGate';
 import LoginPage from '@/pages/LoginPage';
 import DashboardPage from '@/pages/DashboardPage';
 import RoadmapPage from '@/pages/RoadmapPage';
@@ -32,8 +34,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
         <BrowserRouter>
+          <ColdStartGate>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
@@ -47,8 +51,10 @@ export default function App() {
               <Route path="profile" element={<ProfilePage />} />
             </Route>
           </Routes>
+          </ColdStartGate>
         </BrowserRouter>
       </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

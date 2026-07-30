@@ -1,5 +1,5 @@
 import api from './client';
-import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, LeetCodeStats, MemoryResponse } from '@/types';
+import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, LeetCodeStats, MemoryResponse, PracticeProblem, RoadmapAnalysis } from '@/types';
 
 export const authApi = {
   login: (username: string, password: string) =>
@@ -41,8 +41,16 @@ export const analyticsApi = {
   get: () => api.get<ApiResponse<AnalyticsResponse>>('/analytics'),
 };
 
+export const practiceApi = {
+  getQueue: () => api.get<ApiResponse<PracticeProblem[]>>('/practice/queue'),
+};
+
 export const memoryApi = {
   get: () => api.get<ApiResponse<MemoryResponse>>('/memory'),
+};
+
+export const roadmapApi = {
+  getAnalysis: () => api.get<ApiResponse<RoadmapAnalysis>>('/roadmap/analysis'),
 };
 
 export const leetcodeApi = {

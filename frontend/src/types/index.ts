@@ -178,6 +178,14 @@ export interface LeetCodeTagStat {
   skillLevel: string;
 }
 
+export interface PracticeProblem {
+  title: string;
+  titleSlug: string;
+  difficulty: string;
+  topicTag: string | null;
+  reason: string;
+}
+
 export interface MemoryResponse {
   fadingConcepts: {
     topicId: string;
@@ -187,17 +195,22 @@ export interface MemoryResponse {
     mastery: number;
     daysSinceRevision: number;
     estimatedRetention: number | null;
+    suggestedProblemTitle: string | null;
+    suggestedProblemSlug: string | null;
+    suggestedProblemDifficulty: string | null;
   }[];
-  patternsDiscovered: MemoryEntry[];
-  pastMistakes: MemoryEntry[];
-  insights: MemoryEntry[];
 }
 
-export interface MemoryEntry {
-  date: string;
-  content: string;
-  topicTitle: string | null;
-  topicCategory: string | null;
+export interface RoadmapAnalysis {
+  paragraph: string;
+  currentLevel: number;
+  focusArea: string;
+  estimatedTimeToNextLevel: string;
+  strongTags: { name: string; slug: string; solved: number; confidence: number }[];
+  weakTags: { name: string; slug: string; solved: number; confidence: number }[];
+  nextMilestone: string;
+  readinessScore: number;
+  recommendedDifficultySplit: string;
 }
 
 export interface AnalyticsResponse {

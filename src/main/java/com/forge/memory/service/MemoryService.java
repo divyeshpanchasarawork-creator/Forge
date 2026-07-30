@@ -1,8 +1,8 @@
 package com.forge.memory.service;
 
+import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.SecurityUtils;
-import com.forge.journal.entity.Journal;
-import com.forge.journal.repository.JournalRepository;
+import com.forge.leetcode.repository.LeetCodeTagStatRepository;
 import com.forge.memory.dto.MemoryResponse;
 import com.forge.topic.entity.Topic;
 import com.forge.topic.repository.TopicRepository;
@@ -11,7 +11,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,42 +21,17 @@ import java.util.UUID;
 public class MemoryService {
 
     private final TopicRepository topicRepository;
-    private final JournalRepository journalRepository;
+    private final LeetCodeTagStatRepository tagStatRepository;
+    private final ProblemLoader problemLoader;
 
     public MemoryResponse getMemory() {
         UUID userId = SecurityUtils.getCurrentUserId();
-        LocalDate thirtyDaysAgo = LocalDate.now().minusDays(30);
-
         List<Topic> allTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).getContent();
-        List<MemoryResponse.FadingConcept> fadingConcepts = computeFadingConcepts(allTopics);
-
-        List<Journal> recentJournals = journalRepository
-                .findByUserIdAndEntryDateBetweenOrderByEntryDateDesc(userId, thirtyDaysAgo, LocalDate.now());
-
-        List<MemoryResponse.MemoryEntry> patterns = new ArrayList<>();
-        List<MemoryResponse.MemoryEntry> mistakes = new ArrayList<>();
-        List<MemoryResponse.MemoryEntry> insights = new ArrayList<>();
-
-        for (Journal journal : recentJournals) {
-            if (journal.getLessons() != null && !journal.getLessons().isBlank()) {
-                String lower = journal.getLessons().toLowerCase();
-                if (lower.contains("pattern") || lower.contains("template") || lower.contains("approach")) {
-                    patterns.add(new MemoryResponse.MemoryEntry(
-                            journal.getEntryDate(), journal.getLessons(), null, null));
-                }
-                insights.add(new MemoryResponse.MemoryEntry(
-                        journal.getEntryDate(), journal.getLessons(), null, null));
-            }
-            if (journal.getChallenges() != null && !journal.getChallenges().isBlank()) {
-                mistakes.add(new MemoryResponse.MemoryEntry(
-                        journal.getEntryDate(), journal.getChallenges(), null, null));
-            }
-        }
-
-        return new MemoryResponse(fadingConcepts, patterns, mistakes, insights);
+        List<MemoryResponse.FadingConcept> fadingConcepts = computeFadingConcepts(allTopics, userId);
+        return new MemoryResponse(fadingConcepts);
     }
 
-    private List<MemoryResponse.FadingConcept> computeFadingConcepts(List<Topic> topics) {
+    private List<MemoryResponse.FadingConcept> computeFadingConcepts(List<Topic> topics, UUID userId) {
         List<MemoryResponse.FadingConcept> result = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
 
@@ -72,6 +46,22 @@ public class MemoryService {
                     || (topic.getEstimatedRetention() != null && topic.getEstimatedRetention() < 60.0);
 
             if (isFading) {
+                String suggestedTitle = null;
+                String suggestedSlug = null;
+                String suggestedDifficulty = null;
+
+                String topicSlug = topic.getTitle().toLowerCase().replace(' ', '-').replaceAll("[^a-z0-9-]", "");
+                List<ProblemLoader.ProblemEntry> candidates = problemLoader.getProblemsForTag(topicSlug);
+                if (candidates.isEmpty()) {
+                    candidates = problemLoader.getProblemsForTag(topic.getTitle().toLowerCase());
+                }
+                if (!candidates.isEmpty()) {
+                    ProblemLoader.ProblemEntry pick = candidates.get(0);
+                    suggestedTitle = pick.getTitle();
+                    suggestedSlug = pick.getTitleSlug();
+                    suggestedDifficulty = pick.getDifficulty();
+                }
+
                 result.add(new MemoryResponse.FadingConcept(
                         topic.getId().toString(),
                         topic.getTitle(),
@@ -79,13 +69,16 @@ public class MemoryService {
                         topic.getConfidence(),
                         topic.getMastery(),
                         daysSinceRevision,
-                        topic.getEstimatedRetention()
+                        topic.getEstimatedRetention(),
+                        suggestedTitle,
+                        suggestedSlug,
+                        suggestedDifficulty
                 ));
             }
         }
 
         result.sort((a, b) -> {
-            if (a.getConfidence() != b.getConfidence()) return a.getConfidence() - b.getConfidence();
+            if (a.getConfidence() != b.getConfidence()) return Integer.compare(a.getConfidence(), b.getConfidence());
             if (a.getDaysSinceRevision() > b.getDaysSinceRevision()) return -1;
             if (a.getDaysSinceRevision() < b.getDaysSinceRevision()) return 1;
             return 0;

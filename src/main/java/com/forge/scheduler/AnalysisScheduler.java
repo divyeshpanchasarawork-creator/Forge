@@ -2,6 +2,7 @@ package com.forge.scheduler;
 
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
+import com.forge.leetcode.service.LeetCodeFetchService;
 import com.forge.recommendation.service.RecommendationEngine;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ public class AnalysisScheduler {
 
     private final UserRepository userRepository;
     private final RecommendationEngine recommendationEngine;
+    private final LeetCodeFetchService leetCodeFetchService;
 
     @Scheduled(cron = "0 */30 * * * *")
     @Transactional
@@ -45,6 +47,7 @@ public class AnalysisScheduler {
 
             try {
                 recommendationEngine.generateForUser(user.getId(), true);
+                leetCodeFetchService.refreshProblemSuggestions(user.getId());
                 user.setDailyGenerationsUsed(user.getDailyGenerationsUsed() + 1);
                 userRepository.save(user);
                 processed++;
