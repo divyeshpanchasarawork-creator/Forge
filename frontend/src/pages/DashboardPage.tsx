@@ -4,29 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import KpiCard from '@/components/ui/KpiCard';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  Flame, Target, RefreshCw, TrendingUp, TrendingDown, BookOpen, Zap,
-  Code2, AlertTriangle, Clock, Brain, Layers
+  Flame, Target, RefreshCw, TrendingUp, BookOpen, Zap,
+  Code2, AlertTriangle, Clock, Brain
 } from 'lucide-react';
-
-const masteryColor = (m: number) => {
-  if (m >= 80) return 'bg-green-500';
-  if (m >= 60) return 'bg-primary';
-  if (m >= 30) return 'bg-yellow-500';
-  return 'bg-red-500';
-};
-
-const masteryTextColor = (m: number) => {
-  if (m >= 80) return 'text-green-400';
-  if (m >= 60) return 'text-primary';
-  if (m >= 30) return 'text-yellow-400';
-  return 'text-red-400';
-};
-
-const statusColor = (s: string) => {
-  if (s === 'MASTERED') return 'bg-green-500/20 text-green-400';
-  if (s === 'IN_PROGRESS') return 'bg-yellow-500/20 text-yellow-400';
-  return 'bg-secondary text-muted-foreground';
-};
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -54,7 +34,6 @@ export default function DashboardPage() {
   const kh = data.knowledgeHealth || {};
   const lc = data.leetcodeStats;
   const tp = data.targetProgress;
-  const km = data.knowledgeMap || [];
   const hasLeetcode = !!user?.leetcodeUsername;
 
   return (
@@ -88,16 +67,15 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Knowledge Map — Hero Section */}
+      {/* Knowledge Health — simplified */}
       <Card className="border-primary/10">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
-            Knowledge Map
+            Knowledge Health
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Overall health row */}
+        <CardContent>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <div className="rounded-xl bg-secondary/50 p-3 text-center">
               <p className="text-xl font-bold text-primary">{kh.totalTopics || 0}</p>
@@ -119,8 +97,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Status breakdown bar */}
-          <div>
+          <div className="mt-4">
             <div className="mb-2 flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Topic Status</span>
               <span className="font-medium">{kh.totalTopics || 0} total</span>
@@ -150,60 +127,6 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-
-          {/* Category Grid */}
-          {km.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {km.map((cat) => (
-                <div key={cat.category} className="rounded-xl border border-border bg-secondary/20 p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h3 className="text-sm font-semibold">{cat.category}</h3>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{cat.averageMastery}%</span>
-                      <span className="text-yellow-400">{cat.averageConfidence}/10</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    {cat.topics.map((topic) => (
-                      <div key={topic.id} className="flex items-center gap-2">
-                        <span className={`h-2 w-2 shrink-0 rounded-full ${masteryColor(topic.mastery)}`} />
-                        <span className="flex-1 truncate text-xs">{topic.title}</span>
-                        <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium ${statusColor(topic.status)}`}>
-                          {topic.status?.replace('_', ' ').slice(0, 6) || 'New'}
-                        </span>
-                        <span className={`w-8 text-right text-xs ${masteryTextColor(topic.mastery)}`}>
-                          {topic.mastery}%
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-border p-8 text-center">
-              <Layers className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-              <p className="text-sm font-medium">No topics yet</p>
-              <p className="text-xs text-muted-foreground mt-1">Add topics in the Topics tab to build your knowledge map.</p>
-            </div>
-          )}
-
-          {/* Needs attention strip */}
-          {data.weakTopics && data.weakTopics.length > 0 && (
-            <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle className="h-4 w-4 text-red-400" />
-                <span className="text-sm font-semibold text-red-400">Needs Attention</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {data.weakTopics.slice(0, 6).map((t: any) => (
-                  <span key={t.id} className="rounded-full bg-red-500/10 px-2.5 py-1 text-xs text-red-400">
-                    {t.title} ({t.confidence}/10)
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -319,9 +242,8 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      {/* Recommendations & Revisions + Weak/Strong + Journal */}
+      {/* Recommendations & Journal */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Recommendations */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -353,7 +275,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Today's Journal */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -366,75 +287,6 @@ export default function DashboardPage() {
             <p className="mt-3 text-xs text-muted-foreground/60">
               Log your daily energy, mood, and wins to track your learning journey.
             </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Weak & Strong Topics */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingDown className="h-4 w-4 text-red-400" />
-              Needs Attention
-              {(data.weakTopics?.length || 0) > 0 && (
-                <span className="ml-auto rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-400">
-                  {data.weakTopics.length} topic{(data.weakTopics.length || 0) > 1 ? 's' : ''}
-                </span>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {data.weakTopics?.length === 0 && (
-              <p className="text-sm text-muted-foreground">All topics above confidence 4/10. Nice!</p>
-            )}
-            {data.weakTopics?.slice(0, 5).map((topic: any) => (
-              <div key={topic.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{topic.title}</p>
-                  <p className="text-xs text-muted-foreground">{topic.category}</p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="h-2 w-24 rounded-full bg-secondary">
-                    <div className="h-2 rounded-full bg-red-400" style={{ width: `${topic.confidence * 10}%` }} />
-                  </div>
-                  <span className="w-8 text-right text-xs text-muted-foreground">{topic.confidence}/10</span>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-green-400" />
-              Strong Areas
-              {(data.strongTopics?.length || 0) > 0 && (
-                <span className="ml-auto rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-400">
-                  {data.strongTopics.length} topic{(data.strongTopics.length || 0) > 1 ? 's' : ''}
-                </span>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {data.strongTopics?.length === 0 && (
-              <p className="text-sm text-muted-foreground">No strong topics yet. Keep building!</p>
-            )}
-            {data.strongTopics?.slice(0, 5).map((topic: any) => (
-              <div key={topic.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{topic.title}</p>
-                  <p className="text-xs text-muted-foreground">{topic.category}</p>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="h-2 w-24 rounded-full bg-secondary">
-                    <div className="h-2 rounded-full bg-green-400" style={{ width: `${topic.confidence * 10}%` }} />
-                  </div>
-                  <span className="w-8 text-right text-xs text-muted-foreground">{topic.confidence}/10</span>
-                </div>
-              </div>
-            ))}
           </CardContent>
         </Card>
       </div>

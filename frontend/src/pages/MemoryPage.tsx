@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { memoryApi } from '@/api';
 import { Card, CardContent } from '@/components/ui/Card';
-import { Brain, ExternalLink, Clock, AlertTriangle } from 'lucide-react';
+import { Brain, ExternalLink, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const retentionColor = (r: number | null) => {
   if (r == null) return 'text-muted-foreground';
@@ -46,6 +47,24 @@ export default function MemoryPage() {
         Topics that are fading from your long-term memory based on spaced repetition data.
         Review them before they're forgotten.
       </p>
+
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm">
+            <Brain className="h-4 w-4 text-primary" />
+            <span className="text-muted-foreground">
+              Fading concepts appear in your <span className="font-medium text-foreground">Practice queue</span> for review.
+            </span>
+          </div>
+          <Link
+            to="/problems"
+            className="flex shrink-0 items-center gap-1 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+          >
+            View Queue
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+      </div>
 
       {fading.length === 0 ? (
         <Card>

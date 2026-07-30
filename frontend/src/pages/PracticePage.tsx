@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { practiceApi, dashboardApi, leetcodeApi } from '@/api';
+import { practiceApi, leetcodeApi } from '@/api';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { useAuth } from '@/contexts/AuthContext';
 import { Code, RefreshCw, ExternalLink, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
@@ -13,13 +12,7 @@ const difficultyConfig: Record<string, { class: string }> = {
 };
 
 export default function PracticePage() {
-  const { user } = useAuth();
   const [syncing, setSyncing] = useState(false);
-
-  const { data: dashData } = useQuery({
-    queryKey: ['dashboard'],
-    queryFn: () => dashboardApi.get().then((res) => res.data.data),
-  });
 
   const { data: queue, isLoading } = useQuery({
     queryKey: ['practice-queue'],
@@ -35,8 +28,6 @@ export default function PracticePage() {
     }
   };
 
-  const tp = dashData?.targetProgress;
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -50,14 +41,6 @@ export default function PracticePage() {
           {syncing ? 'Syncing...' : 'Sync LeetCode'}
         </button>
       </div>
-
-      {!dashData?.leetcodeStats && (
-        <Card className="border-amber-500/20 bg-amber-500/5">
-          <CardContent className="p-4 text-sm">
-            Sync your LeetCode profile to get curated practice problems based on your weak areas.
-          </CardContent>
-        </Card>
-      )}
 
       {isLoading ? (
         <div className="space-y-3">
@@ -101,6 +84,7 @@ export default function PracticePage() {
               </div>
             );
           })}
+          <p className="text-xs text-muted-foreground text-center pt-2">{queue.length} problem{queue.length !== 1 ? 's' : ''} in queue</p>
         </div>
       ) : (
         <Card>
@@ -111,33 +95,6 @@ export default function PracticePage() {
           </CardContent>
         </Card>
       )}
-
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold">{queue?.length || 0}</p>
-            <p className="text-xs text-muted-foreground">In Queue</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold">{tp?.totalSolved || '-'}</p>
-            <p className="text-xs text-muted-foreground">Solved</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold">{tp?.readinessScore != null ? `${tp.readinessScore}%` : '-'}</p>
-            <p className="text-xs text-muted-foreground">Readiness</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold">{dashData?.leetcodeStats?.streak || 0}</p>
-            <p className="text-xs text-muted-foreground">Streak</p>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
