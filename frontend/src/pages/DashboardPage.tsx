@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import KpiCard from '@/components/ui/KpiCard';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  Flame, Target, RefreshCw, TrendingUp, BookOpen, Zap,
+  Flame, Target, RefreshCw, BookOpen, Zap,
   Code2, AlertTriangle, Clock, Brain
 } from 'lucide-react';
 
