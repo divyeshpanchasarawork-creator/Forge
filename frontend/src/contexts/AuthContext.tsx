@@ -8,8 +8,9 @@ interface User {
   email: string | null;
   leetcodeUsername: string | null;
   targetLevel: number;
-  preferredAnalysisTime?: string;
-  dailyGenerationsUsed?: number;
+  preferredAnalysisTime?: string | null;
+  dailyGenerationsUsed?: number | null;
+  lastGenerationDate?: string | null;
 }
 
 interface AuthContextType {

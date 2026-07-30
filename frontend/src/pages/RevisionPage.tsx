@@ -22,7 +22,7 @@ export default function RevisionPage() {
   });
 
   const completeMutation = useMutation({
-    mutationFn: revisionsApi.complete,
+    mutationFn: (id: string) => revisionsApi.complete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['revisions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -62,7 +62,7 @@ export default function RevisionPage() {
         <KpiCard icon={<Clock className="h-5 w-5 text-orange-400" />} value={todayRevisions?.length || 0} label="Due Today" tooltip="Revisions scheduled for today." />
         <KpiCard icon={<ListTodo className="h-5 w-5 text-yellow-400" />} value={pendingRevisions?.length || 0} label="Total Pending" tooltip="All pending revisions not yet completed." />
         <KpiCard icon={<Calendar className="h-5 w-5 text-blue-400" />} value={todayRevisions?.filter((r: any) => r.completed).length || 0} label="Completed Today" tooltip="Revisions completed today." />
-        <KpiCard icon={<TrendingUp className="h-5 w-5 text-green-400" />} value={todayRevisions && todayRevisions.length > 0 ? 'Due' : 'Clear'} label="Status" tooltip={todayRevisions?.length > 0 ? 'Revisions are due today.' : 'No revisions due — you are on track.'} />
+        <KpiCard icon={<TrendingUp className="h-5 w-5 text-green-400" />} value={todayRevisions?.length ? 'Due' : 'Clear'} label="Status" tooltip={todayRevisions?.length > 0 ? 'Revisions are due today.' : 'No revisions due — you are on track.'} />
       </div>
 
       {/* Today's Revisions */}
