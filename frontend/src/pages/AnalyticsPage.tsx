@@ -133,7 +133,7 @@ function ConsistencyHeatmap({ journals }: { journals: Journal[] }) {
   return (
     <div>
       <div className="ml-7 mb-1.5 flex gap-[3px]">
-        {grid.weeks.map((w, i) => (
+        {grid.weeks.map((_, i) => (
           <span key={i} className="w-3 text-[9px] font-medium text-muted-foreground">
             {grid.monthLabels.find((m) => m.index === i)?.label ?? ''}
           </span>
