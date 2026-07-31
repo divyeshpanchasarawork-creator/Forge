@@ -1,29 +1,37 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Code2, RefreshCw, PenLine, BarChart3, User, Flame, LogOut, Lightbulb, Brain, Menu, X, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Code2, RefreshCw, PenLine, BarChart3, User, Flame, LogOut, Lightbulb, Brain, Mail, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/roadmap', icon: Lightbulb, label: 'Roadmap' },
-  { to: '/problems', icon: Code2, label: 'Practice' },
-  { to: '/revision', icon: RefreshCw, label: 'Revision' },
-  { to: '/journal', icon: PenLine, label: 'Journal' },
-  { to: '/memory', icon: Brain, label: 'Memory' },
-  { to: '/analytics', icon: BarChart3, label: 'Analytics' },
-  { to: '/profile', icon: User, label: 'Profile' },
+  { to: '/app', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/app/roadmap', icon: Lightbulb, label: 'Roadmap' },
+  { to: '/app/problems', icon: Code2, label: 'Practice' },
+  { to: '/app/revision', icon: RefreshCw, label: 'Revision' },
+  { to: '/app/journal', icon: PenLine, label: 'Journal' },
+  { to: '/app/memory', icon: Brain, label: 'Memory' },
+  { to: '/app/analytics', icon: BarChart3, label: 'Analytics' },
+  { to: '/app/profile', icon: User, label: 'Profile' },
 ];
 
-export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+export default function Sidebar({
+  collapsed,
+  onToggle,
+  mobileOpen,
+  onMobileClose,
+}: {
+  collapsed: boolean;
+  onToggle: () => void;
+  mobileOpen: boolean;
+  onMobileClose: () => void;
+}) {
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
   const sidebar = (
@@ -40,21 +48,32 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === '/'}
-            onClick={() => setMobileOpen(false)}
+            end={item.to === '/app'}
+            onClick={onMobileClose}
             className={({ isActive }) =>
               cn(
-                'flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors group',
+                'relative flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors group',
                 collapsed ? 'justify-center' : 'gap-3',
                 isActive
-                  ? 'bg-primary/10 text-primary'
+                  ? 'text-primary'
                   : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
               )
             }
             title={collapsed ? item.label : undefined}
           >
-            <item.icon className="h-4 w-4 shrink-0" />
-            {!collapsed && item.label}
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <motion.span
+                    layoutId="active-pill"
+                    className="absolute inset-0 rounded-lg bg-primary/10"
+                    transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                  />
+                )}
+                <item.icon className="relative h-4 w-4 shrink-0" />
+                {!collapsed && <span className="relative">{item.label}</span>}
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
@@ -102,15 +121,6 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
 
   return (
     <>
-      {/* Mobile hamburger */}
-      <button
-        onClick={() => setMobileOpen(!mobileOpen)}
-        className="fixed left-4 top-4 z-50 flex h-10 w-10 items-center justify-center rounded-lg bg-card border border-border shadow-lg lg:hidden"
-        aria-label="Toggle menu"
-      >
-        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-      </button>
-
       {/* Desktop sidebar */}
       <aside className={cn(
         "fixed left-0 top-0 z-40 hidden h-screen flex-col border-r border-border bg-sidebar transition-all duration-200 lg:flex",
@@ -127,7 +137,7 @@ export default function Sidebar({ collapsed, onToggle }: { collapsed: boolean; o
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setMobileOpen(false)}
+              onClick={onMobileClose}
               className="fixed inset-0 z-40 bg-black/50 lg:hidden"
             />
             <motion.aside

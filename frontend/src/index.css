@@ -23,6 +23,8 @@
   --radius-lg: 0.75rem;
   --radius-md: 0.5rem;
   --radius-sm: 0.25rem;
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.4);
+  --shadow-glow: 0 0 0 1px rgb(109 93 252 / 0.15), 0 8px 32px -8px rgb(109 93 252 / 0.35);
 }
 
 .light {
@@ -45,10 +47,47 @@
   --color-ring: #6d5dfc;
   --color-sidebar: #f0eeff;
   --color-sidebar-foreground: #1a1a2e;
+  --shadow-soft: 0 1px 2px rgb(26 26 46 / 0.05), 0 8px 24px -12px rgb(26 26 46 / 0.12);
+  --shadow-glow: 0 0 0 1px rgb(109 93 252 / 0.12), 0 8px 32px -12px rgb(109 93 252 / 0.25);
 }
 
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.5;
+    box-shadow: 0 0 24px rgb(109 93 252 / 0.25);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 40px rgb(109 93 252 / 0.45);
+  }
+}
+
+.fade-in-up {
+  animation: fade-in-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-muted-foreground) 30%, transparent) transparent;
 }

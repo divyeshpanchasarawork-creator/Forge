@@ -2,49 +2,74 @@ import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { Flame } from 'lucide-react';
 
 const POLL_INTERVAL = 4000;
-const MAX_RETRIES = 15;
+const REQUEST_TIMEOUT = 10000;
+const MAX_RETRIES = 30;
 
 export default function ColdStartGate({ children }: { children: ReactNode }) {
   const [state, setState] = useState<'loading' | 'ready' | 'timeout'>('loading');
-  const [retries, setRetries] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  const [attempt, setAttempt] = useState(0);
+  const [cycle, setCycle] = useState(0);
   const resolvedRef = useRef(false);
 
   useEffect(() => {
-    const controller = new AbortController();
-    let timer: ReturnType<typeof setTimeout>;
+    let pollTimer: ReturnType<typeof setTimeout>;
+    let timeoutTimer: ReturnType<typeof setTimeout>;
+    let elapsedInterval: ReturnType<typeof setInterval>;
+
+    resolvedRef.current = false;
+
+    const fail = () => {
+      if (resolvedRef.current) return;
+      setAttempt((a) => {
+        const next = a + 1;
+        if (next >= MAX_RETRIES) {
+          setState('timeout');
+          return next;
+        }
+        pollTimer = setTimeout(poll, POLL_INTERVAL);
+        return next;
+      });
+    };
 
     const poll = () => {
       const baseUrl = import.meta.env.VITE_API_URL || '';
-      fetch(`${baseUrl}/api/auth/profile`, {
-        credentials: 'include',
-        signal: controller.signal,
+      const reqController = new AbortController();
+      timeoutTimer = setTimeout(() => reqController.abort(), REQUEST_TIMEOUT);
+
+      fetch(`${baseUrl}/api/health`, {
+        signal: reqController.signal,
       })
-        .then(() => {
+        .then((res) => {
+          clearTimeout(timeoutTimer);
+          if (!res.ok) throw new Error('health check failed');
           resolvedRef.current = true;
           setState('ready');
         })
         .catch(() => {
-          if (resolvedRef.current) return;
-          setRetries((r) => {
-            const next = r + 1;
-            if (next >= MAX_RETRIES) {
-              setState('timeout');
-              return next;
-            }
-            timer = setTimeout(poll, POLL_INTERVAL);
-            return next;
-          });
+          clearTimeout(timeoutTimer);
+          fail();
         });
     };
 
+    elapsedInterval = setInterval(() => {
+      setElapsed((e) => e + 1);
+    }, 1000);
+
     poll();
+
     return () => {
-      controller.abort();
-      clearTimeout(timer);
+      clearTimeout(pollTimer);
+      clearTimeout(timeoutTimer);
+      clearInterval(elapsedInterval);
     };
-  }, []);
+  }, [cycle]);
 
   if (state === 'ready') return <>{children}</>;
+
+  const minutes = Math.floor(elapsed / 60);
+  const seconds = elapsed % 60;
+  const timeLabel = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background">
@@ -56,22 +81,37 @@ export default function ColdStartGate({ children }: { children: ReactNode }) {
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight">Forge</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {state === 'timeout' ? 'Still waking up...' : 'Waking up the forge...'}
+            {state === 'timeout' ? 'Taking longer than usual...' : 'Waking up the forge...'}
           </p>
         </div>
         <div className="h-1.5 w-48 overflow-hidden rounded-full bg-secondary">
           <div
             className="h-full rounded-full bg-primary transition-all"
             style={{
-              width: state === 'timeout' ? '95%' : `${(retries / MAX_RETRIES) * 100}%`,
+              width: state === 'timeout' ? '95%' : `${Math.min(95, (attempt / MAX_RETRIES) * 100)}%`,
               animation: state !== 'timeout' ? 'pulse 2s ease-in-out infinite' : 'none',
             }}
           />
         </div>
         <p className="text-xs text-muted-foreground/60">
-          {state === 'timeout'
-            ? 'Taking longer than usual. Try refreshing.'
-            : `Retrying... (${retries}/${MAX_RETRIES})`}
+          {state === 'timeout' ? (
+            <span className="flex items-center gap-2">
+              The server is still starting.
+              <button
+                onClick={() => {
+                  setState('loading');
+                  setAttempt(0);
+                  setElapsed(0);
+                  setCycle((c) => c + 1);
+                }}
+                className="font-medium text-primary hover:text-primary/80 transition-colors"
+              >
+                Retry
+              </button>
+            </span>
+          ) : (
+            `Warming up for ${timeLabel}...`
+          )}
         </p>
       </div>
     </div>

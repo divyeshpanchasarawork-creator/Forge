@@ -86,6 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (data: { email: string; password: string }) => {
     await authApi.register(data);
+    const response = await authApi.login(data.email, data.password);
+    const loginData = response.data.data;
+    sessionStorage.setItem('forge_token', loginData.token);
+    setToken(loginData.token);
+    setUser(loginData.user);
   };
 
   const logout = () => {

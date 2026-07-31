@@ -122,6 +122,8 @@ class RecommendationEngineTest {
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
         doNothing().when(recommendationRepository).deleteByUserIdAndDismissed(any(), anyBoolean());
         when(recommendationRepository.saveAll(any())).thenReturn(List.of());
+        when(recommendationRepository.findByUserIdAndDismissedOrderByPriorityAscCreatedAtDesc(userId, false))
+                .thenReturn(List.of());
 
         List<Recommendation> recs = engine.generateForUser(userId, true);
 

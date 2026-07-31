@@ -71,6 +71,7 @@ public class RecommendationEngine {
         if (persist) {
             recommendationRepository.deleteByUserIdAndDismissed(userId, false);
             recommendationRepository.saveAll(sorted);
+            syncRecProblemsToSuggestions(userId, user);
             log.info("Generated and saved {} recommendations for user {}", sorted.size(), userId);
         }
 
@@ -79,6 +80,39 @@ public class RecommendationEngine {
 
     public List<Recommendation> generateForUser(UUID userId) {
         return generateForUser(userId, false);
+    }
+
+    private void syncRecProblemsToSuggestions(UUID userId, User user) {
+        List<Recommendation> recsWithProblems = recommendationRepository
+                .findByUserIdAndDismissedOrderByPriorityAscCreatedAtDesc(userId, false)
+                .stream()
+                .filter(r -> r.getProblemSlug() != null)
+                .toList();
+
+        if (recsWithProblems.isEmpty()) return;
+
+        Set<String> existingSlugs = new HashSet<>();
+        problemSuggestionRepository.findByUserId(userId)
+                .forEach(ps -> existingSlugs.add(ps.getTitleSlug()));
+
+        List<ProblemSuggestion> toSave = new ArrayList<>();
+        for (Recommendation rec : recsWithProblems) {
+            if (!existingSlugs.contains(rec.getProblemSlug())) {
+                ProblemSuggestion suggestion = new ProblemSuggestion();
+                suggestion.setUser(user);
+                suggestion.setTitle(rec.getProblemTitle());
+                suggestion.setTitleSlug(rec.getProblemSlug());
+                suggestion.setDifficulty(rec.getProblemDifficulty());
+                suggestion.setSource("RECOMMENDATION");
+                toSave.add(suggestion);
+                existingSlugs.add(rec.getProblemSlug());
+            }
+        }
+
+        if (!toSave.isEmpty()) {
+            problemSuggestionRepository.saveAll(toSave);
+            log.info("Synced {} recommendation-linked problems to suggestions for user {}", toSave.size(), userId);
+        }
     }
 
     private int scorePriority(int basePriority, int streak) {

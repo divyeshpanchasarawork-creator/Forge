@@ -10,9 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @Component
@@ -102,10 +100,10 @@ public class ProblemScorer {
     }
 
     private double notPreviouslySuggested(UUID userId, ProblemLoader.ProblemEntry candidate) {
-        Set<String> existingSlugs = new HashSet<>();
-        problemSuggestionRepository.findByUserId(userId)
-                .forEach(ps -> existingSlugs.add(ps.getTitleSlug()));
-        if (existingSlugs.contains(candidate.getTitleSlug())) return 0.0;
+        boolean suggestedFromWeakTag = problemSuggestionRepository.findByUserId(userId).stream()
+                .anyMatch(ps -> ps.getTitleSlug().equals(candidate.getTitleSlug())
+                        && "WEAK_TAG".equals(ps.getSource()));
+        if (suggestedFromWeakTag) return 0.0;
         return 100.0;
     }
 

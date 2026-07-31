@@ -1,18 +1,34 @@
-import { useQuery } from '@tanstack/react-query';
-import { dashboardApi } from '@/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { dashboardApi, recommendationsApi } from '@/api';
+import { parseApiError } from '@/lib/error';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import KpiCard from '@/components/ui/KpiCard';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Flame, Target, RefreshCw, BookOpen, Zap,
-  Code2, AlertTriangle, Clock, Brain
+  Code2, AlertTriangle, Clock, Brain, Sparkles
 } from 'lucide-react';
+import { useState } from 'react';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [remaining, setRemaining] = useState<number | null>(null);
   const { data, isLoading } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => dashboardApi.get().then((res) => res.data.data),
+  });
+
+  const generateMutation = useMutation({
+    mutationFn: () => recommendationsApi.generate().then((res) => res.data.data),
+    onSuccess: (res) => {
+      setRemaining(res.remainingGenerations);
+      setGenerateError(null);
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
+    },
+    onError: (err) => setGenerateError(parseApiError(err)),
   });
 
   if (isLoading) {
@@ -246,10 +262,30 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              Recommendations
-            </CardTitle>
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                Recommendations
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                {remaining != null && remaining >= 0 && (
+                  <span className="hidden text-xs text-muted-foreground sm:inline">
+                    {remaining} left today
+                  </span>
+                )}
+                <button
+                  onClick={() => generateMutation.mutate()}
+                  disabled={generateMutation.isPending}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  {generateMutation.isPending ? 'Generating...' : 'Generate'}
+                </button>
+              </div>
+            </div>
+            {generateError && (
+              <p className="text-xs text-red-400">{generateError}</p>
+            )}
           </CardHeader>
           <CardContent className="space-y-3">
             {data.recommendations?.length === 0 && (

@@ -32,4 +32,7 @@ public class ProblemSuggestion extends BaseEntity {
 
     @Column(name = "topic_tag_name", length = 100)
     private String topicTagName;
+
+    @Column(nullable = false, length = 20)
+    private String source = "WEAK_TAG";
 }

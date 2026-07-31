@@ -203,6 +203,7 @@ public class LeetCodeFetchService {
                     suggestion.setDifficulty(p.getDifficulty());
                     suggestion.setTopicTagSlug(tagSlug);
                     suggestion.setTopicTagName(tagName);
+                    suggestion.setSource("WEAK_TAG");
                     suggestions.add(suggestion);
                     count++;
                 }
@@ -253,6 +254,7 @@ public class LeetCodeFetchService {
                     suggestion.setDifficulty(p.getDifficulty());
                     suggestion.setTopicTagSlug(tagSlug);
                     suggestion.setTopicTagName(tagName);
+                    suggestion.setSource("WEAK_TAG");
                     suggestions.add(suggestion);
                     count++;
                 }

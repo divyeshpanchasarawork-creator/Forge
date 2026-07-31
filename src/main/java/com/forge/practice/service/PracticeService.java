@@ -4,13 +4,14 @@ import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.SecurityUtils;
 import com.forge.leetcode.entity.LeetCodeTagStat;
+import com.forge.leetcode.entity.ProblemSuggestion;
 import com.forge.leetcode.repository.LeetCodeTagStatRepository;
+import com.forge.leetcode.repository.ProblemSuggestionRepository;
 import com.forge.practice.dto.PracticeProblemResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -19,11 +20,25 @@ public class PracticeService {
     private final LeetCodeTagStatRepository tagStatRepository;
     private final ProblemLoader problemLoader;
     private final ProblemScorer problemScorer;
+    private final ProblemSuggestionRepository problemSuggestionRepository;
 
     public List<PracticeProblemResponse> getPracticeQueue() {
         UUID userId = SecurityUtils.getCurrentUserId();
         List<PracticeProblemResponse> queue = new ArrayList<>();
         Set<String> usedSlugs = new HashSet<>();
+
+        List<ProblemSuggestion> recSuggestions = problemSuggestionRepository.findByUserId(userId).stream()
+                .filter(ps -> "RECOMMENDATION".equals(ps.getSource()))
+                .toList();
+
+        for (ProblemSuggestion ps : recSuggestions) {
+            if (queue.size() >= 10) break;
+            if (usedSlugs.add(ps.getTitleSlug())) {
+                queue.add(new PracticeProblemResponse(
+                        ps.getTitle(), ps.getTitleSlug(), ps.getDifficulty(),
+                        null, "Recommended by your personalized plan."));
+            }
+        }
 
         List<LeetCodeTagStat> tagStats = tagStatRepository.findByUserId(userId);
         if (tagStats.isEmpty()) {
@@ -89,7 +104,6 @@ public class PracticeService {
         }
 
         if (queue.size() < 5) {
-            Set<String> weakSet = new HashSet<>(weakTagSlugs);
             List<ProblemLoader.ProblemEntry> all = new ArrayList<>(problemLoader.getAllProblems());
             Collections.shuffle(all, new Random());
             for (ProblemLoader.ProblemEntry p : all) {

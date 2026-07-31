@@ -4,19 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { User, Code2, Save, RefreshCw, Trophy, Flame, TrendingUp, Target } from 'lucide-react';
 import { authApi, leetcodeApi } from '@/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-
-const targetLevels = [
-  { level: 1, label: 'Service-based', companies: 'TCS, Infosys, Wipro', easyPct: 80, mediumPct: 20, hardPct: 0, targetTotal: 50, color: 'text-green-400' },
-  { level: 2, label: 'Service-based+', companies: 'Cognizant, Accenture', easyPct: 70, mediumPct: 30, hardPct: 0, targetTotal: 80, color: 'text-green-400' },
-  { level: 3, label: 'Mid-tier Product', companies: 'Paytm, Zomato', easyPct: 50, mediumPct: 40, hardPct: 10, targetTotal: 120, color: 'text-lime-400' },
-  { level: 4, label: 'Product', companies: 'Swiggy, Ola', easyPct: 35, mediumPct: 50, hardPct: 15, targetTotal: 180, color: 'text-yellow-400' },
-  { level: 5, label: 'Good Product', companies: 'Uber, Flipkart, Cred', easyPct: 20, mediumPct: 55, hardPct: 25, targetTotal: 250, color: 'text-yellow-400' },
-  { level: 6, label: 'Strong Product', companies: 'Stripe, Atlassian', easyPct: 15, mediumPct: 50, hardPct: 35, targetTotal: 320, color: 'text-amber-400' },
-  { level: 7, label: 'Top Tech', companies: 'Google, Microsoft, Amazon', easyPct: 10, mediumPct: 40, hardPct: 50, targetTotal: 400, color: 'text-orange-400' },
-  { level: 8, label: 'Big Tech', companies: 'Meta, Apple, Netflix', easyPct: 5, mediumPct: 35, hardPct: 60, targetTotal: 500, color: 'text-orange-400' },
-  { level: 9, label: 'Elite', companies: 'FAANG+, Uber ATG', easyPct: 5, mediumPct: 25, hardPct: 70, targetTotal: 600, color: 'text-red-400' },
-  { level: 10, label: 'God Tier', companies: 'OpenAI, Quant, DeepMind', easyPct: 0, mediumPct: 20, hardPct: 80, targetTotal: 800, color: 'text-purple-400' },
-];
+import { getTargetLevel } from '@/lib/targetLevels';
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
@@ -29,7 +17,7 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [syncVisible, setSyncVisible] = useState(!!user?.leetcodeUsername);
 
-  const currentConfig = targetLevels[targetLevel - 1] || targetLevels[4];
+  const currentConfig = getTargetLevel(targetLevel);
 
   useEffect(() => {
     setSyncVisible(!!leetcodeUsername);
