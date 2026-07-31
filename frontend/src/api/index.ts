@@ -1,5 +1,5 @@
 import api from './client';
-import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, LeetCodeStats, MemoryResponse, PracticeProblem, RoadmapAnalysis } from '@/types';
+import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, WeeklyProgress, LeetCodeStats, MemoryResponse, PracticeProblem, RoadmapAnalysis, PagedResponse } from '@/types';
 
 export const authApi = {
   login: (username: string, password: string) =>
@@ -34,11 +34,13 @@ export const recommendationsApi = {
 
 export const journalsApi = {
   getRecent: () => api.get<ApiResponse<Journal[]>>('/journals/recent'),
+  getAll: (page = 0, size = 200) => api.get<ApiResponse<PagedResponse<Journal>>>(`/journals?page=${page}&size=${size}`),
   save: (data: JournalRequest) => api.post<ApiResponse<Journal>>('/journals', data),
 };
 
 export const analyticsApi = {
   get: () => api.get<ApiResponse<AnalyticsResponse>>('/analytics'),
+  getWeekly: () => api.get<ApiResponse<WeeklyProgress>>('/analytics/weekly'),
 };
 
 export const practiceApi = {

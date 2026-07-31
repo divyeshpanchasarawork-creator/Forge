@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { practiceApi, leetcodeApi } from '@/api';
-import { Card, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
-import { Code, RefreshCw, ExternalLink, Sparkles } from 'lucide-react';
+import TeachingEmptyState from '@/components/ui/TeachingEmptyState';
+import { Code, RefreshCw, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
+import { SkeletonList } from '@/components/ui/LoadingSkeleton';
 
 const difficultyConfig: Record<string, { class: string }> = {
   Easy: { class: 'bg-green-500/10 text-green-400 border-green-500/20' },
@@ -43,11 +44,7 @@ export default function PracticePage() {
       </div>
 
       {isLoading ? (
-        <div className="space-y-3">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-20 animate-pulse rounded-xl bg-secondary" />
-          ))}
-        </div>
+        <SkeletonList rows={5} />
       ) : queue && queue.length > 0 ? (
         <div className="space-y-2">
           {queue.map((problem) => {
@@ -87,13 +84,26 @@ export default function PracticePage() {
           <p className="text-xs text-muted-foreground text-center pt-2">{queue.length} problem{queue.length !== 1 ? 's' : ''} in queue</p>
         </div>
       ) : (
-        <Card>
-          <CardContent className="py-10 text-center">
-            <Sparkles className="mx-auto mb-3 h-8 w-8 text-muted-foreground/40" />
-            <p className="font-medium">No problems yet</p>
-            <p className="text-sm text-muted-foreground">Sync LeetCode to get curated problems based on your weak areas.</p>
-          </CardContent>
-        </Card>
+        <TeachingEmptyState
+          icon={<Code className="h-6 w-6 text-primary" />}
+          title="Your queue is built from your weaknesses"
+          description="Forge curates problems from two signals: your LeetCode history and your weakest topics. An empty queue means the engine doesn't have enough signal yet."
+          steps={[
+            'Sync your LeetCode profile once to unlock difficulty-gap analysis.',
+            'Add or review topics so the engine knows your weak areas.',
+            'Generate recommendations on the Dashboard to fill the queue.',
+          ]}
+          action={
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Syncing...' : 'Sync LeetCode now'}
+            </button>
+          }
+        />
       )}
     </div>
   );

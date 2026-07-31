@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authApi } from '@/api';
+import { setSkipAuthRedirect } from '@/api/client';
 
 interface User {
   id: string;
@@ -35,25 +36,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function init() {
-      const storedToken = sessionStorage.getItem('forge_token');
+      setSkipAuthRedirect(true);
+      try {
+        const storedToken = sessionStorage.getItem('forge_token');
 
-      if (storedToken) {
-        setToken(storedToken);
-        try {
-          const res = await authApi.getProfile();
-          if (cancelled) return;
-          setUser(res.data.data);
-        } catch {
-          if (cancelled) return;
-          sessionStorage.removeItem('forge_token');
-          setToken(null);
+        if (storedToken) {
+          setToken(storedToken);
+          try {
+            const res = await authApi.getProfile();
+            if (cancelled) return;
+            setUser(res.data.data);
+          } catch {
+            if (cancelled) return;
+            sessionStorage.removeItem('forge_token');
+            setToken(null);
+            await tryRefreshToken();
+          }
+        } else {
           await tryRefreshToken();
         }
-      } else {
-        await tryRefreshToken();
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          setSkipAuthRedirect(false);
+        }
       }
-
-      if (!cancelled) setLoading(false);
     }
 
     async function tryRefreshToken() {
@@ -94,10 +101,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    authApi.logout().catch(() => {});
-    sessionStorage.removeItem('forge_token');
+    setSkipAuthRedirect(true);
     setToken(null);
     setUser(null);
+    sessionStorage.removeItem('forge_token');
+    authApi
+      .logout()
+      .catch(() => {})
+      .finally(() => setSkipAuthRedirect(false));
   };
 
   return (

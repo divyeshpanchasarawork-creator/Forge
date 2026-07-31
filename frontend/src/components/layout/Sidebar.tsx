@@ -5,14 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const navItems = [
-  { to: '/app', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/app/roadmap', icon: Lightbulb, label: 'Roadmap' },
-  { to: '/app/problems', icon: Code2, label: 'Practice' },
-  { to: '/app/revision', icon: RefreshCw, label: 'Revision' },
-  { to: '/app/journal', icon: PenLine, label: 'Journal' },
-  { to: '/app/memory', icon: Brain, label: 'Memory' },
-  { to: '/app/analytics', icon: BarChart3, label: 'Analytics' },
-  { to: '/app/profile', icon: User, label: 'Profile' },
+  { to: '/app', icon: LayoutDashboard, label: 'Dashboard', shortcut: '1' },
+  { to: '/app/roadmap', icon: Lightbulb, label: 'Roadmap', shortcut: '2' },
+  { to: '/app/problems', icon: Code2, label: 'Practice', shortcut: '3' },
+  { to: '/app/revision', icon: RefreshCw, label: 'Revision', shortcut: '4' },
+  { to: '/app/journal', icon: PenLine, label: 'Journal', shortcut: '5' },
+  { to: '/app/memory', icon: Brain, label: 'Memory', shortcut: '6' },
+  { to: '/app/analytics', icon: BarChart3, label: 'Analytics', shortcut: '7' },
+  { to: '/app/profile', icon: User, label: 'Profile', shortcut: '8' },
 ];
 
 export default function Sidebar({
@@ -31,7 +31,7 @@ export default function Sidebar({
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/', { state: { signedOut: true } });
   };
 
   const sidebar = (
@@ -71,7 +71,14 @@ export default function Sidebar({
                   />
                 )}
                 <item.icon className="relative h-4 w-4 shrink-0" />
-                {!collapsed && <span className="relative">{item.label}</span>}
+                {!collapsed && (
+                  <>
+                    <span className="relative flex-1">{item.label}</span>
+                    <kbd className="relative rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60">
+                      {item.shortcut}
+                    </kbd>
+                  </>
+                )}
               </>
             )}
           </NavLink>
@@ -108,6 +115,11 @@ export default function Sidebar({
         )}
       </div>
       <div className="border-t border-border px-3 py-2">
+        {!collapsed ? (
+          <p className="px-3 py-1 text-[10px] text-muted-foreground/70">
+            <kbd className="mr-1 rounded border border-border px-1">⌘K</kbd> Search · <kbd className="mx-1 rounded border border-border px-1">1–8</kbd> Jump
+          </p>
+        ) : null}
         <button
           onClick={onToggle}
           className="flex w-full items-center justify-center rounded-lg px-3 py-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"

@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
-import { Flame, BarChart3, BookOpen, Code2, RefreshCw, Zap, Target, ArrowRight, Sparkles, ChevronDown } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Flame, BarChart3, BookOpen, Code2, RefreshCw, Zap, Target, ArrowRight, Sparkles, ChevronDown, X } from 'lucide-react';
+import { useState } from 'react';
 
 const features = [
   { icon: BookOpen, title: 'Topic Mastery', desc: 'Track your understanding across every concept with confidence scoring and spaced repetition.' },
@@ -11,12 +12,39 @@ const features = [
 ];
 
 export default function LandingPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [showSignedOut, setShowSignedOut] = useState(
+    (location.state as { signedOut?: boolean } | null)?.signedOut === true
+  );
+
+  const dismissSignedOut = () => {
+    setShowSignedOut(false);
+    navigate(location.pathname, { replace: true });
+  };
+
   const scrollToFeatures = () => {
     document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
+      {/* Signed-out acknowledgment */}
+      {showSignedOut && (
+        <div className="fixed left-1/2 top-20 z-30 -translate-x-1/2 px-4">
+          <div className="flex items-center gap-3 rounded-full border border-green-500/30 bg-card px-4 py-2 text-sm shadow-lg">
+            <span className="font-medium text-green-400">Signed out</span>
+            <span className="text-muted-foreground">See you soon — your progress is saved.</span>
+            <button
+              onClick={dismissSignedOut}
+              className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              aria-label="Dismiss"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      )}
       {/* Animated background gradient */}
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute left-1/4 top-0 h-[600px] w-[600px] animate-pulse rounded-full bg-primary/8 blur-[160px]" />

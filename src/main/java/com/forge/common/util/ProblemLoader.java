@@ -29,17 +29,20 @@ public class ProblemLoader {
                 return;
             }
             Map<String, List<Map<String, String>>> raw = mapper.readValue(is, new TypeReference<>() {});
+            Set<String> seenSlugs = new HashSet<>();
             for (var entry : raw.entrySet()) {
                 String tagSlug = entry.getKey();
                 List<ProblemEntry> tagProblems = new ArrayList<>();
                 for (Map<String, String> p : entry.getValue()) {
                     ProblemEntry pe = new ProblemEntry(p.get("title"), p.get("titleSlug"), p.get("difficulty"));
                     tagProblems.add(pe);
-                    allProblems.add(pe);
+                    if (seenSlugs.add(pe.getTitleSlug())) {
+                        allProblems.add(pe);
+                    }
                 }
                 problemsByTag.put(tagSlug, tagProblems);
             }
-            log.info("Loaded {} problems across {} tags", allProblems.size(), problemsByTag.size());
+            log.info("Loaded {} curated problems across {} tags ({} unique)", allProblems.size(), problemsByTag.size(), seenSlugs.size());
         } catch (Exception e) {
             log.error("Failed to load problems.json: {}", e.getMessage());
         }

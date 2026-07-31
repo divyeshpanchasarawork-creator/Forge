@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MotionConfig } from 'framer-motion';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import ColdStartGate from '@/components/layout/ColdStartGate';
@@ -43,31 +44,33 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
-        <BrowserRouter>
-          <ColdStartGate>
-          <Routes>
-            <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
-            <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
-            <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
-            <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-            <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route index element={<DashboardPage />} />
-              <Route path="roadmap" element={<RoadmapPage />} />
-              <Route path="problems" element={<PracticePage />} />
-              <Route path="revision" element={<RevisionPage />} />
-              <Route path="journal" element={<JournalPage />} />
-              <Route path="analytics" element={<AnalyticsPage />} />
-              <Route path="memory" element={<MemoryPage />} />
-              <Route path="profile" element={<ProfilePage />} />
-            </Route>
-          </Routes>
-          </ColdStartGate>
-        </BrowserRouter>
-      </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <MotionConfig reducedMotion="user">
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AuthProvider>
+          <BrowserRouter>
+            <ColdStartGate>
+            <Routes>
+              <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+              <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
+              <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
+              <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+              <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                <Route index element={<DashboardPage />} />
+                <Route path="roadmap" element={<RoadmapPage />} />
+                <Route path="problems" element={<PracticePage />} />
+                <Route path="revision" element={<RevisionPage />} />
+                <Route path="journal" element={<JournalPage />} />
+                <Route path="analytics" element={<AnalyticsPage />} />
+                <Route path="memory" element={<MemoryPage />} />
+                <Route path="profile" element={<ProfilePage />} />
+              </Route>
+            </Routes>
+            </ColdStartGate>
+          </BrowserRouter>
+        </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </MotionConfig>
   );
 }

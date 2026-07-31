@@ -15,6 +15,11 @@ api.interceptors.request.use((config) => {
 
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: (value: unknown) => void; reject: (reason: unknown) => void }> = [];
+let skipAuthRedirect = false;
+
+export const setSkipAuthRedirect = (value: boolean) => {
+  skipAuthRedirect = value;
+};
 
 const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach(({ resolve, reject }) => {
@@ -25,6 +30,11 @@ const processQueue = (error: unknown, token: string | null = null) => {
     }
   });
   failedQueue = [];
+};
+
+const redirectToLogin = () => {
+  if (skipAuthRedirect) return;
+  window.location.href = '/login';
 };
 
 api.interceptors.response.use(
@@ -72,7 +82,7 @@ api.interceptors.response.use(
       } catch {
         processQueue(error, null);
         sessionStorage.removeItem('forge_token');
-        window.location.href = '/login';
+        redirectToLogin();
         return Promise.reject(error);
       } finally {
         isRefreshing = false;
@@ -81,7 +91,7 @@ api.interceptors.response.use(
 
     if (status === 401) {
       sessionStorage.removeItem('forge_token');
-      window.location.href = '/login';
+      redirectToLogin();
     }
 
     return Promise.reject(error);

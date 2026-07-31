@@ -225,3 +225,11 @@ export interface AnalyticsResponse {
   targetLevel: number;
   readinessScore: number;
 }
+
+export interface WeeklyProgress {
+  problemsSolved: number;
+  topicsReviewed: number;
+  hoursStudied: number;
+  revisionsCompleted: number;
+  journalEntries: number;
+}

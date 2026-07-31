@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { memoryApi } from '@/api';
-import { Card, CardContent } from '@/components/ui/Card';
+import TeachingEmptyState from '@/components/ui/TeachingEmptyState';
 import { Brain, ExternalLink, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SkeletonList } from '@/components/ui/LoadingSkeleton';
 
 const retentionColor = (r: number | null) => {
   if (r == null) return 'text-muted-foreground';
@@ -25,13 +26,7 @@ export default function MemoryPage() {
   });
 
   if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {[...Array(4)].map((_, i) => (
-          <div key={i} className="h-28 animate-pulse rounded-2xl bg-secondary" />
-        ))}
-      </div>
-    );
+    return <SkeletonList rows={4} />;
   }
 
   const fading = data?.fadingConcepts || [];
@@ -57,7 +52,7 @@ export default function MemoryPage() {
             </span>
           </div>
           <Link
-            to="/problems"
+            to="/app/problems"
             className="flex shrink-0 items-center gap-1 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
           >
             View Queue
@@ -67,15 +62,25 @@ export default function MemoryPage() {
       </div>
 
       {fading.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Brain className="mx-auto mb-4 h-10 w-10 text-muted-foreground/40" />
-            <p className="text-lg font-medium">All topics fresh</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              No fading concepts found. Your spaced repetition schedule is working well.
-            </p>
-          </CardContent>
-        </Card>
+        <TeachingEmptyState
+          icon={<Brain className="h-6 w-6 text-primary" />}
+          title="Nothing is fading — that's a good sign"
+          description="This page surfaces topics whose retention is dropping, using your SM-2 revision history. An empty list means every topic is still well inside your memory window."
+          steps={[
+            'Keep reviewing on the Revision page so gaps keep widening.',
+            'The moment a topic starts to fade, it lands here with a suggested problem.',
+            'Maintain a daily journal streak — consistent study beats cramming.',
+          ]}
+          action={
+            <Link
+              to="/app/revision"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Review today's topics
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          }
+        />
       ) : (
         <div className="space-y-3">
           {fading.map((concept) => (

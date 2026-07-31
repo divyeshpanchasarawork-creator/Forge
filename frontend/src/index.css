@@ -10,13 +10,13 @@
   --color-secondary: #1c1c1f;
   --color-secondary-foreground: #fafafa;
   --color-muted: #1c1c1f;
-  --color-muted-foreground: #a0a0a0;
+  --color-muted-foreground: #adadad;
   --color-accent: #1c1c1f;
   --color-accent-foreground: #fafafa;
   --color-destructive: #ff4444;
   --color-destructive-foreground: #fafafa;
-  --color-border: #2a2a2d;
-  --color-input: #2a2a2d;
+  --color-border: #2f2f33;
+  --color-input: #2f2f33;
   --color-ring: #6d5dfc;
   --color-sidebar: #0d0d0f;
   --color-sidebar-foreground: #fafafa;
@@ -90,4 +90,20 @@ body {
 * {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--color-muted-foreground) 30%, transparent) transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in-up {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

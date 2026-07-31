@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { roadmapApi } from '@/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { Brain, Target, ArrowRight } from 'lucide-react';
+import TeachingEmptyState from '@/components/ui/TeachingEmptyState';
+import { Brain, Target, ArrowRight, Lightbulb } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { SkeletonCard } from '@/components/ui/LoadingSkeleton';
 
 const readinessColor = (score: number) => {
   if (score >= 70) return 'text-green-400';
@@ -28,8 +30,8 @@ export default function RoadmapPage() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="h-32 animate-pulse rounded-2xl bg-secondary" />
-        <div className="h-24 animate-pulse rounded-2xl bg-secondary" />
+        <SkeletonCard className="h-64" />
+        <SkeletonCard className="h-24" />
       </div>
     );
   }
@@ -103,6 +105,28 @@ export default function RoadmapPage() {
         </div>
       )}
 
+      {!analysis && (
+        <TeachingEmptyState
+          icon={<Lightbulb className="h-6 w-6 text-primary" />}
+          title="Your roadmap is generated from your data"
+          description="This page reads your solved problems, topic mastery, and revision history to lay out the fastest path to your target level."
+          steps={[
+            'Sync LeetCode so your solved count and tag strengths are real.',
+            'Review a few topics so mastery and retention signals are fresh.',
+            'Generate recommendations on the Dashboard to feed the queue.',
+          ]}
+          action={
+            <Link
+              to="/app/profile"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Set your target level
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          }
+        />
+      )}
+
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
         <div className="flex items-center gap-2">
           <Target className="h-4 w-4 text-primary" />
@@ -118,7 +142,7 @@ export default function RoadmapPage() {
           Start your practice session to execute this plan.
         </p>
         <Link
-          to="/problems"
+          to="/app/problems"
           className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           Go to Practice Queue

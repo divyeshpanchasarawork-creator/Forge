@@ -124,7 +124,7 @@ export default function JournalPage() {
       </Card>
 
       {/* Recent Entries */}
-      {recentJournals && recentJournals.length > 0 && (
+      {recentJournals && recentJournals.length > 0 ? (
         <Card>
           <CardHeader>
             <CardTitle>Recent Entries</CardTitle>
@@ -145,6 +145,14 @@ export default function JournalPage() {
             ))}
           </CardContent>
         </Card>
+      ) : (
+        <div className="rounded-xl border border-dashed border-border px-6 py-8 text-center">
+          <p className="text-sm font-medium">Your journal powers the rest of Forge</p>
+          <p className="mx-auto mt-1 max-w-lg text-xs leading-relaxed text-muted-foreground">
+            Every entry fuels your Memory page (patterns, mistakes, insights), the Analytics heatmap, and your weekly
+            study hours. One honest line a day is enough — consistency compounds.
+          </p>
+        </div>
       )}
     </div>
   );
