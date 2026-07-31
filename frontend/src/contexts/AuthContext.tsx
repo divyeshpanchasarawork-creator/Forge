@@ -22,6 +22,7 @@ interface AuthContextType {
   register: (data: { email: string; password: string }) => Promise<void>;
   logout: () => void;
   loading: boolean;
+  loggingOut: boolean;
   setUser: (user: User | null) => void;
 }
 
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (username: string, password: string) => {
+    setLoggingOut(false);
     setSkipAuthRedirect(false);
     const response = await authApi.login(username, password);
     const data = response.data.data;
@@ -93,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (data: { email: string; password: string }) => {
+    setLoggingOut(false);
     setSkipAuthRedirect(false);
     await authApi.register(data);
     const response = await authApi.login(data.email, data.password);
@@ -103,15 +107,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
+    setLoggingOut(true);
     setSkipAuthRedirect(true);
     setToken(null);
     setUser(null);
     sessionStorage.removeItem('forge_token');
     authApi.logout().catch(() => {});
+    setTimeout(() => setLoggingOut(false), 500);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated: !!token, token, user, login, register, logout, loading, setUser }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated: !!token, token, user, login, register, logout, loading, loggingOut, setUser }}
+    >
       {children}
     </AuthContext.Provider>
   );
