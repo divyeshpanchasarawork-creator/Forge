@@ -56,6 +56,8 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
         e.preventDefault();
         if (open) onClose();
         else onOpen();
+      } else if (e.key === 'Escape' && open) {
+        onClose();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -92,8 +94,8 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
       group: 'Actions',
       icon: LogOut,
       run: () => {
-        logout();
         navigate('/', { state: { signedOut: true } });
+        logout();
       },
     },
   ];
@@ -136,6 +138,9 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
       e.preventDefault();
       items[active]?.run();
       onClose();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      onClose();
     }
   };
 
@@ -160,7 +165,7 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
             transition={{ duration: 0.12 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 border-b border-border px-4">
+            <div className="flex items-center gap-3 border-b border-border px-4 transition-colors focus-within:bg-secondary/20">
               <Search className="h-4 w-4 text-muted-foreground" />
               <input
                 ref={inputRef}
@@ -174,7 +179,12 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
             </div>
             <div ref={listRef} className="max-h-[320px] overflow-y-auto p-2">
               {items.length === 0 && (
-                <p className="px-3 py-8 text-center text-sm text-muted-foreground">No results for "{query}"</p>
+                <div className="px-3 py-10 text-center">
+                  <p className="text-sm font-medium text-muted-foreground">No results for "{query}"</p>
+                  <p className="mt-1 text-xs text-muted-foreground/60">
+                    Try a page name like "practice" or an action like "theme".
+                  </p>
+                </div>
               )}
               {items.map((item, i) => {
                 const showGroup = i === 0 || items[i - 1].group !== item.group;
@@ -210,6 +220,17 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
                   </div>
                 );
               })}
+            </div>
+            <div className="flex items-center justify-between border-t border-border px-4 py-2.5 text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <kbd className="rounded border border-border px-1.5 py-0.5">↑</kbd>
+                <kbd className="rounded border border-border px-1.5 py-0.5">↓</kbd>
+                to navigate
+              </span>
+              <span className="flex items-center gap-1.5">
+                <kbd className="rounded border border-border px-1.5 py-0.5">↵</kbd> select
+                <kbd className="ml-1.5 rounded border border-border px-1.5 py-0.5">esc</kbd> close
+              </span>
             </div>
           </motion.div>
         </motion.div>

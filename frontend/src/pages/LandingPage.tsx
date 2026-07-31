@@ -1,6 +1,9 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Flame, BarChart3, BookOpen, Code2, RefreshCw, Zap, Target, ArrowRight, Sparkles, ChevronDown, X } from 'lucide-react';
-import { useState } from 'react';
+import { BarChart3, BookOpen, Code2, RefreshCw, Zap, Target, ArrowRight, Sparkles, ChevronDown, X, CheckCircle2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Button, buttonVariants } from '@/components/ui/Button';
+import { Logo } from '@/components/brand/Logo';
 
 const features = [
   { icon: BookOpen, title: 'Topic Mastery', desc: 'Track your understanding across every concept with confidence scoring and spaced repetition.' },
@@ -18,10 +21,16 @@ export default function LandingPage() {
     (location.state as { signedOut?: boolean } | null)?.signedOut === true
   );
 
-  const dismissSignedOut = () => {
+  const dismissSignedOut = useCallback(() => {
     setShowSignedOut(false);
     navigate(location.pathname, { replace: true });
-  };
+  }, [navigate, location.pathname]);
+
+  useEffect(() => {
+    if (!showSignedOut) return;
+    const t = setTimeout(dismissSignedOut, 5000);
+    return () => clearTimeout(t);
+  }, [showSignedOut, dismissSignedOut]);
 
   const scrollToFeatures = () => {
     document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
@@ -30,21 +39,30 @@ export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Signed-out acknowledgment */}
-      {showSignedOut && (
-        <div className="fixed left-1/2 top-20 z-30 -translate-x-1/2 px-4">
-          <div className="flex items-center gap-3 rounded-full border border-green-500/30 bg-card px-4 py-2 text-sm shadow-lg">
-            <span className="font-medium text-green-400">Signed out</span>
-            <span className="text-muted-foreground">See you soon — your progress is saved.</span>
-            <button
-              onClick={dismissSignedOut}
-              className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              aria-label="Dismiss"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showSignedOut && (
+          <motion.div
+            initial={{ opacity: 0, y: -16, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.96 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="fixed left-1/2 top-20 z-30 -translate-x-1/2 px-4"
+          >
+            <div className="flex items-center gap-3 rounded-full border border-green-500/30 bg-card px-4 py-2 text-sm shadow-lg">
+              <CheckCircle2 className="h-4 w-4 text-green-400" />
+              <span className="font-medium text-green-400">Signed out</span>
+              <span className="text-muted-foreground">See you soon — your progress is saved.</span>
+              <button
+                onClick={dismissSignedOut}
+                className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                aria-label="Dismiss"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Animated background gradient */}
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute left-1/4 top-0 h-[600px] w-[600px] animate-pulse rounded-full bg-primary/8 blur-[160px]" />
@@ -55,23 +73,20 @@ export default function LandingPage() {
       {/* Navbar */}
       <nav className="fixed top-0 z-20 w-full border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <Flame className="h-5 w-5 text-primary" />
-            </div>
-            <span className="text-lg font-bold tracking-tight">Forge</span>
-          </div>
+          <Link to="/" className="flex items-center gap-2.5">
+            <Logo size="sm" variant="soft" withText />
+          </Link>
           <div className="flex items-center gap-6 text-sm">
             <button onClick={scrollToFeatures} className="hidden text-muted-foreground transition-colors hover:text-foreground sm:inline">Features</button>
             <Link
               to="/login"
-              className="rounded-lg border border-border bg-secondary/50 px-4 py-2 text-sm font-medium text-foreground transition-all hover:border-primary/30 hover:bg-secondary"
+              className={buttonVariants({ variant: 'outline', className: 'h-9 px-4' })}
             >
               Sign In
             </Link>
             <Link
               to="/register"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-all hover:bg-primary/90"
+              className={buttonVariants({ className: 'h-9 px-4' })}
             >
               Get Started
             </Link>
@@ -100,15 +115,19 @@ export default function LandingPage() {
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link
                 to="/register"
-                className="group flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:shadow-xl hover:shadow-primary/30 hover:brightness-110"
+                className={buttonVariants({ size: 'lg', className: 'group rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:brightness-110' })}
               >
                 Get Started Free
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
-              <button onClick={scrollToFeatures} className="flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+              <Button
+                variant="ghost"
+                onClick={scrollToFeatures}
+                className="h-auto gap-2 px-0 hover:bg-transparent"
+              >
                 See how it works
                 <ChevronDown className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
             <div className="mt-12 flex items-center gap-8 text-sm">
               <div>
@@ -132,9 +151,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-center pt-8 lg:pt-0">
             <div className="w-full max-w-md rounded-2xl border border-border bg-card/70 p-8 shadow-2xl shadow-black/10 backdrop-blur-xl">
               <div className="mb-6 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
-                  <Flame className="h-6 w-6 text-primary" />
-                </div>
+                <Logo size="md" variant="soft" />
                 <div>
                   <p className="font-semibold">Your daily forge</p>
                   <p className="text-xs text-muted-foreground">Personalized plan, every morning</p>
@@ -189,10 +206,7 @@ export default function LandingPage() {
       <footer className="border-t border-border px-6 py-8">
         <div className="mx-auto flex max-w-6xl items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
-              <Flame className="h-4 w-4 text-primary" />
-            </div>
-            <span className="font-semibold">Forge</span>
+            <Logo size="sm" variant="soft" withText />
           </div>
           <p className="text-xs">Personal engineering companion</p>
         </div>

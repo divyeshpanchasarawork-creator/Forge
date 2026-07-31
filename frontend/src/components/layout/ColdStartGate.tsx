@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react';
-import { Flame } from 'lucide-react';
+import { Logo } from '@/components/brand/Logo';
 
 const POLL_INTERVAL = 4000;
 const REQUEST_TIMEOUT = 10000;
@@ -75,8 +75,8 @@ export default function ColdStartGate({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-6">
         <div className="relative">
-          <Flame className="h-16 w-16 animate-pulse text-primary" />
           <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" style={{ animationDuration: '3s' }} />
+          <Logo size="lg" className="animate-pulse" />
         </div>
         <div className="text-center">
           <h1 className="text-2xl font-bold tracking-tight">Forge</h1>

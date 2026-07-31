@@ -84,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (username: string, password: string) => {
+    setSkipAuthRedirect(false);
     const response = await authApi.login(username, password);
     const data = response.data.data;
     sessionStorage.setItem('forge_token', data.token);
@@ -92,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (data: { email: string; password: string }) => {
+    setSkipAuthRedirect(false);
     await authApi.register(data);
     const response = await authApi.login(data.email, data.password);
     const loginData = response.data.data;
@@ -105,10 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setUser(null);
     sessionStorage.removeItem('forge_token');
-    authApi
-      .logout()
-      .catch(() => {})
-      .finally(() => setSkipAuthRedirect(false));
+    authApi.logout().catch(() => {});
   };
 
   return (

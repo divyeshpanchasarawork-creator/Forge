@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { Button } from '@/components/ui/Button';
 import { Sun, Moon, User, Menu, Search } from 'lucide-react';
 
 const pageTitles: Record<string, string> = {
@@ -27,39 +28,43 @@ export default function TopHeader({ sidebarCollapsed, onMenuClick, onOpenSearch 
       }`}
     >
       <div className="flex items-center gap-3">
-        <button
+        <Button
+          variant="ghost"
           onClick={onMenuClick}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors lg:hidden"
+          className="h-9 w-9 p-0 lg:hidden"
           aria-label="Open menu"
         >
           <Menu className="h-5 w-5" />
-        </button>
+        </Button>
         <h1 className="text-lg font-semibold">{title}</h1>
       </div>
       <div className="flex items-center gap-3">
-        <button
+        <Button
+          variant="outline"
           onClick={onOpenSearch}
-          className="hidden items-center gap-2 rounded-lg border border-border bg-secondary/40 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/20 hover:text-foreground md:inline-flex"
+          className="hidden h-9 px-3 md:inline-flex"
           title="Search (⌘K)"
         >
           <Search className="h-3.5 w-3.5" />
           <span>Search</span>
           <kbd className="rounded border border-border px-1 py-0.5 text-[10px]">⌘K</kbd>
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
           onClick={onOpenSearch}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors md:hidden"
+          className="h-8 w-8 p-0 md:hidden"
           aria-label="Search"
         >
           <Search className="h-4 w-4" />
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
           onClick={toggleTheme}
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-all active:scale-95"
+          className="h-8 w-8 p-0 active:scale-95"
           title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
         >
           {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </button>
+        </Button>
         {user && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <User className="h-4 w-4" />
