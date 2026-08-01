@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import TopHeader from './TopHeader';
 import CommandPalette from './CommandPalette';
 import { AnimatePresence, motion } from 'framer-motion';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 export default function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -95,7 +96,9 @@ export default function AppLayout() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.18, ease: 'easeOut' }}
             >
-              <Outlet />
+              <ErrorBoundary>
+                <Outlet />
+              </ErrorBoundary>
             </motion.div>
           </AnimatePresence>
         </div>

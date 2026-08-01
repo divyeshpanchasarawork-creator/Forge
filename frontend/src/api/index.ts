@@ -62,3 +62,15 @@ export const leetcodeApi = {
   sync: () => api.post<ApiResponse<LeetCodeStats>>('/leetcode/sync'),
   getStats: () => api.get<ApiResponse<LeetCodeStats>>('/leetcode/stats'),
 };
+
+export interface SearchProblem {
+  title: string;
+  titleSlug: string;
+  difficulty: string;
+  tags: string[];
+}
+
+export const searchApi = {
+  problems: (q: string) =>
+    api.get<ApiResponse<SearchProblem[]>>(`/search/problems?q=${encodeURIComponent(q)}`),
+};

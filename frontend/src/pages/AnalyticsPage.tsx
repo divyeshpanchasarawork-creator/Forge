@@ -66,14 +66,20 @@ const insightMeta: Record<string, { icon: ReactNode; accent: Accent; value: (i: 
     accent: 'purple',
     value: (i) => `${Math.round(i.metric ?? 0)} solved`,
   },
+  STREAK: {
+    icon: <Flame className="h-4 w-4" />,
+    accent: 'orange',
+    value: (i) => `${Math.round(i.metric ?? 0)}-day streak`,
+  },
 };
 
 function InsightCard({ insight }: { insight: Insight }) {
   const meta = insightMeta[insight.type] || {
     icon: <Lightbulb className="h-4 w-4" />,
     accent: 'primary' as Accent,
-    value: (i: Insight) => i.metric != null ? `${i.metric}` : '—',
+    value: (i: Insight) => (i.metric != null ? `${i.metric}` : ''),
   };
+  const isUnlock = insight.metric == null && !insight.display;
   const delta = insight.delta;
   const deltaBadge =
     typeof delta === 'number' && delta !== 0 ? (
@@ -86,18 +92,24 @@ function InsightCard({ insight }: { insight: Insight }) {
     ) : null;
 
   return (
-    <div className="rounded-xl border border-border bg-card p-5 shadow-soft transition-all hover:border-primary/20">
+    <div
+      className={`rounded-xl border p-5 shadow-soft transition-all ${
+        isUnlock ? 'border-dashed border-border bg-card/40' : 'border-border bg-card hover:border-primary/20'
+      }`}
+    >
       <div className="flex items-center justify-between gap-2">
         <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${accentMap[meta.accent]}`}>
           {meta.icon}
         </span>
         <span className="text-right text-[11px] uppercase tracking-wider text-muted-foreground">{insight.title}</span>
       </div>
-      <div className="mt-3 flex items-center justify-between">
-        <p className="text-xl font-bold leading-tight tracking-tight">{meta.value(insight)}</p>
-        {deltaBadge}
-      </div>
-      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{insight.message}</p>
+      {!isUnlock && (
+        <div className="mt-3 flex items-center justify-between">
+          <p className="text-xl font-bold leading-tight tracking-tight">{insight.display ?? meta.value(insight)}</p>
+          {deltaBadge}
+        </div>
+      )}
+      <p className={`text-xs leading-relaxed text-muted-foreground ${isUnlock ? 'mt-3' : 'mt-1.5'}`}>{insight.message}</p>
     </div>
   );
 }
@@ -122,12 +134,34 @@ function LearningCurveChart({ data }: { data: LearningCurveResponse }) {
     });
   };
 
-  const points = data.points.map((p) => ({
-    ...p,
-    date: p.date.slice(5),
-  }));
+  const points = data.points
+    .map((p) => ({
+      ...p,
+      date: p.date.slice(5),
+    }))
+    .filter(
+      (p) =>
+        Number.isFinite(p.mastery) &&
+        Number.isFinite(p.confidence) &&
+        Number.isFinite(p.retention) &&
+        Number.isFinite(p.skillRating) &&
+        Number.isFinite(p.consistency),
+    );
 
-  const masteryMilestones = data.milestones.filter((m) => m.type === 'MASTERY' || m.type === 'SKILL');
+  const masteryMilestones = data.milestones
+    .filter((m) => (m.type === 'MASTERY' || m.type === 'SKILL') && !!m.date && m.date.length >= 10)
+    .map((m) => {
+      const match = m.label.match(/(\d{3,4})/);
+      return {
+        ...m,
+        x: m.date.slice(5),
+        y: m.type === 'SKILL' ? (match ? Number(match[1]) : 1100) : match ? Number(match[1]) : 50,
+        axis: m.type === 'SKILL' ? 'right' : 'left',
+      };
+    });
+
+  const leftLines = curveLines.filter((l) => l.key !== 'skillRating');
+  const skillLine = curveLines.find((l) => l.key === 'skillRating');
 
   return (
     <div>
@@ -145,18 +179,20 @@ function LearningCurveChart({ data }: { data: LearningCurveResponse }) {
           </button>
         ))}
       </div>
-      <ResponsiveContainer width="100%" height={280}>
-        <LineChart data={points} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+      <ResponsiveContainer width="100%" height={300}>
+        <LineChart data={points} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
           <CartesianGrid stroke="#2a2a2d" strokeDasharray="3 3" />
           <XAxis dataKey="date" stroke="#a0a0a0" fontSize={11} tickMargin={6} />
-          <YAxis domain={[0, 100]} stroke="#a0a0a0" fontSize={11} width={34} />
+          <YAxis yAxisId="left" domain={[0, 100]} stroke="#a0a0a0" fontSize={11} width={34} />
+          <YAxis yAxisId="right" orientation="right" domain={[0, 2800]} tickCount={5} stroke="#38bdf8" fontSize={11} width={40} />
           <Tooltip
             contentStyle={{ backgroundColor: '#1c1c1f', border: '1px solid #2a2a2d', borderRadius: '8px', fontSize: '12px' }}
           />
-          {curveLines.map((l) =>
+          {leftLines.map((l) =>
             active.has(l.key) ? (
               <Line
                 key={l.key}
+                yAxisId="left"
                 type="monotone"
                 dataKey={l.key}
                 stroke={l.color}
@@ -166,11 +202,23 @@ function LearningCurveChart({ data }: { data: LearningCurveResponse }) {
               />
             ) : null
           )}
+          {skillLine && active.has(skillLine.key) ? (
+            <Line
+              yAxisId="right"
+              type="monotone"
+              dataKey="skillRating"
+              stroke={skillLine.color}
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 3 }}
+            />
+          ) : null}
           {masteryMilestones.map((m, i) => (
             <ReferenceDot
               key={i}
-              x={m.date.slice(5)}
-              y={m.type === 'SKILL' ? Math.min(100, 1400 / 16) : 80}
+              x={m.x}
+              y={m.y}
+              yAxisId={m.axis as 'left' | 'right'}
               r={5}
               fill="#ef4444"
               stroke="#0a0a0b"
@@ -358,8 +406,7 @@ export default function AnalyticsPage() {
     .map((k) => ({ k, gap: targetPct[k] - curPct[k] }))
     .sort((a, b) => b.gap - a.gap)[0];
 
-  const nextLevel = getTargetLevel(Math.min(10, tl + 1));
-  const toNext = Math.max(0, nextLevel.targetTotal - total);
+  const toNext = Math.max(0, getTargetLevel(Math.min(10, tl + 1)).targetTotal - total);
 
   const insights: Insight[] = [
     ...(data.insights ?? []),
@@ -367,28 +414,20 @@ export default function AnalyticsPage() {
       type: 'PROGRESS',
       title: 'Difficulty Mix',
       message: biggest.gap > 5
-        ? `${curEasyPct}% E · ${curMediumPct}% M · ${curHardPct}% H. ${biggest.k} lags your level-${tl} target by ${biggest.gap}pts — add more ${biggest.k.toLowerCase()}s.`
-        : `Mix (${curEasyPct}% E · ${curMediumPct}% M · ${curHardPct}% H) aligns with level ${tl}. Keep it balanced.`,
-      metric: total,
+        ? `${biggest.k} lags your level-${tl} target by ${biggest.gap}pts — add more ${biggest.k.toLowerCase()}s.`
+        : `Mix aligns with level ${tl}. Keep it balanced.`,
+      display: `${curEasyPct}% E · ${curMediumPct}% M · ${curHardPct}% H`,
+      metric: null,
       delta: null,
     },
     {
-      type: 'PROGRESS',
-      title: 'Readiness',
-      message: toNext > 0
-        ? `${toNext} more problems to reach ${nextLevel.label} (Level ${tl + 1}).`
-        : `You're ready for Level ${tl + 1} — raise your target in Profile.`,
-      metric: rs,
-      delta: null,
-    },
-    {
-      type: 'CONSISTENCY',
+      type: 'STREAK',
       title: 'Journal Streak',
       message: `${weekly?.journalEntries ?? 0} of 7 days logged this week. Daily reps compound into mastery.`,
       metric: data.currentStreak,
       delta: null,
     },
-  ].slice(0, 6);
+  ];
 
   const difficultyData = [
     { name: 'Easy', count: diff.easy, fill: '#22c55e' },

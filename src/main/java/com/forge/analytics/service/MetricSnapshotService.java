@@ -44,7 +44,10 @@ public class MetricSnapshotService {
     public DailyMetric snapshotForUser(UUID userId) {
         LocalDate today = LocalDate.now();
 
-        List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).getContent();
+        List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).getContent()
+                .stream()
+                .filter(com.forge.common.util.TopicFilters::isEngaged)
+                .toList();
         double avgMastery = topics.isEmpty() ? 0 : topics.stream().mapToInt(Topic::getMastery).average().orElse(0);
         double avgConfidence = topics.isEmpty() ? 0 : topics.stream().mapToInt(Topic::getConfidence).average().orElse(0);
         double avgRetention = topics.isEmpty() ? 100 : topics.stream()

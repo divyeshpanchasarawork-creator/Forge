@@ -2,6 +2,7 @@ package com.forge.intelligence.service;
 
 import com.forge.analytics.repository.DailyMetricRepository;
 import com.forge.auth.repository.UserRepository;
+import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.practice.repository.ProblemAttemptRepository;
 import com.forge.revision.repository.RevisionRepository;
 import com.forge.topic.entity.Topic;
@@ -23,6 +24,7 @@ public class ColdStartService {
     private final DailyMetricRepository dailyMetricRepository;
     private final RevisionRepository revisionRepository;
     private final UserRepository userRepository;
+    private final LeetCodeSnapshotRepository snapshotRepository;
 
     public enum Profile {
         BEGINNER, RETURNING, INTERMEDIATE, ADVANCED
@@ -43,7 +45,8 @@ public class ColdStartService {
     }
 
     public boolean needsSeed(UUID userId) {
-        return topicRepository.countByUserId(userId) == 0;
+        return topicRepository.countByUserId(userId) == 0
+                && snapshotRepository.findByUserId(userId).isEmpty();
     }
 
     public List<Topic> seedStarterTopics(UUID userId) {
@@ -67,6 +70,7 @@ public class ColdStartService {
         topic.setTitle(title);
         topic.setDescription(description);
         topic.setCategory("Fundamentals");
+        topic.setSource("COLD_START");
         topic.setConfidence(2);
         topic.setMastery(5);
         topic.setStatus("NOT_STARTED");

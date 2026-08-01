@@ -2,6 +2,7 @@ package com.forge.analytics;
 
 import com.forge.analytics.repository.DailyMetricRepository;
 import com.forge.analytics.service.AnalyticsService;
+import com.forge.analytics.service.MetricSnapshotService;
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.common.util.SecurityUtils;
@@ -37,6 +38,7 @@ class AnalyticsReadinessTest {
     @Mock private LeetCodeSnapshotRepository snapshotRepository;
     @Mock private DailyMetricRepository dailyMetricRepository;
     @Mock private ProblemAttemptRepository problemAttemptRepository;
+    @Mock private MetricSnapshotService metricSnapshotService;
 
     private AnalyticsService analyticsService;
     private UUID userId;
@@ -46,7 +48,8 @@ class AnalyticsReadinessTest {
     void setUp() {
         analyticsService = new AnalyticsService(
                 userRepository, topicRepository, revisionRepository,
-                journalRepository, snapshotRepository, dailyMetricRepository, problemAttemptRepository
+                journalRepository, snapshotRepository, dailyMetricRepository, problemAttemptRepository,
+                metricSnapshotService
         );
         userId = UUID.randomUUID();
         user = new User();

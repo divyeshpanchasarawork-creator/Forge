@@ -20,10 +20,14 @@ public interface TopicRepository extends JpaRepository<Topic, UUID> {
 
     Page<Topic> findByUserIdAndStatus(UUID userId, String status, Pageable pageable);
 
-    @Query("SELECT t FROM Topic t WHERE t.user.id = :userId AND t.confidence < 4 ORDER BY t.confidence ASC")
+    @Query("SELECT t FROM Topic t WHERE t.user.id = :userId AND t.confidence < 4 " +
+            "AND NOT (t.source = 'COLD_START' AND (t.attemptsTotal IS NULL OR t.attemptsTotal = 0)) " +
+            "ORDER BY t.confidence ASC")
     List<Topic> findWeakTopicsByUserId(@Param("userId") UUID userId);
 
-    @Query("SELECT t FROM Topic t WHERE t.user.id = :userId AND t.confidence >= 7 ORDER BY t.confidence DESC")
+    @Query("SELECT t FROM Topic t WHERE t.user.id = :userId AND t.confidence >= 7 " +
+            "AND NOT (t.source = 'COLD_START' AND (t.attemptsTotal IS NULL OR t.attemptsTotal = 0)) " +
+            "ORDER BY t.confidence DESC")
     List<Topic> findStrongTopicsByUserId(@Param("userId") UUID userId);
 
     @Query("SELECT t FROM Topic t WHERE t.user.id = :userId AND t.nextRevision IS NOT NULL AND t.nextRevision <= CURRENT_TIMESTAMP ORDER BY t.nextRevision ASC")

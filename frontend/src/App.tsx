@@ -15,13 +15,14 @@ import AnalyticsPage from '@/pages/AnalyticsPage';
 import MemoryPage from '@/pages/MemoryPage';
 import ProfilePage from '@/pages/ProfilePage';
 import AppLayout from '@/components/layout/AppLayout';
+import ErrorBoundary from '@/components/ui/ErrorBoundary';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000,
       retry: 1,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
     },
   },
 });
@@ -42,33 +43,35 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <MotionConfig reducedMotion="user">
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <AuthProvider>
-          <BrowserRouter>
-            <ColdStartGate>
-            <Routes>
-              <Route path="/login" element={<Navigate to="/" replace />} />
-              <Route path="/register" element={<Navigate to="/" replace />} />
-              <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
-              <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-              <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                <Route index element={<DashboardPage />} />
-                <Route path="roadmap" element={<RoadmapPage />} />
-                <Route path="problems" element={<PracticePage />} />
-                <Route path="revision" element={<RevisionPage />} />
-                <Route path="journal" element={<JournalPage />} />
-                <Route path="analytics" element={<AnalyticsPage />} />
-                <Route path="memory" element={<MemoryPage />} />
-                <Route path="profile" element={<ProfilePage />} />
-              </Route>
-            </Routes>
-            </ColdStartGate>
-          </BrowserRouter>
-        </AuthProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </MotionConfig>
+    <ErrorBoundary>
+      <MotionConfig reducedMotion="user">
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <AuthProvider>
+              <BrowserRouter>
+                <ColdStartGate>
+                  <Routes>
+                    <Route path="/login" element={<Navigate to="/" replace />} />
+                    <Route path="/register" element={<Navigate to="/" replace />} />
+                    <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
+                    <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+                    <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                      <Route index element={<DashboardPage />} />
+                      <Route path="roadmap" element={<RoadmapPage />} />
+                      <Route path="problems" element={<PracticePage />} />
+                      <Route path="revision" element={<RevisionPage />} />
+                      <Route path="journal" element={<JournalPage />} />
+                      <Route path="analytics" element={<AnalyticsPage />} />
+                      <Route path="memory" element={<MemoryPage />} />
+                      <Route path="profile" element={<ProfilePage />} />
+                    </Route>
+                  </Routes>
+                </ColdStartGate>
+              </BrowserRouter>
+            </AuthProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </MotionConfig>
+    </ErrorBoundary>
   );
 }

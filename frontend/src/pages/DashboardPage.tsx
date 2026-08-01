@@ -64,6 +64,7 @@ export default function DashboardPage() {
   const { data: practiceQueue } = useQuery<PracticeProblem[]>({
     queryKey: ['practice-queue'],
     queryFn: () => practiceApi.getQueue().then((res) => res.data.data?.queue || []),
+    staleTime: 20_000,
   });
 
   const { data: weekly } = useQuery({

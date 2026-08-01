@@ -306,6 +306,7 @@ export interface Insight {
   message: string;
   metric: number | null;
   delta: number | null;
+  display?: string;
 }
 
 export interface WeeklyProgress {

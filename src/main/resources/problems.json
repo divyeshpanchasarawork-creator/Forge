@@ -29,7 +29,9 @@
     {"title": "Max Chunks To Make Sorted II", "titleSlug": "max-chunks-to-make-sorted-ii", "difficulty": "Hard"},
     {"title": "Best Time to Buy and Sell Stock III", "titleSlug": "best-time-to-buy-and-sell-stock-iii", "difficulty": "Hard"},
     {"title": "Count of Smaller Numbers After Self", "titleSlug": "count-of-smaller-numbers-after-self", "difficulty": "Hard"},
-    {"title": "Max Sum of Rectangle No Larger Than K", "titleSlug": "max-sum-of-rectangle-no-larger-than-k", "difficulty": "Hard"}
+    {"title": "Max Sum of Rectangle No Larger Than K", "titleSlug": "max-sum-of-rectangle-no-larger-than-k", "difficulty": "Hard"},
+    {"title": "Insert Interval", "titleSlug": "insert-interval", "difficulty": "Medium"},
+    {"title": "Rotate Image", "titleSlug": "rotate-image", "difficulty": "Medium"}
   ],
   "hash-table": [
     {"title": "Valid Anagram", "titleSlug": "valid-anagram", "difficulty": "Easy"},
@@ -93,7 +95,8 @@
     {"title": "Shortest Subarray with Sum at Least K", "titleSlug": "shortest-subarray-with-sum-at-least-k", "difficulty": "Hard"},
     {"title": "Minimum Number of Removals to Make Mountain Array", "titleSlug": "minimum-number-of-removals-to-make-mountain-array", "difficulty": "Hard"},
     {"title": "Trapping Rain Water II", "titleSlug": "trapping-rain-water-ii", "difficulty": "Hard"},
-    {"title": "Contain Virus", "titleSlug": "contain-virus", "difficulty": "Hard"}
+    {"title": "Contain Virus", "titleSlug": "contain-virus", "difficulty": "Hard"},
+    {"title": "Valid Palindrome II", "titleSlug": "valid-palindrome-ii", "difficulty": "Easy"}
   ],
   "sliding-window": [
     {"title": "Maximum Average Subarray I", "titleSlug": "maximum-average-subarray-i", "difficulty": "Easy"},
@@ -125,7 +128,8 @@
     {"title": "Shortest Subarray with Sum at Least K", "titleSlug": "shortest-subarray-with-sum-at-least-k", "difficulty": "Hard"},
     {"title": "Constrained Subsequence Sum", "titleSlug": "constrained-subsequence-sum", "difficulty": "Hard"},
     {"title": "Count Subarrays With Fixed Bounds", "titleSlug": "count-subarrays-with-fixed-bounds", "difficulty": "Hard"},
-    {"title": "Replace the Substring for Balanced String", "titleSlug": "replace-the-substring-for-balanced-string", "difficulty": "Hard"}
+    {"title": "Replace the Substring for Balanced String", "titleSlug": "replace-the-substring-for-balanced-string", "difficulty": "Hard"},
+    {"title": "Subarray Product Less Than K", "titleSlug": "subarray-product-less-than-k", "difficulty": "Medium"}
   ],
   "stack": [
     {"title": "Valid Parentheses", "titleSlug": "valid-parentheses", "difficulty": "Easy"},
@@ -157,7 +161,8 @@
     {"title": "Tag Validator", "titleSlug": "tag-validator", "difficulty": "Hard"},
     {"title": "Remove Duplicate Letters", "titleSlug": "remove-duplicate-letters", "difficulty": "Hard"},
     {"title": "Maximum Frequency Stack", "titleSlug": "maximum-frequency-stack", "difficulty": "Hard"},
-    {"title": "Sum of Subarray Minimums", "titleSlug": "sum-of-subarray-minimums", "difficulty": "Hard"}
+    {"title": "Sum of Subarray Minimums", "titleSlug": "sum-of-subarray-minimums", "difficulty": "Hard"},
+    {"title": "Valid Parenthesis String", "titleSlug": "valid-parenthesis-string", "difficulty": "Medium"}
   ],
   "queue": [
     {"title": "Implement Stack using Queues", "titleSlug": "implement-stack-using-queues", "difficulty": "Easy"},
@@ -253,7 +258,8 @@
     {"title": "Frog Position After T Seconds", "titleSlug": "frog-position-after-t-seconds", "difficulty": "Hard"},
     {"title": "Number of Ways to Reconstruct a Tree", "titleSlug": "number-of-ways-to-reconstruct-a-tree", "difficulty": "Hard"},
     {"title": "Height of Binary Tree After Subtree Removal Queries", "titleSlug": "height-of-binary-tree-after-subtree-removal-queries", "difficulty": "Hard"},
-    {"title": "Create Components With Same Value", "titleSlug": "create-components-with-same-value", "difficulty": "Hard"}
+    {"title": "Create Components With Same Value", "titleSlug": "create-components-with-same-value", "difficulty": "Hard"},
+    {"title": "Sum Root to Leaf Numbers", "titleSlug": "sum-root-to-leaf-numbers", "difficulty": "Medium"}
   ],
   "bst": [
     {"title": "Search in a Binary Search Tree", "titleSlug": "search-in-a-binary-search-tree", "difficulty": "Easy"},
@@ -509,7 +515,17 @@
     {"title": "Trapping Rain Water II", "titleSlug": "trapping-rain-water-ii", "difficulty": "Hard"},
     {"title": "Dungeon Game", "titleSlug": "dungeon-game", "difficulty": "Hard"},
     {"title": "Minimum Difficulty of a Job Schedule", "titleSlug": "minimum-difficulty-of-a-job-schedule", "difficulty": "Hard"},
-    {"title": "Student Attendance Record II", "titleSlug": "student-attendance-record-ii", "difficulty": "Hard"}
+    {"title": "Student Attendance Record II", "titleSlug": "student-attendance-record-ii", "difficulty": "Hard"},
+    {"title": "Unique Paths", "titleSlug": "unique-paths", "difficulty": "Medium"},
+    {"title": "Unique Paths II", "titleSlug": "unique-paths-ii", "difficulty": "Medium"},
+    {"title": "Minimum Path Sum", "titleSlug": "minimum-path-sum", "difficulty": "Medium"},
+    {"title": "Perfect Squares", "titleSlug": "perfect-squares", "difficulty": "Medium"},
+    {"title": "Coin Change II", "titleSlug": "coin-change-ii", "difficulty": "Medium"},
+    {"title": "Combination Sum IV", "titleSlug": "combination-sum-iv", "difficulty": "Medium"},
+    {"title": "Best Time to Buy and Sell Stock with Cooldown", "titleSlug": "best-time-to-buy-and-sell-stock-with-cooldown", "difficulty": "Medium"},
+    {"title": "Interleaving String", "titleSlug": "interleaving-string", "difficulty": "Medium"},
+    {"title": "Longest Palindromic Subsequence", "titleSlug": "longest-palindromic-subsequence", "difficulty": "Medium"},
+    {"title": "Delete and Earn", "titleSlug": "delete-and-earn", "difficulty": "Medium"}
   ],
   "backtracking": [
     {"title": "Binary Tree Paths", "titleSlug": "binary-tree-paths", "difficulty": "Easy"},
@@ -829,7 +845,8 @@
     {"title": "Consecutive Numbers Sum", "titleSlug": "consecutive-numbers-sum", "difficulty": "Hard"},
     {"title": "Transform to Chessboard", "titleSlug": "transform-to-chessboard", "difficulty": "Hard"},
     {"title": "Cracking the Safe", "titleSlug": "cracking-the-safe", "difficulty": "Hard"},
-    {"title": "Erect the Fence", "titleSlug": "erect-the-fence", "difficulty": "Hard"}
+    {"title": "Erect the Fence", "titleSlug": "erect-the-fence", "difficulty": "Hard"},
+    {"title": "Shuffle an Array", "titleSlug": "shuffle-an-array", "difficulty": "Medium"}
   ],
   "string": [
     {"title": "Longest Common Prefix", "titleSlug": "longest-common-prefix", "difficulty": "Easy"},
@@ -861,7 +878,8 @@
     {"title": "Wildcard Matching", "titleSlug": "wildcard-matching", "difficulty": "Hard"},
     {"title": "Substring with Concatenation of All Words", "titleSlug": "substring-with-concatenation-of-all-words", "difficulty": "Hard"},
     {"title": "Orderly Queue", "titleSlug": "orderly-queue", "difficulty": "Hard"},
-    {"title": "Parse Lisp Expression", "titleSlug": "parse-lisp-expression", "difficulty": "Hard"}
+    {"title": "Parse Lisp Expression", "titleSlug": "parse-lisp-expression", "difficulty": "Hard"},
+    {"title": "Longest Palindrome", "titleSlug": "longest-palindrome", "difficulty": "Easy"}
   ],
   "design": [
     {"title": "Design HashSet", "titleSlug": "design-hashset", "difficulty": "Easy"},
@@ -919,8 +937,8 @@
     {"title": "Department Top Three Salaries", "titleSlug": "department-top-three-salaries", "difficulty": "Hard"},
     {"title": "Trips and Users", "titleSlug": "trips-and-users", "difficulty": "Hard"},
     {"title": "Human Traffic of Stadium", "titleSlug": "human-traffic-of-stadium", "difficulty": "Hard"},
-    {"title": "Hard SQL Query Example 1", "titleSlug": "hard-sql-query-example-1", "difficulty": "Hard"},
-    {"title": "Hard SQL Query Example 2", "titleSlug": "hard-sql-query-example-2", "difficulty": "Hard"},
+    {"title": "Find Cumulative Salary of an Employee", "titleSlug": "find-cumulative-salary-of-an-employee", "difficulty": "Hard"},
+    {"title": "Median Employee Salary", "titleSlug": "median-employee-salary", "difficulty": "Hard"},
     {"title": "User Activity for the Past 30 Days II", "titleSlug": "user-activity-for-the-past-30-days-ii", "difficulty": "Hard"},
     {"title": "Sales By Day of the Week", "titleSlug": "sales-by-day-of-the-week", "difficulty": "Hard"},
     {"title": "Market Analysis II", "titleSlug": "market-analysis-ii", "difficulty": "Hard"},
@@ -928,35 +946,35 @@
     {"title": "Find the Quiet Students in All Exams", "titleSlug": "find-the-quiet-students-in-all-exams", "difficulty": "Hard"}
   ],
   "system-design-prep": [
-    {"title": "Design URL Shortener Basics", "titleSlug": "design-url-shortener-basics", "difficulty": "Easy"},
+    {"title": "Design Phone Directory", "titleSlug": "design-phone-directory", "difficulty": "Easy"},
     {"title": "Design Hit Counter", "titleSlug": "design-hit-counter", "difficulty": "Easy"},
     {"title": "Design Logger Rate Limiter", "titleSlug": "logger-rate-limiter", "difficulty": "Easy"},
     {"title": "Design Parking Lot", "titleSlug": "design-parking-lot", "difficulty": "Easy"},
-    {"title": "Design Phonebook", "titleSlug": "design-phonebook", "difficulty": "Easy"},
-    {"title": "Design Key-Value Storage Schema", "titleSlug": "design-key-value-storage-schema", "difficulty": "Easy"},
-    {"title": "Design Simple Cache", "titleSlug": "design-simple-cache", "difficulty": "Easy"},
-    {"title": "Design File System API", "titleSlug": "design-file-system-api", "difficulty": "Easy"},
-    {"title": "Design Rate Limiter Token Bucket", "titleSlug": "design-rate-limiter-token-bucket", "difficulty": "Easy"},
-    {"title": "Design Metrics Collector API", "titleSlug": "design-metrics-collector-api", "difficulty": "Easy"},
+    {"title": "Design Tic-Tac-Toe", "titleSlug": "design-tic-tac-toe", "difficulty": "Medium"},
+    {"title": "Design Snake Game", "titleSlug": "design-snake-game", "difficulty": "Medium"},
+    {"title": "Design Twitter", "titleSlug": "design-twitter", "difficulty": "Medium"},
+    {"title": "Design In-Memory File System", "titleSlug": "design-in-memory-file-system", "difficulty": "Hard"},
+    {"title": "Design Browser History", "titleSlug": "design-browser-history", "difficulty": "Medium"},
+    {"title": "Design Underground System", "titleSlug": "design-underground-system", "difficulty": "Medium"},
     {"title": "Design URL Shortener (TinyURL)", "titleSlug": "design-url-shortener", "difficulty": "Medium"},
     {"title": "Design Rate Limiter", "titleSlug": "design-rate-limiter", "difficulty": "Medium"},
     {"title": "Design Consistent Hashing", "titleSlug": "design-consistent-hashing", "difficulty": "Medium"},
-    {"title": "Design Notification System", "titleSlug": "design-notification-system", "difficulty": "Medium"},
+    {"title": "Design Front Middle Back Queue", "titleSlug": "design-front-middle-back-queue", "difficulty": "Medium"},
     {"title": "Design Web Crawler", "titleSlug": "design-web-crawler", "difficulty": "Medium"},
-    {"title": "Design Unique ID Generator (Snowflake)", "titleSlug": "design-unique-id-generator", "difficulty": "Medium"},
-    {"title": "Design Chat Messaging System", "titleSlug": "design-chat-messaging-system", "difficulty": "Medium"},
-    {"title": "Design News Feed System", "titleSlug": "design-news-feed-system", "difficulty": "Medium"},
+    {"title": "Design Circular Deque", "titleSlug": "design-circular-deque", "difficulty": "Medium"},
+    {"title": "Design Skiplist", "titleSlug": "design-skiplist", "difficulty": "Hard"},
+    {"title": "Design a Text Editor", "titleSlug": "design-text-editor", "difficulty": "Hard"},
     {"title": "Design Search Autocomplete System", "titleSlug": "design-search-autocomplete-system", "difficulty": "Medium"},
-    {"title": "Design Distributed Task Scheduler", "titleSlug": "design-distributed-task-scheduler", "difficulty": "Medium"},
-    {"title": "Design Key-Value Store", "titleSlug": "design-key-value-store", "difficulty": "Hard"},
-    {"title": "Design Distributed File System (GFS/HDFS)", "titleSlug": "design-distributed-file-system", "difficulty": "Hard"},
-    {"title": "Design Video Streaming Service (YouTube/Netflix)", "titleSlug": "design-video-streaming-service", "difficulty": "Hard"},
-    {"title": "Design Ride-Sharing Service (Uber/Lyft)", "titleSlug": "design-ride-sharing-service", "difficulty": "Hard"},
-    {"title": "Design Payment System", "titleSlug": "design-payment-system", "difficulty": "Hard"},
-    {"title": "Design Distributed Message Queue (Kafka)", "titleSlug": "design-distributed-message-queue", "difficulty": "Hard"},
-    {"title": "Design E-Commerce System (Amazon)", "titleSlug": "design-e-commerce-system", "difficulty": "Hard"},
-    {"title": "Design Collaborative Text Editor (Google Docs)", "titleSlug": "design-collaborative-text-editor", "difficulty": "Hard"},
-    {"title": "Design Live Streaming System", "titleSlug": "design-live-streaming-system", "difficulty": "Hard"},
-    {"title": "Design Proximity Service (Yelp/Google Maps)", "titleSlug": "design-proximity-service", "difficulty": "Hard"}
+    {"title": "Design Excel Sum Formula", "titleSlug": "design-excel-sum-formula", "difficulty": "Hard"},
+    {"title": "Design File System", "titleSlug": "design-file-system", "difficulty": "Medium"},
+    {"title": "Design Movie Rental System", "titleSlug": "design-movie-rental-system", "difficulty": "Hard"},
+    {"title": "Design Graph With Shortest Path Calculator", "titleSlug": "design-graph-with-shortest-path-calculator", "difficulty": "Hard"},
+    {"title": "Design Video Sharing Platform", "titleSlug": "design-video-sharing-platform", "difficulty": "Hard"},
+    {"title": "Design Neighbor Sum Service", "titleSlug": "design-neighbor-sum-service", "difficulty": "Easy"},
+    {"title": "Design a Food Rating System", "titleSlug": "design-food-rating-system", "difficulty": "Medium"},
+    {"title": "Design Compressed String Iterator", "titleSlug": "design-compressed-string-iterator", "difficulty": "Easy"},
+    {"title": "Design Leaderboard", "titleSlug": "design-leaderboard", "difficulty": "Medium"},
+    {"title": "Design Bitset", "titleSlug": "design-bitset", "difficulty": "Medium"},
+    {"title": "Design Max Stack", "titleSlug": "design-max-stack", "difficulty": "Hard"}
   ]
 }

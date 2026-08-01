@@ -200,10 +200,12 @@ function ProblemRow({ problem, index }: { problem: PracticeProblem; index: numbe
 export default function PracticePage() {
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState('');
+  const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ['practice-queue'],
     queryFn: () => practiceApi.getQueue().then((res) => res.data.data),
+    staleTime: 20_000,
   });
 
   const handleSync = async () => {
@@ -211,6 +213,13 @@ export default function PracticePage() {
     setSyncError('');
     try {
       await leetcodeApi.sync();
+      queryClient.invalidateQueries({ queryKey: ['practice-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
+      queryClient.invalidateQueries({ queryKey: ['memory'] });
+      queryClient.invalidateQueries({ queryKey: ['roadmap-analysis'] });
+      queryClient.invalidateQueries({ queryKey: ['leetcode-stats'] });
     } catch (err: unknown) {
       setSyncError(parseApiError(err));
     } finally {
