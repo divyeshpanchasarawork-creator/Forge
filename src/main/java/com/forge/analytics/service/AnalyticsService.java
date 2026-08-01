@@ -280,7 +280,9 @@ public class AnalyticsService {
                     .findFirst().orElse(metrics.get(0));
             double skillDelta = round1(skill - (fourteenAgo.getSkillRating() != null ? fourteenAgo.getSkillRating() : skill));
             String skillMsg;
-            if (skillDelta > 0) {
+            if (skill <= 0) {
+                skillMsg = "Skill rating not computed yet — solve problems at or above your level to calibrate.";
+            } else if (skillDelta > 0) {
                 skillMsg = "Skill rating " + (int) skill + " — up " + skillDelta + " over two weeks.";
             } else if (skillDelta < 0) {
                 skillMsg = "Skill rating " + (int) skill + " — down " + Math.abs(skillDelta) + ". Revisit the basics.";

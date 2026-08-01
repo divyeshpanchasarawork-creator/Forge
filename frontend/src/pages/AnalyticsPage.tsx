@@ -7,7 +7,7 @@ import { ChartSkeleton, SkeletonCard } from '@/components/ui/LoadingSkeleton';
 import { targetLevels, getTargetLevel } from '@/lib/targetLevels';
 import {
   BarChart, Bar, LineChart, Line, ReferenceDot, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell,
 } from 'recharts';
 import {
   Target, Zap, BarChart3, Gauge, Flame, AlertTriangle,
@@ -236,12 +236,18 @@ function LearningCurveChart({ data }: { data: LearningCurveResponse }) {
       </div>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={points} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
-          <CartesianGrid stroke="#2a2a2d" strokeDasharray="3 3" />
-          <XAxis dataKey="date" stroke="#a0a0a0" fontSize={11} tickMargin={6} />
-          <YAxis yAxisId="left" domain={[0, 100]} stroke="#a0a0a0" fontSize={11} width={34} />
-          <YAxis yAxisId="right" orientation="right" domain={[0, 2800]} tickCount={5} stroke="#38bdf8" fontSize={11} width={40} />
+          <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+          <XAxis dataKey="date" stroke="var(--color-border)" tick={{ fill: 'var(--color-muted-foreground)' }} fontSize={11} tickMargin={6} />
+          <YAxis yAxisId="left" domain={[0, 100]} stroke="var(--color-border)" tick={{ fill: 'var(--color-muted-foreground)' }} fontSize={11} width={34} />
+          <YAxis yAxisId="right" orientation="right" domain={[0, 2800]} tickCount={5} stroke="#38bdf8" tick={{ fill: 'var(--color-muted-foreground)' }} fontSize={11} width={40} />
           <Tooltip
-            contentStyle={{ backgroundColor: '#1c1c1f', border: '1px solid #2a2a2d', borderRadius: '8px', fontSize: '12px' }}
+            contentStyle={{
+              backgroundColor: 'var(--color-card)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '8px',
+              fontSize: '12px',
+              color: 'var(--color-foreground)',
+            }}
           />
           {leftLines.map((l) =>
             active.has(l.key) ? (
@@ -599,14 +605,33 @@ export default function AnalyticsPage() {
             <CardContent>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={difficultyData}>
-                  <XAxis dataKey="name" stroke="#a0a0a0" fontSize={12} />
-                  <YAxis stroke="#a0a0a0" fontSize={12} />
+                  <XAxis dataKey="name" fontSize={12} stroke="var(--color-border)" tick={{ fill: 'var(--color-muted-foreground)' }} />
+                  <YAxis fontSize={12} stroke="var(--color-border)" tick={{ fill: 'var(--color-muted-foreground)' }} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#1c1c1f', border: '1px solid #2a2a2d', borderRadius: '8px' }}
+                    cursor={{ fill: 'var(--color-muted)', opacity: 0.5 }}
+                    contentStyle={{
+                      backgroundColor: 'var(--color-card)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '8px',
+                      color: 'var(--color-foreground)',
+                    }}
                   />
-                  <Bar dataKey="count" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                    {difficultyData.map((d) => (
+                      <Cell key={d.name} fill={d.fill} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5">
+                {difficultyData.map((d) => (
+                  <span key={d.name} className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: d.fill }} />
+                    {d.name}
+                    <span className="font-semibold text-foreground">{d.count}</span>
+                  </span>
+                ))}
+              </div>
               <SoWhat>
                 Hard problems matter most at level {tl} — {target.hardPct}% of your total should be Hard.
               </SoWhat>
@@ -627,9 +652,9 @@ export default function AnalyticsPage() {
                 <>
                   <ResponsiveContainer width="100%" height={240}>
                     <RadarChart data={masteryData}>
-                      <PolarGrid stroke="#2a2a2d" />
-                      <PolarAngleAxis dataKey="category" stroke="#a0a0a0" fontSize={10} />
-                      <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#a0a0a0" fontSize={10} />
+                      <PolarGrid stroke="var(--color-border)" />
+                      <PolarAngleAxis dataKey="category" stroke="var(--color-border)" tick={{ fill: 'var(--color-muted-foreground)' }} fontSize={10} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="var(--color-border)" tick={{ fill: 'var(--color-muted-foreground)' }} fontSize={10} />
                       <Radar name="Mastery" dataKey="mastery" stroke="#6d5dfc" fill="#6d5dfc" fillOpacity={0.3} />
                     </RadarChart>
                   </ResponsiveContainer>
