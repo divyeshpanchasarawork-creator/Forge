@@ -2,7 +2,7 @@ import { Flame } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 type LogoSize = 'sm' | 'md' | 'lg';
-type LogoVariant = 'gradient' | 'soft' | 'solid';
+type LogoVariant = 'gradient' | 'soft' | 'solid' | 'flame';
 
 interface LogoProps {
   size?: LogoSize;
@@ -18,7 +18,7 @@ const sizeStyles: Record<LogoSize, { tile: string; icon: string; text: string }>
   lg: { tile: 'h-11 w-11 rounded-xl', icon: 'h-6 w-6', text: 'text-xl' },
 };
 
-const variantStyles: Record<LogoVariant, string> = {
+const variantStyles: Record<'gradient' | 'soft' | 'solid', string> = {
   gradient: 'bg-gradient-to-br from-primary via-purple-500 to-blue-500 shadow-glow',
   soft: 'bg-primary/10',
   solid: 'bg-white/15 backdrop-blur-sm',
@@ -33,6 +33,18 @@ export function Logo({
 }: LogoProps) {
   const s = sizeStyles[size];
   const onGradient = variant === 'gradient' || variant === 'solid';
+
+  if (variant === 'flame') {
+    return (
+      <span className={cn('inline-flex shrink-0 items-center gap-2', className)}>
+        <Flame className={cn(s.icon, 'text-primary')} />
+        {withText && (
+          <span className={cn('font-bold tracking-tight', s.text, textClassName)}>Forge</span>
+        )}
+      </span>
+    );
+  }
+
   return (
     <span className={cn('inline-flex shrink-0 items-center gap-2.5', className)}>
       <span className={cn('flex items-center justify-center', s.tile, variantStyles[variant])}>

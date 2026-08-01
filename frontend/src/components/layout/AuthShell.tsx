@@ -28,10 +28,10 @@ export default function AuthShell({ title, subtitle, children }: AuthShellProps)
       </div>
 
       {/* Header */}
-      <header className="fixed top-0 right-0 left-0 z-20 border-b border-border bg-background/80 backdrop-blur-xl">
+      <header className="fixed top-0 right-0 left-0 z-20 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-2.5">
-            <Logo size="sm" variant="soft" withText />
+            <Logo size="sm" variant="flame" withText />
           </Link>
           <ThemeToggle size="md" />
         </div>
@@ -96,7 +96,7 @@ export default function AuthShell({ title, subtitle, children }: AuthShellProps)
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-border px-6 py-4">
+      <footer className="px-6 py-4">
         <div className="mx-auto flex max-w-7xl items-center justify-between text-xs text-muted-foreground">
           <p>Personal engineering companion</p>
           <p>© {new Date().getFullYear()} Forge</p>

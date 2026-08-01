@@ -47,31 +47,30 @@ export default function TopHeader({ sidebarCollapsed, onMenuClick, onOpenSearch 
   return (
     <header
       className={cn(
-        'fixed top-0 right-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-border bg-background/80 px-4 backdrop-blur-sm transition-all lg:px-6',
+        'fixed top-0 right-0 z-30 flex h-16 items-center gap-4 bg-background/80 px-4 backdrop-blur-sm transition-all lg:px-6',
         sidebarCollapsed ? 'lg:left-20' : 'lg:left-72'
       )}
     >
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         <Button variant="ghost" onClick={onMenuClick} className="h-9 w-9 p-0 lg:hidden" aria-label="Open menu">
           <Menu className="h-5 w-5" />
         </Button>
         <h1 className="truncate text-lg font-semibold lg:hidden">{title}</h1>
+        <button
+          onClick={onOpenSearch}
+          title="Search (⌘K)"
+          className="hidden h-9 w-full max-w-md items-center gap-2.5 rounded-xl border border-border bg-secondary/40 px-3 text-sm text-muted-foreground transition-colors hover:bg-secondary md:flex"
+        >
+          <Search className="h-4 w-4 shrink-0" />
+          <span className="flex-1 truncate text-left">Search pages and actions…</span>
+          <kbd className="flex h-6 shrink-0 items-center rounded-md bg-muted px-2 text-xs text-muted-foreground">⌘K</kbd>
+        </button>
       </div>
 
-      <button
-        onClick={onOpenSearch}
-        title="Search (⌘K)"
-        className="mx-auto hidden h-9 w-full max-w-md items-center gap-2.5 rounded-xl border border-border bg-secondary/40 px-3 text-sm text-muted-foreground transition-colors hover:bg-secondary md:flex"
-      >
-        <Search className="h-4 w-4 shrink-0" />
-        <span className="flex-1 truncate text-left">Search pages and actions…</span>
-        <kbd className="flex h-6 shrink-0 items-center rounded-md bg-muted px-2 text-xs text-muted-foreground">⌘K</kbd>
-      </button>
-      <Button variant="ghost" onClick={onOpenSearch} className="h-9 w-9 p-0 md:hidden" aria-label="Search">
-        <Search className="h-5 w-5" />
-      </Button>
-
       <div className="flex shrink-0 items-center gap-2">
+        <Button variant="ghost" onClick={onOpenSearch} className="h-9 w-9 p-0 md:hidden" aria-label="Search">
+          <Search className="h-5 w-5" />
+        </Button>
         <ThemeToggle size="md" />
         <div className="relative" ref={menuRef}>
           <button

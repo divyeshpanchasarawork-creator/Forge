@@ -72,10 +72,10 @@ export default function LandingPage() {
       </div>
 
       {/* Navbar */}
-      <nav className="fixed top-0 z-20 w-full border-b border-border bg-background/80 backdrop-blur-xl">
+      <nav className="fixed top-0 z-20 w-full bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-2.5">
-            <Logo size="sm" variant="soft" withText />
+            <Logo size="sm" variant="flame" withText />
           </Link>
           <div className="flex items-center gap-3 text-sm">
             <button onClick={scrollToFeatures} className="hidden text-muted-foreground transition-colors hover:text-foreground sm:inline">Features</button>
@@ -153,7 +153,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-center pt-8 lg:pt-0">
             <div className="w-full max-w-md rounded-2xl border border-border bg-card/70 p-8 shadow-2xl shadow-black/10 backdrop-blur-xl">
               <div className="mb-6 flex items-center gap-3">
-                <Logo size="md" variant="soft" />
+                <Logo size="md" variant="flame" />
                 <div>
                   <p className="font-semibold">Your daily forge</p>
                   <p className="text-xs text-muted-foreground">Personalized plan, every morning</p>
@@ -178,7 +178,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section id="features" className="relative border-t border-border px-6 py-24">
+      <section id="features" className="relative px-6 py-24">
         <div className="pointer-events-none absolute inset-0 -z-10">
           <div className="absolute left-1/3 top-0 h-[400px] w-[400px] rounded-full bg-primary/3 blur-[100px]" />
         </div>
@@ -205,10 +205,10 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border px-6 py-12">
+      <footer className="px-6 py-12">
         <div className="mx-auto grid max-w-6xl gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <Logo size="sm" variant="soft" withText />
+            <Logo size="sm" variant="flame" withText />
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
               Personal engineering companion. One tool for all your learning data.
             </p>
@@ -254,7 +254,7 @@ export default function LandingPage() {
             </ul>
           </div>
         </div>
-        <div className="mx-auto mt-12 flex max-w-6xl items-center justify-between border-t border-border pt-6 text-xs text-muted-foreground">
+        <div className="mx-auto mt-12 flex max-w-6xl items-center justify-between text-xs text-muted-foreground">
           <p>© {new Date().getFullYear()} Forge</p>
           <p>Personal engineering companion</p>
         </div>

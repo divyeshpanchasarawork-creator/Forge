@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Code2, RefreshCw, PenLine, BarChart3, User, Lightbulb, Brain, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Logo } from '@/components/brand/Logo';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const navSections: { label: string; items: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string }[] }[] = [
@@ -40,7 +41,10 @@ export default function Sidebar({
 }) {
   const panel = (
     <div className="flex h-full flex-col">
-      <nav className={cn('flex-1 overflow-y-auto px-2.5 pt-3', collapsed ? 'mt-3' : '')}>
+      <div className={cn('flex shrink-0 items-center pt-5', collapsed ? 'justify-center px-2 pb-4' : 'px-6 pb-4')}>
+        <Logo size="sm" variant="flame" withText={!collapsed} />
+      </div>
+      <nav className={cn('flex-1 overflow-y-auto px-2.5', collapsed ? 'mt-3' : '')}>
         {navSections.map((section) => (
           <div key={section.label}>
             {!collapsed && (
