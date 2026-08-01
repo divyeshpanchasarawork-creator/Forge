@@ -148,7 +148,7 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 p-4 pt-[12vh]"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center md:p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -158,26 +158,26 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
             role="dialog"
             aria-modal="true"
             aria-label="Command palette"
-            className="w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
-            initial={{ opacity: 0, scale: 0.97, y: -6 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: -6 }}
+            className="flex h-full w-full flex-col overflow-hidden rounded-t-[24px] border border-border bg-card/95 p-4 shadow-2xl backdrop-blur-xl md:h-[72vh] md:max-h-[760px] md:max-w-[920px] md:w-[min(92vw,760px)] md:rounded-[22px] md:p-6 xl:w-[min(92vw,820px)] 2xl:w-[min(88vw,880px)]"
+            initial={{ opacity: 0, y: 24, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 24, scale: 0.98 }}
             transition={{ duration: 0.12 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3 border-b border-border px-4 transition-colors focus-within:bg-secondary/20">
-              <Search className="h-4 w-4 text-muted-foreground" />
+            <div className="mb-4 flex h-[52px] shrink-0 items-center gap-3 rounded-2xl border border-border bg-secondary/40 px-4 transition-colors focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/20 md:mb-6 md:h-14">
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
               <input
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search pages and actions…"
-                className="h-12 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                className="h-full w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
-              <kbd className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">esc</kbd>
+              <kbd className="shrink-0 rounded-lg border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">esc</kbd>
             </div>
-            <div ref={listRef} className="max-h-[320px] overflow-y-auto p-2">
+            <div ref={listRef} className="flex-1 overflow-y-auto px-2 pb-5">
               {items.length === 0 && (
                 <div className="px-3 py-10 text-center">
                   <p className="text-sm font-medium text-muted-foreground">No results for "{query}"</p>
@@ -192,7 +192,7 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
                 return (
                   <div key={item.id}>
                     {showGroup && (
-                      <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <p className="px-2 pt-6 pb-3 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/50 first:pt-0">
                         {item.group}
                       </p>
                     )}
@@ -204,32 +204,32 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
                         onClose();
                       }}
                       className={cn(
-                        'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors',
+                        'flex h-16 w-full items-center gap-4 rounded-xl px-4 text-left text-sm transition-colors md:h-14',
                         isActive ? 'bg-primary/10 text-foreground' : 'text-muted-foreground'
                       )}
                     >
                       <item.icon className="h-4 w-4 shrink-0" />
-                      <span className="flex-1">{item.label}</span>
+                      <span className="flex-1 truncate">{item.label}</span>
                       {item.hint && (
-                        <kbd className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                        <kbd className="rounded-[10px] border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">
                           {item.hint}
                         </kbd>
                       )}
-                      {isActive && <CornerDownLeft className="h-3.5 w-3.5 text-muted-foreground" />}
+                      {isActive && <CornerDownLeft className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />}
                     </button>
                   </div>
                 );
               })}
             </div>
-            <div className="flex items-center justify-between border-t border-border px-4 py-2.5 text-[11px] text-muted-foreground">
+            <div className="mt-6 flex min-h-16 shrink-0 items-center justify-between border-t border-border px-2 pt-4 pb-[calc(0.5rem+env(safe-area-inset-bottom))] text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <kbd className="rounded border border-border px-1.5 py-0.5">↑</kbd>
-                <kbd className="rounded border border-border px-1.5 py-0.5">↓</kbd>
+                <kbd className="rounded-[10px] border border-border px-1.5 py-0.5">↑</kbd>
+                <kbd className="rounded-[10px] border border-border px-1.5 py-0.5">↓</kbd>
                 to navigate
               </span>
               <span className="flex items-center gap-1.5">
-                <kbd className="rounded border border-border px-1.5 py-0.5">↵</kbd> select
-                <kbd className="ml-1.5 rounded border border-border px-1.5 py-0.5">esc</kbd> close
+                <kbd className="rounded-[10px] border border-border px-1.5 py-0.5">↵</kbd> select
+                <kbd className="ml-1.5 rounded-[10px] border border-border px-1.5 py-0.5">esc</kbd> close
               </span>
             </div>
           </motion.div>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button, buttonVariants } from '@/components/ui/Button';
 import { Logo } from '@/components/brand/Logo';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 
 const features = [
   { icon: BookOpen, title: 'Topic Mastery', desc: 'Track your understanding across every concept with confidence scoring and spaced repetition.' },
@@ -76,8 +77,9 @@ export default function LandingPage() {
           <Link to="/" className="flex items-center gap-2.5">
             <Logo size="sm" variant="soft" withText />
           </Link>
-          <div className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-3 text-sm">
             <button onClick={scrollToFeatures} className="hidden text-muted-foreground transition-colors hover:text-foreground sm:inline">Features</button>
+            <ThemeToggle size="md" />
             <Link
               to="/login"
               className={buttonVariants({ variant: 'outline', className: 'h-9 px-4' })}
@@ -203,12 +205,58 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border px-6 py-8">
-        <div className="mx-auto flex max-w-6xl items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-2.5">
+      <footer className="border-t border-border px-6 py-12">
+        <div className="mx-auto grid max-w-6xl gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
             <Logo size="sm" variant="soft" withText />
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              Personal engineering companion. One tool for all your learning data.
+            </p>
           </div>
-          <p className="text-xs">Personal engineering companion</p>
+          <div>
+            <p className="text-sm font-semibold">Product</p>
+            <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
+              <li>
+                <button onClick={scrollToFeatures} className="transition-colors hover:text-foreground">
+                  Features
+                </button>
+              </li>
+              <li>
+                <Link to="/register" className="transition-colors hover:text-foreground">
+                  Get Started
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Account</p>
+            <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
+              <li>
+                <Link to="/login" className="transition-colors hover:text-foreground">
+                  Sign In
+                </Link>
+              </li>
+              <li>
+                <Link to="/register" className="transition-colors hover:text-foreground">
+                  Create Account
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Contact</p>
+            <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
+              <li>
+                <a href="mailto:divyeshpanchasara.work@gmail.com" className="transition-colors hover:text-foreground">
+                  Send feedback
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div className="mx-auto mt-12 flex max-w-6xl items-center justify-between border-t border-border pt-6 text-xs text-muted-foreground">
+          <p>© {new Date().getFullYear()} Forge</p>
+          <p>Personal engineering companion</p>
         </div>
       </footer>
     </div>
