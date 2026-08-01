@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 import {
   Target, Zap, BarChart3, Gauge, Flame, AlertTriangle,
-  Code2, BookOpen, TrendingUp, Sparkles, ArrowRight, TrendingDown, Trophy, Lightbulb,
+  Code2, BookOpen, TrendingUp, Sparkles, ArrowRight, TrendingDown, Trophy, Lightbulb, Info,
 } from 'lucide-react';
 import type { AnalyticsResponse, Journal, WeeklyProgress, LearningCurveResponse, Insight } from '@/types';
 
@@ -73,12 +73,51 @@ const insightMeta: Record<string, { icon: ReactNode; accent: Accent; value: (i: 
   },
 };
 
+const DIFF_MIX_EXPLAIN =
+  'Your solved-problem split across Easy / Medium / Hard compared with the target mix for your level. Closing the Hard gap is the fastest way up.';
+
+const insightExplain: Record<string, { what: string; improve: string }> = {
+  MASTERY: {
+    what: 'Average mastery (0–100) across the topics you are actively learning, built from your SM-2 easiness factor, retention decay, and recent attempt quality.',
+    improve: 'Review your weakest categories and solve problems in the lowest-mastery topics to pull this up.',
+  },
+  SKILL: {
+    what: 'Your Elo-style rating (starts near 1000; 0 means it has not been computed yet). It rises when you solve problems at or above your current rating.',
+    improve: 'Tackle problems slightly above your level and keep up with revision to climb.',
+  },
+  CONSISTENCY: {
+    what: 'Share of the last 14 days where you practiced or revised. Consistency is the strongest predictor of interview performance.',
+    improve: 'Even a few focused minutes daily beats a big weekend session — build the habit.',
+  },
+  ACCURACY: {
+    what: 'Share of tracked attempts resolved — SOLVED counts fully, PARTIAL counts half. Until you log attempts, there is nothing to measure.',
+    improve: 'Log your result from the Practice page right after each problem to unlock accuracy tracking.',
+  },
+  PROGRESS: {
+    what: 'Total problems marked solved on LeetCode, synced from your profile.',
+    improve: 'Sync LeetCode after each session to keep this number fresh.',
+  },
+  STREAK: {
+    what: 'Consecutive days with a journal entry. Daily reps compound into mastery.',
+    improve: 'Log a journal entry every day, even a one-liner, to protect the streak.',
+  },
+};
+
+function explainFor(insight: Insight): { what: string; improve: string } {
+  if (insight.title === 'Difficulty Mix') return { what: DIFF_MIX_EXPLAIN, improve: 'Prioritize Hard problems at your level to close the gap.' };
+  return insightExplain[insight.type] ?? {
+    what: insight.message,
+    improve: 'Keep practicing — this metric updates as you log more activity.',
+  };
+}
+
 function InsightCard({ insight }: { insight: Insight }) {
   const meta = insightMeta[insight.type] || {
     icon: <Lightbulb className="h-4 w-4" />,
     accent: 'primary' as Accent,
     value: (i: Insight) => (i.metric != null ? `${i.metric}` : ''),
   };
+  const explain = explainFor(insight);
   const isUnlock = insight.metric == null && !insight.display;
   const delta = insight.delta;
   const deltaBadge =
@@ -101,7 +140,23 @@ function InsightCard({ insight }: { insight: Insight }) {
         <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${accentMap[meta.accent]}`}>
           {meta.icon}
         </span>
-        <span className="text-right text-[11px] uppercase tracking-wider text-muted-foreground">{insight.title}</span>
+        <span className="flex min-w-0 items-center gap-1">
+          <span className="truncate text-right text-[11px] uppercase tracking-wider text-muted-foreground">{insight.title}</span>
+          <button
+            type="button"
+            aria-label={`What is ${insight.title}?`}
+            className="group/btn relative shrink-0 rounded-md p-0.5 text-muted-foreground/60 transition-colors hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <Info className="h-3.5 w-3.5" />
+            <span className="pointer-events-none absolute bottom-full right-0 z-20 mb-2 hidden w-64 rounded-lg border border-border bg-card p-3 text-left shadow-2xl group-hover/btn:block group-focus-within/btn:block">
+              <p className="text-[11px] font-semibold text-foreground">What is this?</p>
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{explain.what}</p>
+              <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                <span className="font-medium text-foreground">How to improve:</span> {explain.improve}
+              </p>
+            </span>
+          </button>
+        </span>
       </div>
       {!isUnlock && (
         <div className="mt-3 flex items-center justify-between">

@@ -263,22 +263,32 @@ public class AnalyticsService {
             double retentionNow = latest.getRetention() != null ? latest.getRetention() : 100;
 
             double masteryDelta = round1(masteryNow - masterySevenAgo);
+            String masteryMsg;
+            if (masteryDelta > 0) {
+                masteryMsg = "Mastery is trending up — up " + masteryDelta + "pts over the last week.";
+            } else if (masteryDelta < 0) {
+                masteryMsg = "Mastery slipped " + Math.abs(masteryDelta) + "pts this week. Schedule a review session.";
+            } else {
+                masteryMsg = "No change in mastery over the last week.";
+            }
             insights.add(new AnalyticsResponse.Insight(
-                    "MASTERY", "Mastery Trend",
-                    masteryDelta >= 0 ? "Mastery is trending up — up " + masteryDelta + "pts over the last week."
-                            : "Mastery slipped " + Math.abs(masteryDelta) + "pts this week. Schedule a review session.",
-                    masteryNow, masteryDelta));
+                    "MASTERY", "Mastery Trend", masteryMsg, masteryNow, masteryDelta));
 
             double skill = latest.getSkillRating() != null ? latest.getSkillRating() : 1000;
             DailyMetric fourteenAgo = metrics.stream()
                     .filter(m -> !m.getMetricDate().isBefore(LocalDate.now().minusDays(15)))
                     .findFirst().orElse(metrics.get(0));
             double skillDelta = round1(skill - (fourteenAgo.getSkillRating() != null ? fourteenAgo.getSkillRating() : skill));
+            String skillMsg;
+            if (skillDelta > 0) {
+                skillMsg = "Skill rating " + (int) skill + " — up " + skillDelta + " over two weeks.";
+            } else if (skillDelta < 0) {
+                skillMsg = "Skill rating " + (int) skill + " — down " + Math.abs(skillDelta) + ". Revisit the basics.";
+            } else {
+                skillMsg = "No change in skill rating over two weeks.";
+            }
             insights.add(new AnalyticsResponse.Insight(
-                    "SKILL", "Skill Rating",
-                    skillDelta >= 0 ? "Skill rating " + (int) skill + " — up " + skillDelta + " over two weeks."
-                            : "Skill rating " + (int) skill + " — down " + Math.abs(skillDelta) + ". Revisit the basics.",
-                    skill, skillDelta));
+                    "SKILL", "Skill Rating", skillMsg, skill, skillDelta));
 
             double consistency = latest.getConsistency() != null ? latest.getConsistency() : 0;
             insights.add(new AnalyticsResponse.Insight(

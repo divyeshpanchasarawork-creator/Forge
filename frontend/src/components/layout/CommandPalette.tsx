@@ -87,9 +87,9 @@ function timeAgo(iso: string): string {
 }
 
 function Highlight({ text, query }: { text: string; query: string }): ReactNode {
-  const q = query.trim().toLowerCase();
+  const q = query.trim();
   if (!q) return text;
-  const idx = text.toLowerCase().indexOf(q);
+  const idx = text.indexOf(q);
   if (idx === -1) return text;
   return (
     <>
@@ -108,12 +108,10 @@ function openLeetCode(slug: string) {
 
 export default function CommandPalette({ open, onOpen, onClose, recent }: { open: boolean; onOpen: () => void; onClose: () => void; recent: { path: string; label: string }[] }) {
   const [query, setQuery] = useState('');
+  const [debounced, setDebounced] = useState('');
   const [active, setActive] = useState(0);
-  const [problems, setProblems] = useState<SearchProblem[]>([]);
-  const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef(0);
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { theme, toggle: toggleTheme } = useTheme();
@@ -124,6 +122,14 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
     queryFn: () => practiceApi.getAttempts(6).then((r) => r.data.data),
     enabled: open,
     staleTime: 60_000,
+  });
+
+  const { data: problems, isFetching: searching } = useQuery<SearchProblem[]>({
+    queryKey: ['problem-search', debounced],
+    queryFn: () => searchApi.problems(debounced).then((r) => r.data.data ?? []),
+    enabled: open && debounced.length > 0,
+    staleTime: 60_000,
+    placeholderData: (prev) => prev,
   });
 
   useEffect(() => {
@@ -143,6 +149,7 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
   useEffect(() => {
     if (open) {
       setQuery('');
+      setDebounced('');
       setActive(0);
       const t = requestAnimationFrame(() => inputRef.current?.focus());
       return () => cancelAnimationFrame(t);
@@ -151,28 +158,11 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
 
   useEffect(() => {
     if (!open) return;
-    const q = query.trim();
-    if (!q) {
-      setProblems([]);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    const id = ++searchRef.current;
-    const timer = setTimeout(async () => {
-      try {
-        const res = await searchApi.problems(q);
-        if (searchRef.current === id) setProblems(res.data.data ?? []);
-      } catch {
-        if (searchRef.current === id) setProblems([]);
-      } finally {
-        if (searchRef.current === id) setSearching(false);
-      }
-    }, 250);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setDebounced(query.trim()), 250);
+    return () => clearTimeout(t);
   }, [query, open]);
 
-  const q = query.trim().toLowerCase();
+  const q = query.trim();
 
   const baseItems: PaletteItem[] = [
     ...recent
@@ -241,7 +231,7 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
     })),
   ];
 
-  const problemItems: PaletteItem[] = problems.map((p) => ({
+  const problemItems: PaletteItem[] = (problems ?? []).map((p) => ({
     id: `problem-${p.titleSlug}`,
     kind: 'problem',
     group: 'Problems',
@@ -251,14 +241,11 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
     run: () => openLeetCode(p.titleSlug),
   }));
 
-  const matches = (label: string) => !q || label.toLowerCase().includes(q);
-
-  const localItems = baseItems.filter((i) => matches(i.title));
-  const items: PaletteItem[] = q ? [...problemItems, ...localItems] : localItems;
+  const items: PaletteItem[] = q ? problemItems : baseItems;
 
   useEffect(() => {
     setActive(0);
-  }, [q, problems]);
+  }, [q, debounced, problems]);
 
   useEffect(() => {
     listRef.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest' });
@@ -297,40 +284,40 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
             role="dialog"
             aria-modal="true"
             aria-label="Command palette"
-            className="flex h-full w-full flex-col overflow-hidden rounded-t-[24px] border border-border bg-card/95 p-4 shadow-2xl backdrop-blur-xl md:h-[72vh] md:max-h-[760px] md:max-w-[920px] md:w-[min(92vw,760px)] md:rounded-[22px] md:p-6 xl:w-[min(92vw,820px)] 2xl:w-[min(88vw,880px)]"
-            initial={{ opacity: 0, y: 24, scale: 0.98 }}
+            className="flex h-full w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-card/95 p-3 shadow-xl backdrop-blur-xl md:h-[72vh] md:max-h-[760px] md:max-w-[920px] md:w-[min(92vw,760px)] md:rounded-2xl md:p-4 xl:w-[min(92vw,820px)] 2xl:w-[min(88vw,880px)]"
+            initial={{ opacity: 0, y: 16, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 24, scale: 0.98 }}
-            transition={{ duration: 0.12 }}
+            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-4 flex h-[52px] shrink-0 items-center gap-3 rounded-2xl border border-border bg-secondary/40 px-4 transition-colors focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/20 md:mb-6 md:h-14">
+            <div className="mb-3 flex h-14 shrink-0 items-center gap-3 border-b border-border px-2 transition-colors focus-within:border-primary/40">
               {searching ? (
-                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+                <Loader2 className="h-[18px] w-[18px] shrink-0 animate-spin text-primary" />
               ) : (
-                <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <Search className="h-[18px] w-[18px] shrink-0 text-muted-foreground/70" />
               )}
               <input
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Search LeetCode problems, topics, pages…"
+                placeholder="Search problems…"
                 className="h-full w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
-              <kbd className="shrink-0 rounded-lg border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">esc</kbd>
+              <kbd className="shrink-0 rounded-md border border-border bg-secondary/60 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">esc</kbd>
             </div>
 
-            <div ref={listRef} className="flex-1 overflow-y-auto px-2 pb-5">
-              {searching && q && (
+            <div ref={listRef} className="flex-1 overflow-y-auto px-2 pb-4">
+              {searching && debounced && (
                 <div className="space-y-1">
-                  <p className="px-2 pt-2 pb-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/50">Problems</p>
+                  <p className="px-2 pt-3 pb-1.5 text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/40">Problems</p>
                   {[0, 1, 2].map((i) => (
-                    <div key={i} className="flex h-16 w-full items-center gap-4 rounded-xl px-4 md:h-14">
-                      <div className="h-9 w-9 shrink-0 animate-pulse rounded-lg bg-secondary" />
+                    <div key={i} className="flex h-12 w-full items-center gap-3 rounded-lg px-3">
+                      <div className="h-8 w-8 shrink-0 animate-pulse rounded-md bg-secondary" />
                       <div className="flex-1 space-y-2">
-                        <div className="h-3.5 w-2/3 animate-pulse rounded bg-secondary" />
-                        <div className="h-3 w-1/3 animate-pulse rounded bg-secondary/70" />
+                        <div className="h-3 w-2/3 animate-pulse rounded bg-secondary" />
+                        <div className="h-2.5 w-1/3 animate-pulse rounded bg-secondary/70" />
                       </div>
                     </div>
                   ))}
@@ -339,9 +326,9 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
 
               {!searching && items.length === 0 && (
                 <div className="px-3 py-10 text-center">
-                  <p className="text-sm font-medium text-muted-foreground">No results for "{query}"</p>
+                  <p className="text-sm font-medium text-muted-foreground">No problems match "{query}"</p>
                   <p className="mt-1 text-xs text-muted-foreground/60">
-                    Try a problem name like "two sum", a topic like "dp", or a page like "analytics".
+                    Search is case-sensitive — try "Two Sum" or a topic like "Sliding Window".
                   </p>
                 </div>
               )}
@@ -355,7 +342,7 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
                   return (
                     <div key={item.id}>
                       {showGroup && (
-                        <p className="px-2 pt-6 pb-3 text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground/50 first:pt-0">
+                        <p className="px-2 pt-4 pb-1.5 text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/40 first:pt-0">
                           {item.group}
                         </p>
                       )}
@@ -367,9 +354,12 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
                           onClose();
                         }}
                         className={cn(
-                          'flex w-full items-center gap-4 rounded-xl px-4 text-left text-sm transition-colors',
-                          twoLine(item) ? 'min-h-[64px] py-2 md:min-h-[56px]' : 'h-16 md:h-14',
-                          isActive ? 'bg-primary/10 text-foreground' : 'text-muted-foreground'
+                          'relative flex w-full items-center gap-3 rounded-lg px-3 text-left text-sm transition-colors duration-150',
+                          'before:absolute before:left-0 before:top-1/2 before:h-5 before:w-[2px] before:-translate-y-1/2 before:rounded-full before:bg-primary before:opacity-0',
+                          twoLine(item) ? 'min-h-[52px] py-1.5' : 'h-12 md:h-11',
+                          isActive
+                            ? 'bg-primary/10 text-foreground before:opacity-100'
+                            : 'text-muted-foreground hover:bg-secondary/50'
                         )}
                       >
                         {twoLine(item) ? (
@@ -398,12 +388,12 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
                           </>
                         ) : (
                           <>
-                            {item.icon && <item.icon className="h-4 w-4 shrink-0" />}
+                            {item.icon && <item.icon className="h-[18px] w-[18px] shrink-0 text-muted-foreground/70" />}
                             <span className="flex-1 truncate">
                               <Highlight text={item.title} query={q} />
                             </span>
                             {item.hint && (
-                              <kbd className="rounded-[10px] border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                              <kbd className="rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
                                 {item.hint}
                               </kbd>
                             )}
@@ -416,15 +406,11 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
                 })}
             </div>
 
-            <div className="mt-6 flex min-h-16 shrink-0 items-center justify-between border-t border-border px-2 pt-4 pb-[calc(0.5rem+env(safe-area-inset-bottom))] text-[11px] text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <kbd className="rounded-[10px] border border-border px-1.5 py-0.5">↑</kbd>
-                <kbd className="rounded-[10px] border border-border px-1.5 py-0.5">↓</kbd>
-                to navigate
-              </span>
-              <span className="flex items-center gap-1.5">
-                <kbd className="rounded-[10px] border border-border px-1.5 py-0.5">↵</kbd> select
-                <kbd className="ml-1.5 rounded-[10px] border border-border px-1.5 py-0.5">esc</kbd> close
+            <div className="mt-3 flex min-h-10 shrink-0 items-center justify-between border-t border-border px-2 pt-3 pb-[calc(0.25rem+env(safe-area-inset-bottom))] text-[11px] text-muted-foreground/60">
+              <span>↑↓ Navigate</span>
+              <span className="flex items-center gap-3">
+                <span>↵ Select</span>
+                <span>Esc Close</span>
               </span>
             </div>
           </motion.div>
