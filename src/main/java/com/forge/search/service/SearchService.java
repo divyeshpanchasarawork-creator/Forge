@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -81,7 +82,7 @@ public class SearchService {
     }
 
     private String normalize(String s) {
-        return s == null ? "" : s.trim();
+        return s == null ? "" : s.toLowerCase(Locale.ROOT).trim();
     }
 
     private Map<String, List<String>> tagsBySlug() {

@@ -87,9 +87,9 @@ function timeAgo(iso: string): string {
 }
 
 function Highlight({ text, query }: { text: string; query: string }): ReactNode {
-  const q = query.trim();
+  const q = query.trim().toLowerCase();
   if (!q) return text;
-  const idx = text.indexOf(q);
+  const idx = text.toLowerCase().indexOf(q);
   if (idx === -1) return text;
   return (
     <>
@@ -291,7 +291,7 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
             transition={{ duration: 0.15, ease: 'easeOut' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-3 flex h-14 shrink-0 items-center gap-3 border-b border-border px-2 transition-colors focus-within:border-primary/40">
+            <div className="mb-3 flex h-14 shrink-0 items-center gap-3 border-b border-border px-2">
               {searching ? (
                 <Loader2 className="h-[18px] w-[18px] shrink-0 animate-spin text-primary" />
               ) : (
@@ -328,7 +328,7 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
                 <div className="px-3 py-10 text-center">
                   <p className="text-sm font-medium text-muted-foreground">No problems match "{query}"</p>
                   <p className="mt-1 text-xs text-muted-foreground/60">
-                    Search is case-sensitive — try "Two Sum" or a topic like "Sliding Window".
+                    Try a problem name like "Two Sum" or "Valid Parentheses".
                   </p>
                 </div>
               )}
