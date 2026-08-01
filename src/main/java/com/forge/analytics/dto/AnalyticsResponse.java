@@ -23,6 +23,7 @@ public class AnalyticsResponse {
     private long currentStreak;
     private Integer targetLevel;
     private Integer readinessScore;
+    private List<Insight> insights;
 
     @Getter
     @Setter
@@ -52,5 +53,17 @@ public class AnalyticsResponse {
         private Integer confidence;
         private Integer mastery;
         private String category;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Insight {
+        private String type;
+        private String title;
+        private String message;
+        private Double metric;
+        private Double delta;
     }
 }

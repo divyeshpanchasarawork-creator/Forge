@@ -64,4 +64,22 @@ public class Topic extends BaseEntity {
 
     @Column(name = "last_quality")
     private Integer lastQuality;
+
+    @Column(name = "skill_rating", columnDefinition = "DOUBLE PRECISION DEFAULT 1000")
+    private Double skillRating = 1000.0;
+
+    @Column(name = "memory_strength", columnDefinition = "DOUBLE PRECISION DEFAULT 1.0")
+    private Double memoryStrength = 1.0;
+
+    @Column(name = "attempts_solved", columnDefinition = "INTEGER DEFAULT 0")
+    private Integer attemptsSolved = 0;
+
+    @Column(name = "attempts_total", columnDefinition = "INTEGER DEFAULT 0")
+    private Integer attemptsTotal = 0;
+
+    @Column(name = "last_attempt_at")
+    private LocalDateTime lastAttemptAt;
+
+    @Column(name = "mastery_probability", columnDefinition = "DOUBLE PRECISION DEFAULT 0.0")
+    private Double masteryProbability = 0.0;
 }

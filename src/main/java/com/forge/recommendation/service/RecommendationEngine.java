@@ -339,8 +339,8 @@ public class RecommendationEngine {
             List<ProblemLoader.ProblemEntry> candidates = problemLoader.getProblemsForTag(ct);
             for (ProblemLoader.ProblemEntry c : candidates) {
                 if (difficulty != null && !c.getDifficulty().equalsIgnoreCase(difficulty)) continue;
-                int score = problemScorer.score(userId, c, ct);
-                scored.add(new ProblemScorer.ScoredProblem(c, ct, score));
+                ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(userId, c, ct);
+                scored.add(new ProblemScorer.ScoredProblem(c, ct, breakdown.total(), breakdown));
             }
         }
 
@@ -416,7 +416,10 @@ public class RecommendationEngine {
         if (candidates.isEmpty()) return null;
 
         List<ProblemScorer.ScoredProblem> scored = candidates.stream()
-                .map(c -> new ProblemScorer.ScoredProblem(c, topicSlug, problemScorer.score(userId, c, topicSlug)))
+                .map(c -> {
+                    ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(userId, c, topicSlug);
+                    return new ProblemScorer.ScoredProblem(c, topicSlug, breakdown.total(), breakdown);
+                })
                 .sorted((a, b) -> Integer.compare(b.score(), a.score()))
                 .toList();
 

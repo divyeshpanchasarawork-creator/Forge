@@ -137,7 +137,7 @@ export default function AuthCard({ tab, onTabChange }: AuthCardProps) {
   ) : null;
 
   return (
-    <div className="rounded-2xl border border-border bg-card/70 p-6 shadow-2xl shadow-black/10 backdrop-blur-xl sm:p-8">
+    <div className="rounded-2xl border border-border bg-card/70 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
       <div className="flex rounded-lg bg-secondary/60 p-1">
         <button
           type="button"

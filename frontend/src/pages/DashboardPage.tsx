@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import type { PracticeProblem } from '@/types';
 
 const REVISION_MINS = 5;
 const DIFFICULTY_MINS: Record<string, number> = { Easy: 20, Medium: 35, Hard: 50 };
@@ -60,9 +61,9 @@ export default function DashboardPage() {
     queryFn: () => dashboardApi.get().then((res) => res.data.data),
   });
 
-  const { data: practiceQueue } = useQuery({
+  const { data: practiceQueue } = useQuery<PracticeProblem[]>({
     queryKey: ['practice-queue'],
-    queryFn: () => practiceApi.getQueue().then((res) => res.data.data || []),
+    queryFn: () => practiceApi.getQueue().then((res) => res.data.data?.queue || []),
   });
 
   const { data: weekly } = useQuery({
@@ -131,7 +132,7 @@ export default function DashboardPage() {
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 onClick={() => navigate(ctaTo)}
-                className="group inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-all hover:brightness-110"
+                className="group inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:brightness-110"
               >
                 {ctaLabel}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

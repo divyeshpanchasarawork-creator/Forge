@@ -52,7 +52,7 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card/70 p-6 shadow-2xl shadow-black/10 backdrop-blur-xl">
+        <div className="rounded-2xl border border-border bg-card/70 p-6 shadow-2xl backdrop-blur-xl">
           {/* Step 1: Target level */}
           <div className="space-y-4">
             <div>

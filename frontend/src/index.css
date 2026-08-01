@@ -25,6 +25,7 @@
   --radius-sm: 0.25rem;
   --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.4);
   --shadow-glow: 0 0 0 1px rgb(109 93 252 / 0.15), 0 8px 32px -8px rgb(109 93 252 / 0.35);
+  --shadow-2xl: 0 0 0 1px rgb(0 0 0 / 0.05), 0 25px 50px -12px rgb(0 0 0 / 0.6);
 }
 
 .light {
@@ -47,8 +48,9 @@
   --color-ring: #6d5dfc;
   --color-sidebar: #f0eeff;
   --color-sidebar-foreground: #1a1a2e;
-  --shadow-soft: 0 1px 2px rgb(26 26 46 / 0.05), 0 8px 24px -12px rgb(26 26 46 / 0.12);
+  --shadow-soft: 0 1px 3px rgb(26 26 46 / 0.07), 0 8px 24px -10px rgb(26 26 46 / 0.16);
   --shadow-glow: 0 0 0 1px rgb(109 93 252 / 0.12), 0 8px 32px -12px rgb(109 93 252 / 0.25);
+  --shadow-2xl: 0 0 0 1px rgb(26 26 46 / 0.06), 0 20px 40px -16px rgb(26 26 46 / 0.22);
 }
 
 body {

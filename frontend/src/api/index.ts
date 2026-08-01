@@ -1,5 +1,5 @@
 import api from './client';
-import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, WeeklyProgress, LeetCodeStats, MemoryResponse, PracticeProblem, RoadmapAnalysis, PagedResponse } from '@/types';
+import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, WeeklyProgress, LeetCodeStats, MemoryResponse, PracticeQueueResponse, RoadmapAnalysis, PagedResponse, ProblemAttempt, ProblemAttemptRequest, ProblemAttemptResponse, LearningCurveResponse } from '@/types';
 
 export const authApi = {
   login: (username: string, password: string) =>
@@ -41,10 +41,13 @@ export const journalsApi = {
 export const analyticsApi = {
   get: () => api.get<ApiResponse<AnalyticsResponse>>('/analytics'),
   getWeekly: () => api.get<ApiResponse<WeeklyProgress>>('/analytics/weekly'),
+  getLearningCurve: (days = 30) => api.get<ApiResponse<LearningCurveResponse>>(`/analytics/learning-curve?days=${days}`),
 };
 
 export const practiceApi = {
-  getQueue: () => api.get<ApiResponse<PracticeProblem[]>>('/practice/queue'),
+  getQueue: () => api.get<ApiResponse<PracticeQueueResponse>>('/practice/queue'),
+  submitAttempt: (data: ProblemAttemptRequest) => api.post<ApiResponse<ProblemAttemptResponse>>('/practice/attempts', data),
+  getAttempts: (limit = 20) => api.get<ApiResponse<ProblemAttempt[]>>(`/practice/attempts?limit=${limit}`),
 };
 
 export const memoryApi = {

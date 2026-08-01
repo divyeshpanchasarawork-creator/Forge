@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { analyticsApi, journalsApi } from '@/api';
@@ -6,14 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ChartSkeleton, SkeletonCard } from '@/components/ui/LoadingSkeleton';
 import { targetLevels, getTargetLevel } from '@/lib/targetLevels';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  BarChart, Bar, LineChart, Line, ReferenceDot, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from 'recharts';
 import {
   Target, Zap, BarChart3, Gauge, Flame, AlertTriangle,
-  Code2, BookOpen, TrendingUp, Sparkles, ArrowRight,
+  Code2, BookOpen, TrendingUp, Sparkles, ArrowRight, TrendingDown, Trophy, Lightbulb,
 } from 'lucide-react';
-import type { AnalyticsResponse, Journal, WeeklyProgress } from '@/types';
+import type { AnalyticsResponse, Journal, WeeklyProgress, LearningCurveResponse, Insight } from '@/types';
 
 const readinessColor = (score: number) => {
   if (score >= 80) return 'text-green-400';
@@ -40,25 +40,157 @@ const accentMap = {
 
 type Accent = keyof typeof accentMap;
 
-interface Insight {
-  icon: ReactNode;
-  accent: Accent;
-  title: string;
-  value: string;
-  comment: string;
-}
+const insightMeta: Record<string, { icon: ReactNode; accent: Accent; value: (i: Insight) => string }> = {
+  MASTERY: {
+    icon: <TrendingUp className="h-4 w-4" />,
+    accent: 'primary',
+    value: (i) => `${Math.round(i.metric ?? 0)}% avg`,
+  },
+  SKILL: {
+    icon: <Gauge className="h-4 w-4" />,
+    accent: 'yellow',
+    value: (i) => `${Math.round(i.metric ?? 0)} rating`,
+  },
+  CONSISTENCY: {
+    icon: <Flame className="h-4 w-4" />,
+    accent: 'orange',
+    value: (i) => `${Math.round(i.metric ?? 0)}%`,
+  },
+  ACCURACY: {
+    icon: <Target className="h-4 w-4" />,
+    accent: 'green',
+    value: (i) => `${Math.round(i.metric ?? 0)}%`,
+  },
+  PROGRESS: {
+    icon: <BarChart3 className="h-4 w-4" />,
+    accent: 'purple',
+    value: (i) => `${Math.round(i.metric ?? 0)} solved`,
+  },
+};
 
 function InsightCard({ insight }: { insight: Insight }) {
+  const meta = insightMeta[insight.type] || {
+    icon: <Lightbulb className="h-4 w-4" />,
+    accent: 'primary' as Accent,
+    value: (i: Insight) => i.metric != null ? `${i.metric}` : '—',
+  };
+  const delta = insight.delta;
+  const deltaBadge =
+    typeof delta === 'number' && delta !== 0 ? (
+      <span
+        className={`inline-flex items-center gap-1 text-[11px] font-semibold ${delta > 0 ? 'text-green-400' : 'text-red-400'}`}
+      >
+        {delta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+        {delta > 0 ? '+' : ''}{delta}
+      </span>
+    ) : null;
+
   return (
     <div className="rounded-xl border border-border bg-card p-5 shadow-soft transition-all hover:border-primary/20">
       <div className="flex items-center justify-between gap-2">
-        <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${accentMap[insight.accent]}`}>
-          {insight.icon}
+        <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${accentMap[meta.accent]}`}>
+          {meta.icon}
         </span>
         <span className="text-right text-[11px] uppercase tracking-wider text-muted-foreground">{insight.title}</span>
       </div>
-      <p className="mt-3 text-xl font-bold leading-tight tracking-tight">{insight.value}</p>
-      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{insight.comment}</p>
+      <div className="mt-3 flex items-center justify-between">
+        <p className="text-xl font-bold leading-tight tracking-tight">{meta.value(insight)}</p>
+        {deltaBadge}
+      </div>
+      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{insight.message}</p>
+    </div>
+  );
+}
+
+const curveLines = [
+  { key: 'mastery', label: 'Mastery', color: '#6d5dfc' },
+  { key: 'confidence', label: 'Confidence', color: '#22c55e' },
+  { key: 'retention', label: 'Retention', color: '#f59e0b' },
+  { key: 'skillRating', label: 'Skill', color: '#38bdf8' },
+  { key: 'consistency', label: 'Consistency', color: '#c084fc' },
+] as const;
+
+function LearningCurveChart({ data }: { data: LearningCurveResponse }) {
+  const [active, setActive] = useState<Set<string>>(new Set(['mastery', 'retention', 'skillRating']));
+
+  const toggle = (key: string) => {
+    setActive((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const points = data.points.map((p) => ({
+    ...p,
+    date: p.date.slice(5),
+  }));
+
+  const masteryMilestones = data.milestones.filter((m) => m.type === 'MASTERY' || m.type === 'SKILL');
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {curveLines.map((l) => (
+          <button
+            key={l.key}
+            onClick={() => toggle(l.key)}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all ${
+              active.has(l.key) ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground'
+            }`}
+          >
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: l.color }} />
+            {l.label}
+          </button>
+        ))}
+      </div>
+      <ResponsiveContainer width="100%" height={280}>
+        <LineChart data={points} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+          <CartesianGrid stroke="#2a2a2d" strokeDasharray="3 3" />
+          <XAxis dataKey="date" stroke="#a0a0a0" fontSize={11} tickMargin={6} />
+          <YAxis domain={[0, 100]} stroke="#a0a0a0" fontSize={11} width={34} />
+          <Tooltip
+            contentStyle={{ backgroundColor: '#1c1c1f', border: '1px solid #2a2a2d', borderRadius: '8px', fontSize: '12px' }}
+          />
+          {curveLines.map((l) =>
+            active.has(l.key) ? (
+              <Line
+                key={l.key}
+                type="monotone"
+                dataKey={l.key}
+                stroke={l.color}
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 3 }}
+              />
+            ) : null
+          )}
+          {masteryMilestones.map((m, i) => (
+            <ReferenceDot
+              key={i}
+              x={m.date.slice(5)}
+              y={m.type === 'SKILL' ? Math.min(100, 1400 / 16) : 80}
+              r={5}
+              fill="#ef4444"
+              stroke="#0a0a0b"
+            />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+      {data.milestones.length > 0 && (
+        <div className="mt-4 space-y-1.5">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            <Trophy className="h-3.5 w-3.5 text-yellow-400" /> Milestones
+          </p>
+          {data.milestones.map((m, i) => (
+            <div key={i} className="flex items-center gap-2 text-xs">
+              <span className="shrink-0 rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">{m.date}</span>
+              <span className="text-foreground">{m.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -187,6 +319,11 @@ export default function AnalyticsPage() {
     queryFn: () => analyticsApi.getWeekly().then((res) => res.data.data),
   });
 
+  const { data: learningCurve } = useQuery<LearningCurveResponse>({
+    queryKey: ['analytics', 'learning-curve'],
+    queryFn: () => analyticsApi.getLearningCurve(30).then((res) => res.data.data),
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -211,8 +348,6 @@ export default function AnalyticsPage() {
   const diff = data.problemsByDifficulty || { easy: 0, medium: 0, hard: 0 };
   const total = data.totalProblems || 0;
   const rs = data.readinessScore || 0;
-  const weakest = data.weakestTopics?.[0];
-
   const curEasyPct = total ? Math.round((diff.easy / total) * 100) : 0;
   const curMediumPct = total ? Math.round((diff.medium / total) * 100) : 0;
   const curHardPct = total ? Math.round((diff.hard / total) * 100) : 0;
@@ -227,41 +362,33 @@ export default function AnalyticsPage() {
   const toNext = Math.max(0, nextLevel.targetTotal - total);
 
   const insights: Insight[] = [
+    ...(data.insights ?? []),
     {
-      icon: <BarChart3 className="h-4 w-4" />,
-      accent: 'primary',
+      type: 'PROGRESS',
       title: 'Difficulty Mix',
-      value: `${total} problems solved`,
-      comment: biggest.gap > 5
+      message: biggest.gap > 5
         ? `${curEasyPct}% E · ${curMediumPct}% M · ${curHardPct}% H. ${biggest.k} lags your level-${tl} target by ${biggest.gap}pts — add more ${biggest.k.toLowerCase()}s.`
         : `Mix (${curEasyPct}% E · ${curMediumPct}% M · ${curHardPct}% H) aligns with level ${tl}. Keep it balanced.`,
+      metric: total,
+      delta: null,
     },
     {
-      icon: <Gauge className="h-4 w-4" />,
-      accent: 'yellow',
+      type: 'PROGRESS',
       title: 'Readiness',
-      value: `${rs}/100`,
-      comment: toNext > 0
+      message: toNext > 0
         ? `${toNext} more problems to reach ${nextLevel.label} (Level ${tl + 1}).`
         : `You're ready for Level ${tl + 1} — raise your target in Profile.`,
+      metric: rs,
+      delta: null,
     },
     {
-      icon: <Flame className="h-4 w-4" />,
-      accent: 'orange',
-      title: 'Consistency',
-      value: `${data.currentStreak}-day streak`,
-      comment: `${weekly?.journalEntries ?? 0} of 7 days logged this week. Daily reps compound into mastery.`,
+      type: 'CONSISTENCY',
+      title: 'Journal Streak',
+      message: `${weekly?.journalEntries ?? 0} of 7 days logged this week. Daily reps compound into mastery.`,
+      metric: data.currentStreak,
+      delta: null,
     },
-    {
-      icon: <AlertTriangle className="h-4 w-4" />,
-      accent: 'red',
-      title: 'Sharpest Gap',
-      value: weakest?.title ?? 'No weak spots',
-      comment: weakest
-        ? `Confidence ${weakest.confidence}/10 in ${weakest.category}. One focused session closes this gap.`
-        : 'Every topic is above the danger line. Great shape.',
-    },
-  ];
+  ].slice(0, 6);
 
   const difficultyData = [
     { name: 'Easy', count: diff.easy, fill: '#22c55e' },
@@ -331,6 +458,31 @@ export default function AnalyticsPage() {
           At Level {tl} ({target.label}) you're {rs}/100 ready. The fastest path up is closing the {biggest.k}-problem
           gap, then clearing {toNext > 0 ? `${toNext} more` : 'the next target'} problems.
         </SoWhat>
+      </section>
+
+      {/* Learning Curve – Flagship */}
+      <section className="fade-in-up" style={{ animationDelay: '40ms' }}>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Learning Curve — Last 30 Days
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {learningCurve && learningCurve.points.length > 0 ? (
+              <LearningCurveChart data={learningCurve} />
+            ) : (
+              <div className="flex h-[240px] flex-col items-center justify-center rounded-xl border border-dashed border-border text-center">
+                <TrendingUp className="mb-2 h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm font-medium">Your curve is empty</p>
+                <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
+                  Practice and revise — the engine snapshots your mastery, retention, and skill nightly to paint this curve.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </section>
 
       {/* Insight Cards */}

@@ -184,6 +184,79 @@ export interface PracticeProblem {
   difficulty: string;
   topicTag: string | null;
   reason: string;
+  segment?: 'WARMUP' | 'REINFORCE' | 'CHALLENGE' | 'REVISION';
+  score?: number;
+  breakdown?: ScoreItem[];
+  attempts?: number;
+  solved?: number;
+}
+
+export interface ScoreItem {
+  name: string;
+  weight: number;
+  value: number;
+  contribution: number;
+}
+
+export interface PracticeQueueResponse {
+  profile: string;
+  planMessage: string;
+  queue: PracticeProblem[];
+  revisitTopics: string[];
+}
+
+export interface ProblemAttempt {
+  id: string;
+  problemTitle: string;
+  problemSlug: string;
+  difficulty: string;
+  topicTagSlug: string | null;
+  topicTagName: string | null;
+  outcome: 'SOLVED' | 'FAILED' | 'PARTIAL' | 'SKIPPED';
+  hintsUsed: number;
+  timeTakenSeconds: number | null;
+  quality: number;
+  attemptedAt: string;
+}
+
+export interface ProblemAttemptRequest {
+  problemTitle: string;
+  problemSlug: string;
+  difficulty: string;
+  topicTagSlug?: string | null;
+  topicTagName?: string | null;
+  outcome: 'SOLVED' | 'FAILED' | 'PARTIAL' | 'SKIPPED';
+  hintsUsed?: number;
+  timeTakenSeconds?: number;
+}
+
+export interface ProblemAttemptResponse {
+  attempt: ProblemAttempt;
+  topicsUpdated: string[];
+  feedback: string;
+}
+
+export interface LearningCurvePoint {
+  date: string;
+  mastery: number;
+  confidence: number;
+  retention: number;
+  skillRating: number;
+  consistency: number;
+  solved: number;
+  revisions: number;
+  milestones: string[];
+}
+
+export interface CurveMilestone {
+  date: string;
+  type: string;
+  label: string;
+}
+
+export interface LearningCurveResponse {
+  points: LearningCurvePoint[];
+  milestones: CurveMilestone[];
 }
 
 export interface MemoryResponse {
@@ -224,6 +297,15 @@ export interface AnalyticsResponse {
   currentStreak: number;
   targetLevel: number;
   readinessScore: number;
+  insights?: Insight[];
+}
+
+export interface Insight {
+  type: string;
+  title: string;
+  message: string;
+  metric: number | null;
+  delta: number | null;
 }
 
 export interface WeeklyProgress {

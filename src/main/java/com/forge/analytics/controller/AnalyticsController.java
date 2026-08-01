@@ -1,6 +1,7 @@
 package com.forge.analytics.controller;
 
 import com.forge.analytics.dto.AnalyticsResponse;
+import com.forge.analytics.dto.LearningCurveResponse;
 import com.forge.analytics.dto.WeeklyProgressResponse;
 import com.forge.analytics.service.AnalyticsService;
 import com.forge.common.dto.ApiResponse;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -25,5 +27,10 @@ public class AnalyticsController {
     @GetMapping("/weekly")
     public ResponseEntity<ApiResponse<WeeklyProgressResponse>> getWeeklyProgress() {
         return ResponseEntity.ok(ApiResponse.success(analyticsService.getWeeklyProgress()));
+    }
+
+    @GetMapping("/learning-curve")
+    public ResponseEntity<ApiResponse<LearningCurveResponse>> getLearningCurve(@RequestParam(defaultValue = "30") int days) {
+        return ResponseEntity.ok(ApiResponse.success(analyticsService.getLearningCurve(days)));
     }
 }

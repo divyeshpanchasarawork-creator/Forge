@@ -57,7 +57,7 @@ export default function LandingPage() {
             transition={{ duration: 0.25, ease: 'easeOut' }}
             className="fixed left-1/2 top-20 z-30 -translate-x-1/2 px-4"
           >
-            <div className="flex items-center gap-3 rounded-full border border-green-500/30 bg-card px-4 py-2 text-sm shadow-lg">
+            <div className="flex items-center gap-3 rounded-full border border-green-500/30 bg-card px-4 py-2 text-sm shadow-2xl">
               <CheckCircle2 className="h-4 w-4 text-green-400" />
               <span className="font-medium text-green-400">Signed out</span>
               <span className="text-muted-foreground">See you soon — your progress is saved.</span>
@@ -128,7 +128,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={() => focusAuth('signup')}
-                className={buttonVariants({ size: 'lg', className: 'group rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:brightness-110' })}
+                className={buttonVariants({ size: 'lg', className: 'group rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/25 hover:brightness-110' })}
               >
                 Get Started Free
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -183,7 +183,7 @@ export default function LandingPage() {
             {features.map((f) => (
               <div
                 key={f.title}
-                className="group rounded-xl border border-border bg-card/30 p-6 transition-all hover:border-primary/20 hover:bg-card/60 hover:shadow-lg hover:shadow-primary/5"
+                className="group rounded-xl border border-border bg-card/30 p-6 transition-all hover:border-primary/20 hover:bg-card/60 hover:shadow-soft"
               >
                 <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/15">
                   <f.icon className="h-5 w-5 text-primary" />

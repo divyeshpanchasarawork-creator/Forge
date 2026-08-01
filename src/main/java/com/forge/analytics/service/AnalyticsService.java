@@ -1,7 +1,10 @@
 package com.forge.analytics.service;
 
 import com.forge.analytics.dto.AnalyticsResponse;
+import com.forge.analytics.dto.LearningCurveResponse;
 import com.forge.analytics.dto.WeeklyProgressResponse;
+import com.forge.analytics.entity.DailyMetric;
+import com.forge.analytics.repository.DailyMetricRepository;
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.common.util.ReadinessCalculator;
@@ -10,6 +13,8 @@ import com.forge.journal.entity.Journal;
 import com.forge.journal.repository.JournalRepository;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
+import com.forge.practice.entity.ProblemAttempt;
+import com.forge.practice.repository.ProblemAttemptRepository;
 import com.forge.revision.repository.RevisionRepository;
 import com.forge.topic.entity.Topic;
 import com.forge.topic.repository.TopicRepository;
@@ -18,8 +23,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -31,6 +37,8 @@ public class AnalyticsService {
     private final RevisionRepository revisionRepository;
     private final JournalRepository journalRepository;
     private final LeetCodeSnapshotRepository snapshotRepository;
+    private final DailyMetricRepository dailyMetricRepository;
+    private final ProblemAttemptRepository problemAttemptRepository;
 
     public AnalyticsResponse getAnalytics() {
         UUID userId = SecurityUtils.getCurrentUserId();
@@ -73,6 +81,7 @@ public class AnalyticsService {
         int targetLevel = user != null && user.getTargetLevel() != null ? user.getTargetLevel() : 5;
 
         int readinessScore = ReadinessCalculator.computeReadinessScore(targetLevel, allTopics, lcSnapshot);
+        List<AnalyticsResponse.Insight> insights = buildInsights(userId, allTopics, lcSnapshot);
 
         return new AnalyticsResponse(
                 totalProblems,
@@ -84,7 +93,8 @@ public class AnalyticsService {
                 strongest,
                 streak,
                 targetLevel,
-                readinessScore
+                readinessScore,
+                insights
         );
     }
 
@@ -106,6 +116,177 @@ public class AnalyticsService {
         );
     }
 
+    public LearningCurveResponse getLearningCurve(int days) {
+        UUID userId = SecurityUtils.getCurrentUserId();
+        int window = Math.max(7, Math.min(90, days));
+        LocalDate today = LocalDate.now();
+        LocalDate start = today.minusDays(window - 1L);
+
+        List<DailyMetric> metrics = dailyMetricRepository.findByUserIdAndMetricDateBetweenOrderByMetricDateAsc(userId, start, today);
+        Map<LocalDate, DailyMetric> byDate = metrics.stream()
+                .collect(Collectors.toMap(DailyMetric::getMetricDate, m -> m, (a, b) -> a));
+
+        List<ProblemAttempt> attempts = problemAttemptRepository.findByUserIdAll(userId);
+
+        List<LearningCurveResponse.CurvePoint> points = new ArrayList<>();
+        List<LearningCurveResponse.Milestone> milestones = new ArrayList<>();
+        List<LocalDate> activeDates = new ArrayList<>();
+
+        double lastMastery = 0, lastConfidence = 0, lastRetention = 100, lastSkill = 1000, lastConsistency = 0;
+        boolean crossed50 = false, crossed80 = false;
+
+        for (int i = 0; i < window; i++) {
+            LocalDate d = start.plusDays(i);
+            DailyMetric metric = byDate.get(d);
+
+            double mastery = lastMastery, confidence = lastConfidence, retention = lastRetention,
+                    skill = lastSkill, consistency = lastConsistency;
+            int solved = 0, revisions = 0;
+            if (metric != null) {
+                mastery = metric.getMastery() != null ? metric.getMastery() : lastMastery;
+                confidence = metric.getConfidence() != null ? metric.getConfidence() : lastConfidence;
+                retention = metric.getRetention() != null ? metric.getRetention() : lastRetention;
+                skill = metric.getSkillRating() != null ? metric.getSkillRating() : lastSkill;
+                consistency = metric.getConsistency() != null ? metric.getConsistency() : lastConsistency;
+                solved = metric.getSolvedDelta() != null ? metric.getSolvedDelta() : 0;
+                revisions = metric.getRevisionsDone() != null ? metric.getRevisionsDone() : 0;
+                lastMastery = mastery;
+                lastConfidence = confidence;
+                lastRetention = retention;
+                lastSkill = skill;
+                lastConsistency = consistency;
+            }
+
+            List<String> dayMilestones = new ArrayList<>();
+            if (metric != null && (solved > 0 || revisions > 0 || metric.getJournalHours() != null && metric.getJournalHours() > 0)) {
+                activeDates.add(d);
+            }
+            if (metric != null) {
+                if (!crossed50 && mastery >= 50) {
+                    crossed50 = true;
+                    dayMilestones.add("Average mastery crossed 50%");
+                    milestones.add(new LearningCurveResponse.Milestone(d.toString(), "MASTERY", "Average mastery crossed 50%"));
+                }
+                if (!crossed80 && mastery >= 80) {
+                    crossed80 = true;
+                    dayMilestones.add("Average mastery crossed 80%");
+                    milestones.add(new LearningCurveResponse.Milestone(d.toString(), "MASTERY", "Average mastery crossed 80%"));
+                }
+                if (skill >= 1100 && skill - 100 < 1100) {
+                    dayMilestones.add("Skill rating crossed 1100");
+                    milestones.add(new LearningCurveResponse.Milestone(d.toString(), "SKILL", "Skill rating crossed 1100"));
+                }
+                if (skill >= 1400 && skill - 100 < 1400) {
+                    dayMilestones.add("Skill rating crossed 1400");
+                    milestones.add(new LearningCurveResponse.Milestone(d.toString(), "SKILL", "Skill rating crossed 1400"));
+                }
+            }
+
+            points.add(new LearningCurveResponse.CurvePoint(
+                    d.toString(), round1(mastery), round1(confidence), round1(retention),
+                    round1(skill), round1(consistency * 100), solved, revisions, dayMilestones));
+        }
+
+        detectActivityMilestones(userId, attempts, activeDates, milestones);
+
+        return new LearningCurveResponse(points, milestones);
+    }
+
+    private void detectActivityMilestones(UUID userId, List<ProblemAttempt> attempts,
+                                          List<LocalDate> activeDates, List<LearningCurveResponse.Milestone> milestones) {
+        Optional<ProblemAttempt> firstHard = attempts.stream()
+                .filter(a -> "HARD".equalsIgnoreCase(a.getDifficulty()) && "SOLVED".equals(a.getOutcome()))
+                .min(Comparator.comparing(ProblemAttempt::getAttemptedAt));
+        firstHard.ifPresent(a -> milestones.add(new LearningCurveResponse.Milestone(
+                a.getAttemptedAt().toLocalDate().toString(), "ACHIEVEMENT", "First Hard problem solved — " + a.getProblemTitle())));
+
+        int streak = 0;
+        for (int i = activeDates.size() - 1; i >= 0; i--) {
+            if (i > 0 && activeDates.get(i).minusDays(1).equals(activeDates.get(i - 1))) {
+                streak++;
+            } else if (i == 0) {
+                streak++;
+            }
+            if ((streak == 7 || streak == 14 || streak == 30) && (i == 0 || activeDates.get(i - 1).equals(activeDates.get(i).minusDays(1)))) {
+                final int s = streak;
+                LocalDate date = activeDates.get(i);
+                milestones.add(new LearningCurveResponse.Milestone(date.toString(), "CONSISTENCY", s + "-day active streak"));
+            }
+        }
+
+        for (int i = 1; i < activeDates.size(); i++) {
+            LocalDate prev = activeDates.get(i - 1);
+            LocalDate curr = activeDates.get(i);
+            if (prev.plusDays(1).isBefore(curr) && java.time.temporal.ChronoUnit.DAYS.between(prev, curr) >= 7) {
+                milestones.add(new LearningCurveResponse.Milestone(curr.toString(), "GAP",
+                        "Returned after a " + java.time.temporal.ChronoUnit.DAYS.between(prev, curr) + "-day break"));
+            }
+        }
+    }
+
+    private List<AnalyticsResponse.Insight> buildInsights(UUID userId, List<Topic> allTopics, LeetCodeSnapshot snapshot) {
+        List<AnalyticsResponse.Insight> insights = new ArrayList<>();
+        List<DailyMetric> metrics = dailyMetricRepository.findByUserIdAndMetricDateBetweenOrderByMetricDateAsc(
+                userId, LocalDate.now().minusDays(30), LocalDate.now());
+
+        if (!metrics.isEmpty()) {
+            DailyMetric latest = metrics.get(metrics.size() - 1);
+            double masteryNow = latest.getMastery() != null ? latest.getMastery() : 0;
+            DailyMetric sevenAgo = metrics.stream()
+                    .filter(m -> !m.getMetricDate().isBefore(LocalDate.now().minusDays(8)))
+                    .findFirst().orElse(metrics.get(0));
+            double masterySevenAgo = sevenAgo.getMastery() != null ? sevenAgo.getMastery() : masteryNow;
+            double retentionNow = latest.getRetention() != null ? latest.getRetention() : 100;
+
+            double masteryDelta = round1(masteryNow - masterySevenAgo);
+            insights.add(new AnalyticsResponse.Insight(
+                    "MASTERY", "Mastery Trend",
+                    masteryDelta >= 0 ? "Mastery is trending up — up " + masteryDelta + "pts over the last week."
+                            : "Mastery slipped " + Math.abs(masteryDelta) + "pts this week. Schedule a review session.",
+                    masteryNow, masteryDelta));
+
+            double skill = latest.getSkillRating() != null ? latest.getSkillRating() : 1000;
+            DailyMetric fourteenAgo = metrics.stream()
+                    .filter(m -> !m.getMetricDate().isBefore(LocalDate.now().minusDays(15)))
+                    .findFirst().orElse(metrics.get(0));
+            double skillDelta = round1(skill - (fourteenAgo.getSkillRating() != null ? fourteenAgo.getSkillRating() : skill));
+            insights.add(new AnalyticsResponse.Insight(
+                    "SKILL", "Skill Rating",
+                    skillDelta >= 0 ? "Skill rating " + (int) skill + " — up " + skillDelta + " over two weeks."
+                            : "Skill rating " + (int) skill + " — down " + Math.abs(skillDelta) + ". Revisit the basics.",
+                    skill, skillDelta));
+
+            double consistency = latest.getConsistency() != null ? latest.getConsistency() : 0;
+            insights.add(new AnalyticsResponse.Insight(
+                    "CONSISTENCY", "Consistency",
+                    "Active on " + Math.round(consistency * 14) + " of the last 14 days.",
+                    round1(consistency * 100), null));
+        } else {
+            insights.add(new AnalyticsResponse.Insight(
+                    "CONSISTENCY", "Consistency", "No daily data yet. Practice or revise today to start your curve.", 0.0, null));
+        }
+
+        List<ProblemAttempt> attempts = problemAttemptRepository.findByUserIdAll(userId);
+        if (!attempts.isEmpty()) {
+            long solved = attempts.stream().filter(a -> "SOLVED".equals(a.getOutcome())).count();
+            long partial = attempts.stream().filter(a -> "PARTIAL".equals(a.getOutcome())).count();
+            double accuracy = (solved + partial * 0.5) / attempts.size() * 100;
+            insights.add(new AnalyticsResponse.Insight(
+                    "ACCURACY", "Solve Accuracy", Math.round(accuracy) + "% of tracked attempts resolved (incl. partial).",
+                    round1(accuracy), null));
+        } else {
+            insights.add(new AnalyticsResponse.Insight(
+                    "ACCURACY", "Solve Accuracy", "Submit an attempt from the Practice page to unlock accuracy tracking.",
+                    0.0, null));
+        }
+
+        long totalProblems = snapshot != null ? snapshot.getTotalSolved() : 0;
+        insights.add(new AnalyticsResponse.Insight(
+                "PROGRESS", "LeetCode Progress", totalProblems + " problems solved in total.", (double) totalProblems, null));
+
+        return insights;
+    }
+
     private long calculateStreak(UUID userId) {
         long streak = 0;
         LocalDate date = LocalDate.now();
@@ -118,5 +299,9 @@ public class AnalyticsService {
             }
         }
         return streak;
+    }
+
+    private double round1(double value) {
+        return Math.round(value * 10) / 10.0;
     }
 }
