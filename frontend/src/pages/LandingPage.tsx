@@ -1,10 +1,11 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BarChart3, BookOpen, Code2, RefreshCw, Zap, Target, ArrowRight, Sparkles, ChevronDown, X, CheckCircle2 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button, buttonVariants } from '@/components/ui/Button';
 import { Logo } from '@/components/brand/Logo';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+import AuthCard, { type AuthTab } from '@/components/auth/AuthCard';
 
 const features = [
   { icon: BookOpen, title: 'Topic Mastery', desc: 'Track your understanding across every concept with confidence scoring and spaced repetition.' },
@@ -18,6 +19,8 @@ const features = [
 export default function LandingPage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [authTab, setAuthTab] = useState<AuthTab>('signin');
+  const authRef = useRef<HTMLDivElement>(null);
   const [showSignedOut, setShowSignedOut] = useState(
     (location.state as { signedOut?: boolean } | null)?.signedOut === true
   );
@@ -26,6 +29,11 @@ export default function LandingPage() {
     setShowSignedOut(false);
     navigate(location.pathname, { replace: true });
   }, [navigate, location.pathname]);
+
+  const focusAuth = useCallback((tab: AuthTab) => {
+    setAuthTab(tab);
+    authRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
 
   useEffect(() => {
     if (!showSignedOut) return;
@@ -80,18 +88,20 @@ export default function LandingPage() {
           <div className="flex items-center gap-3 text-sm">
             <button onClick={scrollToFeatures} className="hidden text-muted-foreground transition-colors hover:text-foreground sm:inline">Features</button>
             <ThemeToggle size="md" />
-            <Link
-              to="/login"
+            <button
+              type="button"
+              onClick={() => focusAuth('signin')}
               className={buttonVariants({ variant: 'outline', className: 'h-9 px-4' })}
             >
               Sign In
-            </Link>
-            <Link
-              to="/register"
+            </button>
+            <button
+              type="button"
+              onClick={() => focusAuth('signup')}
               className={buttonVariants({ className: 'h-9 px-4' })}
             >
               Get Started
-            </Link>
+            </button>
           </div>
         </div>
       </nav>
@@ -115,13 +125,14 @@ export default function LandingPage() {
               Track topics, solve problems, build consistency. Forge connects to your LeetCode profile and turns raw data into a personalized learning engine.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
-              <Link
-                to="/register"
+              <button
+                type="button"
+                onClick={() => focusAuth('signup')}
                 className={buttonVariants({ size: 'lg', className: 'group rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:brightness-110' })}
               >
                 Get Started Free
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Link>
+              </button>
               <Button
                 variant="ghost"
                 onClick={scrollToFeatures}
@@ -149,29 +160,10 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Right - Visual */}
+          {/* Right - Auth card */}
           <div className="flex items-center justify-center pt-8 lg:pt-0">
-            <div className="w-full max-w-md rounded-2xl border border-border bg-card/70 p-8 shadow-2xl shadow-black/10 backdrop-blur-xl">
-              <div className="mb-6 flex items-center gap-3">
-                <Logo size="md" variant="flame" />
-                <div>
-                  <p className="font-semibold">Your daily forge</p>
-                  <p className="text-xs text-muted-foreground">Personalized plan, every morning</p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                {[
-                  ['Knowledge health at a glance', 'Mastery, confidence, and retention in one view'],
-                  ['Recommendations that adapt', 'Generated from your real solving patterns'],
-                  ['Practice queue that learns', 'Weak-tag and plan problems, prioritized for you'],
-                  ['Spaced revision, never forgotten', 'SM-2 scheduling tuned to your pace'],
-                ].map(([title, desc]) => (
-                  <div key={title} className="rounded-xl bg-secondary/50 p-4">
-                    <p className="text-sm font-medium">{title}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>
-                  </div>
-                ))}
-              </div>
+            <div ref={authRef} className="w-full max-w-md scroll-mt-24">
+              <AuthCard tab={authTab} onTabChange={setAuthTab} />
             </div>
           </div>
         </div>
@@ -222,9 +214,9 @@ export default function LandingPage() {
                 </button>
               </li>
               <li>
-                <Link to="/register" className="transition-colors hover:text-foreground">
+                <button onClick={() => focusAuth('signup')} className="transition-colors hover:text-foreground">
                   Get Started
-                </Link>
+                </button>
               </li>
             </ul>
           </div>
@@ -232,14 +224,14 @@ export default function LandingPage() {
             <p className="text-sm font-semibold">Account</p>
             <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
               <li>
-                <Link to="/login" className="transition-colors hover:text-foreground">
+                <button onClick={() => focusAuth('signin')} className="transition-colors hover:text-foreground">
                   Sign In
-                </Link>
+                </button>
               </li>
               <li>
-                <Link to="/register" className="transition-colors hover:text-foreground">
+                <button onClick={() => focusAuth('signup')} className="transition-colors hover:text-foreground">
                   Create Account
-                </Link>
+                </button>
               </li>
             </ul>
           </div>

@@ -34,7 +34,7 @@ const processQueue = (error: unknown, token: string | null = null) => {
 
 const redirectToLogin = () => {
   if (skipAuthRedirect) return;
-  window.location.href = '/login';
+  window.location.href = '/';
 };
 
 api.interceptors.response.use(

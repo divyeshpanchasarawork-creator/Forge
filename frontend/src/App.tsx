@@ -5,8 +5,6 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import ColdStartGate from '@/components/layout/ColdStartGate';
 import LandingPage from '@/pages/LandingPage';
-import LoginPage from '@/pages/LoginPage';
-import RegisterPage from '@/pages/RegisterPage';
 import OnboardingPage from '@/pages/OnboardingPage';
 import DashboardPage from '@/pages/DashboardPage';
 import RoadmapPage from '@/pages/RoadmapPage';
@@ -31,7 +29,7 @@ const queryClient = new QueryClient({
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading, loggingOut } = useAuth();
   if (loading) return <div className="flex h-screen items-center justify-center bg-background text-foreground">Loading...</div>;
-  if (!isAuthenticated && !loggingOut) return <Navigate to="/login" replace />;
+  if (!isAuthenticated && !loggingOut) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -51,8 +49,8 @@ export default function App() {
           <BrowserRouter>
             <ColdStartGate>
             <Routes>
-              <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
-              <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
+              <Route path="/login" element={<Navigate to="/" replace />} />
+              <Route path="/register" element={<Navigate to="/" replace />} />
               <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
               <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
               <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
