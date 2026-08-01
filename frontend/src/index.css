@@ -100,6 +100,12 @@ body {
   border-radius: 0.25rem;
 }
 
+.command-palette-input:focus,
+.command-palette-input:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fade-in-up {
     animation: none;

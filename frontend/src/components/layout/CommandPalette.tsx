@@ -241,7 +241,13 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
     run: () => openLeetCode(p.titleSlug),
   }));
 
-  const items: PaletteItem[] = q ? problemItems : baseItems;
+  const localMatches: PaletteItem[] = q
+    ? baseItems.filter((it) =>
+        `${it.title} ${it.subtitle ?? ''} ${it.group}`.toLowerCase().includes(q.toLowerCase()),
+      )
+    : baseItems;
+
+  const items: PaletteItem[] = q ? [...problemItems, ...localMatches] : baseItems;
 
   useEffect(() => {
     setActive(0);
@@ -302,14 +308,14 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Search problems…"
-                className="h-full w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                placeholder="Search…"
+                className="command-palette-input h-full w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
               <kbd className="shrink-0 rounded-md border border-border bg-secondary/60 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">esc</kbd>
             </div>
 
             <div ref={listRef} className="flex-1 overflow-y-auto px-2 pb-4">
-              {searching && debounced && (
+              {searching && debounced && localMatches.length === 0 && (
                 <div className="space-y-1">
                   <p className="px-2 pt-3 pb-1.5 text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/40">Problems</p>
                   {[0, 1, 2].map((i) => (
@@ -326,9 +332,9 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
 
               {!searching && items.length === 0 && (
                 <div className="px-3 py-10 text-center">
-                  <p className="text-sm font-medium text-muted-foreground">No problems match "{query}"</p>
+                  <p className="text-sm font-medium text-muted-foreground">No results for "{query}"</p>
                   <p className="mt-1 text-xs text-muted-foreground/60">
-                    Try a problem name like "Two Sum" or "Valid Parentheses".
+                    Try a problem, topic, or page like "Two Sum", "Graphs", or "Journal".
                   </p>
                 </div>
               )}
