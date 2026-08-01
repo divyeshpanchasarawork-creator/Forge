@@ -33,11 +33,11 @@ export default function ColdStartGate({ children }: { children: ReactNode }) {
     };
 
     const poll = () => {
-      const baseUrl = import.meta.env.VITE_API_URL || '';
+      const baseUrl = import.meta.env.VITE_API_URL || '/api';
       const reqController = new AbortController();
       timeoutTimer = setTimeout(() => reqController.abort(), REQUEST_TIMEOUT);
 
-      fetch(`${baseUrl}/api/health`, {
+      fetch(`${baseUrl}/health`, {
         signal: reqController.signal,
       })
         .then((res) => {
