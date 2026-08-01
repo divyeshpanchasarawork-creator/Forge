@@ -55,7 +55,7 @@ export default function TopHeader({ sidebarCollapsed, onMenuClick, onOpenSearch 
         <Button variant="ghost" onClick={onMenuClick} className="h-9 w-9 p-0 lg:hidden" aria-label="Open menu">
           <Menu className="h-5 w-5" />
         </Button>
-        <h1 className="truncate text-lg font-semibold">{title}</h1>
+        <h1 className="truncate text-lg font-semibold lg:hidden">{title}</h1>
       </div>
 
       <button
