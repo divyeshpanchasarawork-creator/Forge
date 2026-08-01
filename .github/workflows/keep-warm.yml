@@ -1,0 +1,17 @@
+name: keep-warm
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Ping Render backend to prevent free-tier spin-down
+        run: |
+          code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 30 https://forge-api-a4uy.onrender.com/api/health)
+          echo "GET /api/health -> $code"
+          test "$code" = "200"

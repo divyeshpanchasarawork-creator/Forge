@@ -101,26 +101,25 @@ public class MetricSnapshotService {
 
     public double computeConsistency(UUID userId) {
         LocalDate today = LocalDate.now();
+        LocalDate start = today.minusDays(13);
         Set<LocalDate> activeDays = new HashSet<>();
 
-        dailyMetricRepository.findByUserIdAndMetricDateBetweenOrderByMetricDateAsc(
-                        userId, today.minusDays(13), today)
+        dailyMetricRepository.findByUserIdAndMetricDateBetweenOrderByMetricDateAsc(userId, start, today)
                 .forEach(m -> {
                     if (m.getSolvedDelta() != null && m.getSolvedDelta() > 0) activeDays.add(m.getMetricDate());
                     if (m.getRevisionsDone() != null && m.getRevisionsDone() > 0) activeDays.add(m.getMetricDate());
                     if (m.getJournalHours() != null && m.getJournalHours() > 0) activeDays.add(m.getMetricDate());
                 });
 
-        for (int i = 13; i >= 0; i--) {
-            LocalDate d = today.minusDays(i);
-            LocalDateTime start = d.atStartOfDay();
-            LocalDateTime end = d.atTime(LocalTime.MAX);
-            long attempts = problemAttemptRepository.countByUserIdAndAttemptedAtBetween(userId, start, end);
-            long revisions = revisionRepository.countCompletedInRangeByUserId(userId, d, d);
-            if (attempts > 0 || revisions > 0 || journalRepository.findByUserIdAndEntryDate(userId, d).isPresent()) {
-                activeDays.add(d);
-            }
-        }
+        problemAttemptRepository.findAttemptedAtInRangeByUserId(
+                        userId, start.atStartOfDay(), today.atTime(LocalTime.MAX))
+                .forEach(a -> activeDays.add(a.toLocalDate()));
+
+        revisionRepository.findCompletedDatesInRangeByUserId(userId, start, today)
+                .forEach(activeDays::add);
+
+        journalRepository.findByUserIdAndEntryDateBetweenOrderByEntryDateDesc(userId, start, today)
+                .forEach(j -> activeDays.add(j.getEntryDate()));
 
         return Math.min(1.0, activeDays.size() / 14.0);
     }

@@ -26,4 +26,7 @@ public interface RevisionRepository extends JpaRepository<Revision, UUID> {
 
     @Query("SELECT COUNT(r) FROM Revision r WHERE r.user.id = :userId AND r.completed = true AND r.scheduledDate BETWEEN :startDate AND :endDate")
     long countCompletedInRangeByUserId(@Param("userId") UUID userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT r.scheduledDate FROM Revision r WHERE r.user.id = :userId AND r.completed = true AND r.scheduledDate BETWEEN :startDate AND :endDate")
+    List<LocalDate> findCompletedDatesInRangeByUserId(@Param("userId") UUID userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 }

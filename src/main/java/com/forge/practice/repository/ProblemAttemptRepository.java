@@ -27,6 +27,11 @@ public interface ProblemAttemptRepository extends JpaRepository<ProblemAttempt, 
     @Query("SELECT COUNT(DISTINCT a.problemSlug) FROM ProblemAttempt a WHERE a.user.id = :userId")
     long countDistinctProblemsByUserId(@Param("userId") UUID userId);
 
+    @Query("SELECT a.attemptedAt FROM ProblemAttempt a WHERE a.user.id = :userId AND a.attemptedAt BETWEEN :start AND :end")
+    List<LocalDateTime> findAttemptedAtInRangeByUserId(@Param("userId") UUID userId,
+                                                       @Param("start") LocalDateTime start,
+                                                       @Param("end") LocalDateTime end);
+
     @Query("SELECT a FROM ProblemAttempt a WHERE a.user.id = :userId AND a.problemSlug = :problemSlug ORDER BY a.attemptedAt DESC")
     List<ProblemAttempt> findByUserIdAndProblemSlug(@Param("userId") UUID userId, @Param("problemSlug") String problemSlug);
 }

@@ -1,21 +1,23 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MotionConfig } from 'framer-motion';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import ColdStartGate from '@/components/layout/ColdStartGate';
-import LandingPage from '@/pages/LandingPage';
-import OnboardingPage from '@/pages/OnboardingPage';
-import DashboardPage from '@/pages/DashboardPage';
-import RoadmapPage from '@/pages/RoadmapPage';
-import PracticePage from '@/pages/PracticePage';
-import RevisionPage from '@/pages/RevisionPage';
-import JournalPage from '@/pages/JournalPage';
-import AnalyticsPage from '@/pages/AnalyticsPage';
-import MemoryPage from '@/pages/MemoryPage';
-import ProfilePage from '@/pages/ProfilePage';
 import AppLayout from '@/components/layout/AppLayout';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
+
+const LandingPage = lazy(() => import('@/pages/LandingPage'));
+const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'));
+const DashboardPage = lazy(() => import('@/pages/DashboardPage'));
+const RoadmapPage = lazy(() => import('@/pages/RoadmapPage'));
+const PracticePage = lazy(() => import('@/pages/PracticePage'));
+const RevisionPage = lazy(() => import('@/pages/RevisionPage'));
+const JournalPage = lazy(() => import('@/pages/JournalPage'));
+const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage'));
+const MemoryPage = lazy(() => import('@/pages/MemoryPage'));
+const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,7 +52,14 @@ export default function App() {
             <AuthProvider>
               <BrowserRouter>
                 <ColdStartGate>
-                  <Routes>
+                  <Suspense
+                    fallback={
+                      <div className="flex h-screen items-center justify-center bg-background text-foreground">
+                        Loading...
+                      </div>
+                    }
+                  >
+                    <Routes>
                     <Route path="/login" element={<Navigate to="/" replace />} />
                     <Route path="/register" element={<Navigate to="/" replace />} />
                     <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
@@ -66,6 +75,7 @@ export default function App() {
                       <Route path="profile" element={<ProfilePage />} />
                     </Route>
                   </Routes>
+                  </Suspense>
                 </ColdStartGate>
               </BrowserRouter>
             </AuthProvider>
