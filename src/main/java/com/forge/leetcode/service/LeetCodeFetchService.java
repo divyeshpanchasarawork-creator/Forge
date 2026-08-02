@@ -19,7 +19,9 @@ import com.forge.topic.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -44,19 +46,20 @@ public class LeetCodeFetchService {
     private final LeetCodeTopicMapper topicMapper;
     private final RecommendationEngine recommendationEngine;
     private final ProblemLoader problemLoader;
+    private final PlatformTransactionManager transactionManager;
 
     public LeetCodeStatsResponse syncUserProfile(UUID userId) {
         Object lock = SYNC_LOCKS.computeIfAbsent(userId, k -> new Object());
         synchronized (lock) {
             try {
-                return doSyncUserProfile(userId);
+                TransactionTemplate txTemplate = new TransactionTemplate(transactionManager);
+                return txTemplate.execute(status -> doSyncUserProfile(userId));
             } finally {
                 SYNC_LOCKS.remove(userId, lock);
             }
         }
     }
 
-    @Transactional
     private LeetCodeStatsResponse doSyncUserProfile(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
@@ -236,6 +239,7 @@ public class LeetCodeFetchService {
         }
     }
 
+    @Transactional
     public void refreshProblemSuggestions(UUID userId) {
         User user = userRepository.getReferenceById(userId);
         List<LeetCodeTagStat> tagStats = tagStatRepository.findByUserId(userId);

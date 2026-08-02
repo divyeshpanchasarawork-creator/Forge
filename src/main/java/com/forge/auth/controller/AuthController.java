@@ -69,7 +69,7 @@ public class AuthController {
         Cookie accessCookie = new Cookie("forge_token", loginResponse.getToken());
         accessCookie.setHttpOnly(true);
         accessCookie.setSecure(true);
-        accessCookie.setAttribute("SameSite", "None");
+        accessCookie.setAttribute("SameSite", "Lax");
         accessCookie.setPath("/");
         accessCookie.setMaxAge((int) (jwtTokenProvider.getExpirationMs() / 1000));
         response.addCookie(accessCookie);
@@ -77,7 +77,7 @@ public class AuthController {
         Cookie refreshCookie = new Cookie("forge_refresh", loginResponse.getRefreshToken());
         refreshCookie.setHttpOnly(true);
         refreshCookie.setSecure(true);
-        refreshCookie.setAttribute("SameSite", "None");
+        refreshCookie.setAttribute("SameSite", "Lax");
         refreshCookie.setPath("/api/auth/refresh");
         refreshCookie.setMaxAge((int) (jwtTokenProvider.getRefreshExpirationMs() / 1000));
         response.addCookie(refreshCookie);
@@ -87,7 +87,7 @@ public class AuthController {
         Cookie accessCookie = new Cookie("forge_token", null);
         accessCookie.setHttpOnly(true);
         accessCookie.setSecure(true);
-        accessCookie.setAttribute("SameSite", "None");
+        accessCookie.setAttribute("SameSite", "Lax");
         accessCookie.setPath("/");
         accessCookie.setMaxAge(0);
         response.addCookie(accessCookie);
@@ -95,7 +95,7 @@ public class AuthController {
         Cookie refreshCookie = new Cookie("forge_refresh", null);
         refreshCookie.setHttpOnly(true);
         refreshCookie.setSecure(true);
-        refreshCookie.setAttribute("SameSite", "None");
+        refreshCookie.setAttribute("SameSite", "Lax");
         refreshCookie.setPath("/api/auth/refresh");
         refreshCookie.setMaxAge(0);
         response.addCookie(refreshCookie);
