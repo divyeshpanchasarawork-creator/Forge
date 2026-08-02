@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { memo, useMemo, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { analyticsApi, journalsApi } from '@/api';
@@ -111,7 +111,7 @@ function explainFor(insight: Insight): { what: string; improve: string } {
   };
 }
 
-function InsightCard({ insight }: { insight: Insight }) {
+const InsightCard = memo(function InsightCard({ insight }: { insight: Insight }) {
   const meta = insightMeta[insight.type] || {
     icon: <Lightbulb className="h-4 w-4" />,
     accent: 'primary' as Accent,
@@ -167,7 +167,7 @@ function InsightCard({ insight }: { insight: Insight }) {
       <p className={`text-xs leading-relaxed text-muted-foreground ${isUnlock ? 'mt-3' : 'mt-1.5'}`}>{insight.message}</p>
     </div>
   );
-}
+});
 
 const curveLines = [
   { key: 'mastery', label: 'Mastery', color: '#6d5dfc' },
@@ -189,31 +189,39 @@ function LearningCurveChart({ data }: { data: LearningCurveResponse }) {
     });
   };
 
-  const points = data.points
-    .map((p) => ({
-      ...p,
-      date: p.date.slice(5),
-    }))
-    .filter(
-      (p) =>
-        Number.isFinite(p.mastery) &&
-        Number.isFinite(p.confidence) &&
-        Number.isFinite(p.retention) &&
-        Number.isFinite(p.skillRating) &&
-        Number.isFinite(p.consistency),
-    );
+  const points = useMemo(
+    () =>
+      data.points
+        .map((p) => ({
+          ...p,
+          date: p.date.slice(5),
+        }))
+        .filter(
+          (p) =>
+            Number.isFinite(p.mastery) &&
+            Number.isFinite(p.confidence) &&
+            Number.isFinite(p.retention) &&
+            Number.isFinite(p.skillRating) &&
+            Number.isFinite(p.consistency),
+        ),
+    [data.points]
+  );
 
-  const masteryMilestones = data.milestones
-    .filter((m) => (m.type === 'MASTERY' || m.type === 'SKILL') && !!m.date && m.date.length >= 10)
-    .map((m) => {
-      const match = m.label.match(/(\d{3,4})/);
-      return {
-        ...m,
-        x: m.date.slice(5),
-        y: m.type === 'SKILL' ? (match ? Number(match[1]) : 1100) : match ? Number(match[1]) : 50,
-        axis: m.type === 'SKILL' ? 'right' : 'left',
-      };
-    });
+  const masteryMilestones = useMemo(
+    () =>
+      data.milestones
+        .filter((m) => (m.type === 'MASTERY' || m.type === 'SKILL') && !!m.date && m.date.length >= 10)
+        .map((m) => {
+          const match = m.label.match(/(\d{3,4})/);
+          return {
+            ...m,
+            x: m.date.slice(5),
+            y: m.type === 'SKILL' ? (match ? Number(match[1]) : 1100) : match ? Number(match[1]) : 50,
+            axis: m.type === 'SKILL' ? 'right' : 'left',
+          };
+        }),
+    [data.milestones]
+  );
 
   const leftLines = curveLines.filter((l) => l.key !== 'skillRating');
   const skillLine = curveLines.find((l) => l.key === 'skillRating');
@@ -433,6 +441,62 @@ export default function AnalyticsPage() {
     queryFn: () => analyticsApi.getLearningCurve(30).then((res) => res.data.data),
   });
 
+  const derived = useMemo(() => {
+    if (!data) return null;
+    const tl = data.targetLevel || 5;
+    const target = getTargetLevel(tl);
+    const diff = data.problemsByDifficulty || { easy: 0, medium: 0, hard: 0 };
+    const total = data.totalProblems || 0;
+    const rs = data.readinessScore || 0;
+    const curEasyPct = total ? Math.round((diff.easy / total) * 100) : 0;
+    const curMediumPct = total ? Math.round((diff.medium / total) * 100) : 0;
+    const curHardPct = total ? Math.round((diff.hard / total) * 100) : 0;
+
+    const targetPct: Record<string, number> = { Easy: target.easyPct, Medium: target.mediumPct, Hard: target.hardPct };
+    const curPct: Record<string, number> = { Easy: curEasyPct, Medium: curMediumPct, Hard: curHardPct };
+    const biggest = (['Hard', 'Medium', 'Easy'] as const)
+      .map((k) => ({ k, gap: targetPct[k] - curPct[k] }))
+      .sort((a, b) => b.gap - a.gap)[0];
+
+    const toNext = Math.max(0, getTargetLevel(Math.min(10, tl + 1)).targetTotal - total);
+
+    const insights: Insight[] = [
+      ...(data.insights ?? []),
+      {
+        type: 'PROGRESS',
+        title: 'Difficulty Mix',
+        message: biggest.gap > 5
+          ? `${biggest.k} lags your level-${tl} target by ${biggest.gap}pts — add more ${biggest.k.toLowerCase()}s.`
+          : `Mix aligns with level ${tl}. Keep it balanced.`,
+        display: `${curEasyPct}% E · ${curMediumPct}% M · ${curHardPct}% H`,
+        metric: null,
+        delta: null,
+      },
+      {
+        type: 'STREAK',
+        title: 'Journal Streak',
+        message: `${weekly?.journalEntries ?? 0} of 7 days logged this week. Daily reps compound into mastery.`,
+        metric: data.currentStreak,
+        delta: null,
+      },
+    ];
+
+    const difficultyData = [
+      { name: 'Easy', count: diff.easy, fill: '#22c55e' },
+      { name: 'Medium', count: diff.medium, fill: '#f59e0b' },
+      { name: 'Hard', count: diff.hard, fill: '#ef4444' },
+    ];
+
+    const masteryData =
+      data.masteryByCategory?.map((c) => ({
+        category: c.category.substring(0, 10),
+        mastery: c.averageMastery,
+        fullMark: 100,
+      })) || [];
+
+    return { tl, target, total, rs, biggest, toNext, insights, difficultyData, masteryData };
+  }, [data, weekly]);
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -450,58 +514,9 @@ export default function AnalyticsPage() {
     );
   }
 
-  if (!data) return null;
+  if (!data || !derived) return null;
 
-  const tl = data.targetLevel || 5;
-  const target = getTargetLevel(tl);
-  const diff = data.problemsByDifficulty || { easy: 0, medium: 0, hard: 0 };
-  const total = data.totalProblems || 0;
-  const rs = data.readinessScore || 0;
-  const curEasyPct = total ? Math.round((diff.easy / total) * 100) : 0;
-  const curMediumPct = total ? Math.round((diff.medium / total) * 100) : 0;
-  const curHardPct = total ? Math.round((diff.hard / total) * 100) : 0;
-
-  const targetPct: Record<string, number> = { Easy: target.easyPct, Medium: target.mediumPct, Hard: target.hardPct };
-  const curPct: Record<string, number> = { Easy: curEasyPct, Medium: curMediumPct, Hard: curHardPct };
-  const biggest = (['Hard', 'Medium', 'Easy'] as const)
-    .map((k) => ({ k, gap: targetPct[k] - curPct[k] }))
-    .sort((a, b) => b.gap - a.gap)[0];
-
-  const toNext = Math.max(0, getTargetLevel(Math.min(10, tl + 1)).targetTotal - total);
-
-  const insights: Insight[] = [
-    ...(data.insights ?? []),
-    {
-      type: 'PROGRESS',
-      title: 'Difficulty Mix',
-      message: biggest.gap > 5
-        ? `${biggest.k} lags your level-${tl} target by ${biggest.gap}pts — add more ${biggest.k.toLowerCase()}s.`
-        : `Mix aligns with level ${tl}. Keep it balanced.`,
-      display: `${curEasyPct}% E · ${curMediumPct}% M · ${curHardPct}% H`,
-      metric: null,
-      delta: null,
-    },
-    {
-      type: 'STREAK',
-      title: 'Journal Streak',
-      message: `${weekly?.journalEntries ?? 0} of 7 days logged this week. Daily reps compound into mastery.`,
-      metric: data.currentStreak,
-      delta: null,
-    },
-  ];
-
-  const difficultyData = [
-    { name: 'Easy', count: diff.easy, fill: '#22c55e' },
-    { name: 'Medium', count: diff.medium, fill: '#f59e0b' },
-    { name: 'Hard', count: diff.hard, fill: '#ef4444' },
-  ];
-
-  const masteryData =
-    data.masteryByCategory?.map((c) => ({
-      category: c.category.substring(0, 10),
-      mastery: c.averageMastery,
-      fullMark: 100,
-    })) || [];
+  const { tl, target, rs, biggest, toNext, insights, difficultyData, masteryData } = derived;
 
   return (
     <div className="space-y-6">

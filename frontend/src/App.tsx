@@ -1,12 +1,12 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MotionConfig } from 'framer-motion';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import ColdStartGate from '@/components/layout/ColdStartGate';
 import AppLayout from '@/components/layout/AppLayout';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import { SkeletonList } from '@/components/ui/LoadingSkeleton';
 
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'));
@@ -41,16 +41,24 @@ const queryClient = new QueryClient({
   },
 });
 
+function FullPageLoader() {
+  return (
+    <div className="mx-auto w-full max-w-3xl p-6 pt-10">
+      <SkeletonList rows={4} />
+    </div>
+  );
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading, loggingOut } = useAuth();
-  if (loading) return <div className="flex h-screen items-center justify-center bg-background text-foreground">Loading...</div>;
+  if (loading) return <FullPageLoader />;
   if (!isAuthenticated && !loggingOut) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
 function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
-  if (loading) return <div className="flex h-screen items-center justify-center bg-background text-foreground">Loading...</div>;
+  if (loading) return <FullPageLoader />;
   if (isAuthenticated) return <Navigate to="/app" replace />;
   return <>{children}</>;
 }
@@ -58,21 +66,14 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <ErrorBoundary>
-      <MotionConfig reducedMotion="user">
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider>
-            <AuthProvider>
-              <BrowserRouter>
-                <PreloadCorePages />
-                <ColdStartGate>
-                  <Suspense
-                    fallback={
-                      <div className="flex h-screen items-center justify-center bg-background text-foreground">
-                        Loading...
-                      </div>
-                    }
-                  >
-                    <Routes>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AuthProvider>
+            <BrowserRouter>
+              <PreloadCorePages />
+              <ColdStartGate>
+                <Suspense fallback={<FullPageLoader />}>
+                  <Routes>
                     <Route path="/login" element={<Navigate to="/" replace />} />
                     <Route path="/register" element={<Navigate to="/" replace />} />
                     <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
@@ -88,13 +89,12 @@ export default function App() {
                       <Route path="profile" element={<ProfilePage />} />
                     </Route>
                   </Routes>
-                  </Suspense>
-                </ColdStartGate>
-              </BrowserRouter>
-            </AuthProvider>
-          </ThemeProvider>
-        </QueryClientProvider>
-      </MotionConfig>
+                </Suspense>
+              </ColdStartGate>
+            </BrowserRouter>
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
 }

@@ -107,7 +107,7 @@ export default function RevisionPage() {
     },
   });
 
-  if (loadingToday || loadingPending) {
+  if (loadingToday) {
     return <SkeletonList rows={4} />;
   }
 
@@ -176,7 +176,7 @@ export default function RevisionPage() {
       {/* Revision KPIs */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <KpiCard icon={<Clock className="h-5 w-5 text-orange-400" />} value={totalDue} label="Due Today" tooltip="Revisions scheduled for today." />
-        <KpiCard icon={<ListTodo className="h-5 w-5 text-yellow-400" />} value={pendingRevisions?.length || 0} label="Total Pending" tooltip="All pending revisions not yet completed." />
+        <KpiCard icon={<ListTodo className="h-5 w-5 text-yellow-400" />} value={loadingPending ? '…' : pendingRevisions?.length || 0} label="Total Pending" tooltip="All pending revisions not yet completed." />
         <KpiCard icon={<Calendar className="h-5 w-5 text-blue-400" />} value={doneCount} label="Completed Today" tooltip="Revisions completed today." />
         <KpiCard icon={<TrendingUp className="h-5 w-5 text-green-400" />} value={totalDue ? 'Due' : 'Clear'} label="Status" tooltip={totalDue > 0 ? 'Revisions are due today.' : 'No revisions due — you are on track.'} />
       </div>
@@ -242,7 +242,7 @@ export default function RevisionPage() {
       </Card>
 
       {/* Pending Revisions */}
-      {pendingRevisions && pendingRevisions.length > 0 && (
+      {!loadingPending && pendingRevisions && pendingRevisions.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>All Pending Revisions</CardTitle>

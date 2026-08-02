@@ -8,22 +8,22 @@ on:
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 12
     steps:
       - name: Ping Render backend to prevent free-tier spin-down
         run: |
           url="https://forge-api-a4uy.onrender.com/api/health"
           attempts=5
           for i in $(seq 1 $attempts); do
-            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 45 "$url" || echo "000")
+            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 120 "$url" || echo "000")
             echo "Attempt $i/$attempts: GET /api/health -> $code"
             if [ "$code" = "200" ]; then
               echo "Health check OK"
               exit 0
             fi
             if [ "$i" -lt "$attempts" ]; then
-              echo "Backend not ready yet, retrying in 20s..."
-              sleep 20
+              echo "Backend not ready yet, retrying in 15s..."
+              sleep 15
             fi
           done
           echo "Health check failed after $attempts attempts"

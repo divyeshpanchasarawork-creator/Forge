@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { AnimatePresence, motion } from 'framer-motion';
 import {
   LayoutDashboard, Lightbulb, Code2, RefreshCw, PenLine, Brain, BarChart3,
   User, Search, Sun, Moon, NotebookPen, LogOut, CornerDownLeft, History,
@@ -54,6 +53,8 @@ const TOPICS = [
   'prefix-sum', 'monotonic-stack', 'monotonic-queue', 'segment-tree', 'fenwick-tree',
   'union-find', 'design', 'sql', 'system-design-prep',
 ];
+
+const TOPIC_TITLES: Record<string, string> = Object.fromEntries(TOPICS.map((slug) => [slug, titleize(slug)]));
 
 const DIFF_COLOR: Record<string, string> = {
   Easy: '#4ade80',
@@ -164,72 +165,75 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
 
   const q = query.trim();
 
-  const baseItems: PaletteItem[] = [
-    ...recent
-      .filter((r) => r.path !== location.pathname)
-      .map((r): PaletteItem => ({
-        id: `recent-${r.path}`,
-        kind: 'recent',
-        group: 'Recent',
-        title: r.label,
-        icon: History,
-        run: () => navigate(r.path),
+  const baseItems: PaletteItem[] = useMemo(
+    () => [
+      ...recent
+        .filter((r) => r.path !== location.pathname)
+        .map((r): PaletteItem => ({
+          id: `recent-${r.path}`,
+          kind: 'recent',
+          group: 'Recent',
+          title: r.label,
+          icon: History,
+          run: () => navigate(r.path),
+        })),
+      ...navCommands.map((c): PaletteItem => ({
+        id: c.id,
+        kind: 'page',
+        group: 'Navigate',
+        title: c.label,
+        icon: c.icon,
+        hint: c.hint,
+        run: () => navigate(c.to),
       })),
-    ...navCommands.map((c): PaletteItem => ({
-      id: c.id,
-      kind: 'page',
-      group: 'Navigate',
-      title: c.label,
-      icon: c.icon,
-      hint: c.hint,
-      run: () => navigate(c.to),
-    })),
-    {
-      id: 'act-theme',
-      kind: 'action',
-      group: 'Actions',
-      title: theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode',
-      icon: theme === 'dark' ? Sun : Moon,
-      run: toggleTheme,
-    },
-    {
-      id: 'act-journal',
-      kind: 'action',
-      group: 'Actions',
-      title: 'Write a journal entry',
-      icon: NotebookPen,
-      run: () => navigate('/app/journal'),
-    },
-    {
-      id: 'act-logout',
-      kind: 'action',
-      group: 'Actions',
-      title: 'Sign out',
-      icon: LogOut,
-      run: () => {
-        navigate('/', { state: { signedOut: true } });
-        logout();
+      {
+        id: 'act-theme',
+        kind: 'action',
+        group: 'Actions',
+        title: theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode',
+        icon: theme === 'dark' ? Sun : Moon,
+        run: toggleTheme,
       },
-    },
-    ...TOPICS.map((slug): PaletteItem => ({
-      id: `topic-${slug}`,
-      kind: 'topic',
-      group: 'Topics',
-      title: titleize(slug),
-      icon: Hash,
-      run: () => navigate('/app/problems'),
-    })),
-    ...(attempts ?? []).map((a): PaletteItem => ({
-      id: `attempt-${a.id}`,
-      kind: 'attempt',
-      group: 'Recent attempts',
-      title: a.problemTitle,
-      subtitle: timeAgo(a.attemptedAt),
-      difficulty: a.difficulty,
-      outcome: a.outcome,
-      run: () => openLeetCode(a.problemSlug),
-    })),
-  ];
+      {
+        id: 'act-journal',
+        kind: 'action',
+        group: 'Actions',
+        title: 'Write a journal entry',
+        icon: NotebookPen,
+        run: () => navigate('/app/journal'),
+      },
+      {
+        id: 'act-logout',
+        kind: 'action',
+        group: 'Actions',
+        title: 'Sign out',
+        icon: LogOut,
+        run: () => {
+          navigate('/', { state: { signedOut: true } });
+          logout();
+        },
+      },
+      ...TOPICS.map((slug): PaletteItem => ({
+        id: `topic-${slug}`,
+        kind: 'topic',
+        group: 'Topics',
+        title: TOPIC_TITLES[slug],
+        icon: Hash,
+        run: () => navigate('/app/problems'),
+      })),
+      ...(attempts ?? []).map((a): PaletteItem => ({
+        id: `attempt-${a.id}`,
+        kind: 'attempt',
+        group: 'Recent attempts',
+        title: a.problemTitle,
+        subtitle: timeAgo(a.attemptedAt),
+        difficulty: a.difficulty,
+        outcome: a.outcome,
+        run: () => openLeetCode(a.problemSlug),
+      })),
+    ],
+    [recent, location.pathname, theme, attempts, navigate, logout, toggleTheme]
+  );
 
   const problemItems: PaletteItem[] = (problems ?? []).map((p) => ({
     id: `problem-${p.titleSlug}`,
@@ -278,26 +282,24 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
   const twoLine = (item: PaletteItem) => item.kind === 'problem' || item.kind === 'attempt';
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 md:items-center md:p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-        >
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Command palette"
-            className="flex h-full w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-card/95 p-3 shadow-xl backdrop-blur-xl md:h-[72vh] md:max-h-[760px] md:max-w-[920px] md:w-[min(92vw,760px)] md:rounded-2xl md:p-4 xl:w-[min(92vw,820px)] 2xl:w-[min(88vw,880px)]"
-            initial={{ opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.98 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            onClick={(e) => e.stopPropagation()}
-          >
+    <div
+      className={cn(
+        'fixed inset-0 z-50 flex items-end justify-center bg-black/50 transition-opacity duration-150 md:items-center md:p-4',
+        open ? 'opacity-100' : 'pointer-events-none opacity-0'
+      )}
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
+        inert={!open}
+        className={cn(
+          'flex h-full w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-card/95 p-3 shadow-xl backdrop-blur-xl transition-all duration-150 md:h-[72vh] md:max-h-[760px] md:max-w-[920px] md:w-[min(92vw,760px)] md:rounded-2xl md:p-4 xl:w-[min(92vw,820px)] 2xl:w-[min(88vw,880px)]',
+          open ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-4 scale-[0.98] opacity-0'
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
             <div className="mb-3 flex h-14 shrink-0 items-center gap-3 border-b border-border px-2">
               {searching ? (
                 <Loader2 className="h-[18px] w-[18px] shrink-0 animate-spin text-primary" />
@@ -420,9 +422,7 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
                 <span>Esc Close</span>
               </span>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          </div>
+        </div>
   );
 }

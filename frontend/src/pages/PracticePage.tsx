@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { practiceApi, leetcodeApi } from '@/api';
 import { Badge } from '@/components/ui/Badge';
@@ -32,7 +32,7 @@ const outcomeConfig: Record<Outcome, { label: string; class: string; active: str
   SKIPPED: { label: 'Skipped', class: 'bg-secondary text-muted-foreground', active: 'ring-2 ring-muted-foreground' },
 };
 
-function ProblemRow({ problem, index }: { problem: PracticeProblem; index: number }) {
+const ProblemRow = memo(function ProblemRow({ problem, index }: { problem: PracticeProblem; index: number }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [outcome, setOutcome] = useState<Outcome>('SOLVED');
@@ -43,9 +43,10 @@ function ProblemRow({ problem, index }: { problem: PracticeProblem; index: numbe
 
   const diff = difficultyConfig[problem.difficulty] || difficultyConfig.Medium;
   const segment = segmentConfig[problem.segment || 'REINFORCE'];
-  const topSignals = [...(problem.breakdown || [])]
-    .sort((a, b) => b.contribution - a.contribution)
-    .slice(0, 3);
+  const topSignals = useMemo(
+    () => [...(problem.breakdown || [])].sort((a, b) => b.contribution - a.contribution).slice(0, 3),
+    [problem.breakdown]
+  );
 
   const submit = useMutation({
     mutationFn: (payload: ProblemAttemptRequest) => practiceApi.submitAttempt(payload).then((res) => res.data),
@@ -195,7 +196,7 @@ function ProblemRow({ problem, index }: { problem: PracticeProblem; index: numbe
       )}
     </div>
   );
-}
+});
 
 export default function PracticePage() {
   const [syncing, setSyncing] = useState(false);
@@ -228,10 +229,14 @@ export default function PracticePage() {
   };
 
   const queue = data?.queue ?? [];
-  const grouped = SEGMENT_ORDER.map((seg) => ({
-    seg,
-    items: queue.filter((p) => (p.segment || 'REINFORCE') === seg),
-  })).filter((g) => g.items.length > 0);
+  const grouped = useMemo(
+    () =>
+      SEGMENT_ORDER.map((seg) => ({
+        seg,
+        items: queue.filter((p) => (p.segment || 'REINFORCE') === seg),
+      })).filter((g) => g.items.length > 0),
+    [queue]
+  );
 
   return (
     <div className="space-y-6">

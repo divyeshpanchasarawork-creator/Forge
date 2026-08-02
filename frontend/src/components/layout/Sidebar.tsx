@@ -2,7 +2,6 @@ import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Code2, RefreshCw, PenLine, BarChart3, User, Lightbulb, Brain, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/brand/Logo';
-import { AnimatePresence, motion } from 'framer-motion';
 
 const navSections: { label: string; items: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string }[] }[] = [
   {
@@ -132,28 +131,21 @@ export default function Sidebar({
       </aside>
 
       {/* Mobile floating drawer */}
-      <AnimatePresence>
-        {mobileOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={onMobileClose}
-              className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-            />
-            <motion.aside
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-              className="fixed left-3 top-3 bottom-3 z-50 flex w-64 flex-col rounded-2xl bg-sidebar shadow-soft lg:hidden"
-            >
-              {panel}
-            </motion.aside>
-          </>
+      <div
+        onClick={onMobileClose}
+        className={cn(
+          'fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 lg:hidden',
+          mobileOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
         )}
-      </AnimatePresence>
+      />
+      <aside
+        className={cn(
+          'fixed left-3 top-3 bottom-3 z-50 flex w-64 flex-col rounded-2xl bg-sidebar shadow-soft transition-transform duration-200 lg:hidden',
+          mobileOpen ? 'translate-x-0' : 'pointer-events-none -translate-x-[110%]'
+        )}
+      >
+        {panel}
+      </aside>
     </>
   );
 }

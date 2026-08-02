@@ -4,7 +4,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import { User, LogOut, Mail, Menu, Search, ChevronDown } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 const pageTitles: Record<string, string> = {
@@ -91,45 +90,40 @@ export default function TopHeader({ sidebarCollapsed, onMenuClick, onOpenSearch 
             )}
             <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground md:inline', menuOpen && 'rotate-180')} />
           </button>
-          <AnimatePresence>
-            {menuOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                transition={{ duration: 0.12 }}
-                className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-border bg-card p-1.5 shadow-soft"
-              >
-                {user && (
-                  <div className="px-2.5 py-2">
-                    <p className="truncate text-sm font-semibold">{user.displayName || user.username}</p>
-                    {user.email && <p className="truncate text-xs text-muted-foreground">{user.email}</p>}
-                  </div>
-                )}
-                <div className="mx-1 my-1 h-px bg-border" />
-                <NavLink to="/app/profile" onClick={() => setMenuOpen(false)} className={menuItemClasses}>
-                  <User className="h-4 w-4 shrink-0" />
-                  Profile
-                </NavLink>
-                <a
-                  href="mailto:divyeshpanchasara.work@gmail.com"
-                  className={menuItemClasses}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <Mail className="h-4 w-4 shrink-0" />
-                  Send feedback
-                </a>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className={cn(menuItemClasses, 'hover:bg-destructive/10 hover:text-destructive')}
-                >
-                  <LogOut className="h-4 w-4 shrink-0" />
-                  Sign out
-                </button>
-              </motion.div>
+          <div
+            className={cn(
+              'absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-border bg-card p-1.5 shadow-soft transition-all duration-150',
+              menuOpen ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-1 opacity-0'
             )}
-          </AnimatePresence>
+          >
+            {user && (
+              <div className="px-2.5 py-2">
+                <p className="truncate text-sm font-semibold">{user.displayName || user.username}</p>
+                {user.email && <p className="truncate text-xs text-muted-foreground">{user.email}</p>}
+              </div>
+            )}
+            <div className="mx-1 my-1 h-px bg-border" />
+            <NavLink to="/app/profile" onClick={() => setMenuOpen(false)} className={menuItemClasses}>
+              <User className="h-4 w-4 shrink-0" />
+              Profile
+            </NavLink>
+            <a
+              href="mailto:divyeshpanchasara.work@gmail.com"
+              className={menuItemClasses}
+              onClick={() => setMenuOpen(false)}
+            >
+              <Mail className="h-4 w-4 shrink-0" />
+              Send feedback
+            </a>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className={cn(menuItemClasses, 'hover:bg-destructive/10 hover:text-destructive')}
+            >
+              <LogOut className="h-4 w-4 shrink-0" />
+              Sign out
+            </button>
+          </div>
         </div>
       </div>
     </header>

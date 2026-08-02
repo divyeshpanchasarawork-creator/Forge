@@ -4,15 +4,31 @@ import { Logo } from '@/components/brand/Logo';
 const POLL_INTERVAL = 4000;
 const REQUEST_TIMEOUT = 10000;
 const MAX_RETRIES = 30;
+const HEALTH_CACHE_KEY = 'forge_health_ok';
+const HEALTH_CACHE_TTL = 5 * 60 * 1000;
+
+function hasRecentHealth(): boolean {
+  try {
+    const stored = sessionStorage.getItem(HEALTH_CACHE_KEY);
+    if (!stored) return false;
+    const t = Number(stored);
+    return Number.isFinite(t) && Date.now() - t < HEALTH_CACHE_TTL;
+  } catch {
+    return false;
+  }
+}
 
 export default function ColdStartGate({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<'loading' | 'ready' | 'timeout'>('loading');
+  const [state, setState] = useState<'loading' | 'ready' | 'timeout'>(() =>
+    hasRecentHealth() ? 'ready' : 'loading'
+  );
   const [elapsed, setElapsed] = useState(0);
   const [attempt, setAttempt] = useState(0);
   const [cycle, setCycle] = useState(0);
   const resolvedRef = useRef(false);
 
   useEffect(() => {
+    if (state === 'ready') return;
     let pollTimer: ReturnType<typeof setTimeout>;
     let timeoutTimer: ReturnType<typeof setTimeout>;
     let elapsedInterval: ReturnType<typeof setInterval>;
@@ -51,6 +67,11 @@ export default function ColdStartGate({ children }: { children: ReactNode }) {
           if (!res.ok) throw new Error('health check failed');
           resolvedRef.current = true;
           stopTimers();
+          try {
+            sessionStorage.setItem(HEALTH_CACHE_KEY, String(Date.now()));
+          } catch {
+            /* ignore */
+          }
           setState('ready');
         })
         .catch(() => {
@@ -68,7 +89,7 @@ export default function ColdStartGate({ children }: { children: ReactNode }) {
     return () => {
       stopTimers();
     };
-  }, [cycle]);
+  }, [state, cycle]);
 
   if (state === 'ready') return <>{children}</>;
 

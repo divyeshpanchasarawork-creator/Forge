@@ -50,15 +50,14 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Cold-start retry: 502/503/504 with exponential backoff
+    // Cold-start retry: 502/503/504, at most one retry after a short backoff
     if (!originalRequest._retryCount) {
       originalRequest._retryCount = 0;
     }
     const status = error.response?.status;
-    if (status >= 502 && status <= 504 && originalRequest._retryCount < 3) {
+    if (status >= 502 && status <= 504 && originalRequest._retryCount < 1) {
       originalRequest._retryCount++;
-      const delay = [5000, 10000, 15000][originalRequest._retryCount - 1];
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       return api(originalRequest);
     }
 
