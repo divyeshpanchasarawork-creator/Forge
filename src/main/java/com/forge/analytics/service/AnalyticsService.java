@@ -20,6 +20,7 @@ import com.forge.revision.repository.RevisionRepository;
 import com.forge.topic.entity.Topic;
 import com.forge.topic.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
@@ -29,6 +30,7 @@ import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AnalyticsService {
@@ -57,7 +59,7 @@ public class AnalyticsService {
 
         int avgMastery = allTopics.isEmpty() ? 0 : (int) allTopics.stream()
                 .filter(TopicFilters::isEngaged)
-                .mapToInt(Topic::getMastery)
+                .mapToInt(t -> t.getMastery() != null ? t.getMastery() : 0)
                 .average().orElse(0);
 
         long easy = lcSnapshot != null ? lcSnapshot.getEasySolved() : 0;
@@ -70,7 +72,9 @@ public class AnalyticsService {
                 .entrySet().stream()
                 .map(entry -> new AnalyticsResponse.CategoryMastery(
                         entry.getKey(),
-                        (int) entry.getValue().stream().mapToInt(Topic::getMastery).average().orElse(0)))
+                        (int) entry.getValue().stream()
+                                .mapToInt(t -> t.getMastery() != null ? t.getMastery() : 0)
+                                .average().orElse(0)))
                 .toList();
 
         List<AnalyticsResponse.TopicSummary> weakest = weakTopics.stream().limit(5)
@@ -104,7 +108,10 @@ public class AnalyticsService {
     }
 
     public WeeklyProgressResponse getWeeklyProgress() {
-        UUID userId = SecurityUtils.getCurrentUserId();
+        return getWeeklyProgress(SecurityUtils.getCurrentUserId());
+    }
+
+    public WeeklyProgressResponse getWeeklyProgress(UUID userId) {
         LocalDate today = LocalDate.now();
         LocalDate weekStart = today.minusDays(today.getDayOfWeek().getValue() - 1);
 
@@ -112,9 +119,18 @@ public class AnalyticsService {
         List<Journal> weekJournals = journalRepository.findByUserIdAndEntryDateBetweenOrderByEntryDateDesc(userId, weekStart, today);
         double hoursThisWeek = weekJournals.stream().mapToDouble(j -> j.getHoursStudied() != null ? j.getHoursStudied() : 0).sum();
 
+        long problemsSolvedThisWeek = problemAttemptRepository.findByUserIdAll(userId).stream()
+                .filter(a -> a.getAttemptedAt() != null && !a.getAttemptedAt().toLocalDate().isBefore(weekStart))
+                .filter(a -> "SOLVED".equals(a.getOutcome()) || "PARTIAL".equals(a.getOutcome()))
+                .count();
+
+        long topicsReviewedThisWeek = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).getContent().stream()
+                .filter(t -> t.getLastRevision() != null && !t.getLastRevision().toLocalDate().isBefore(weekStart))
+                .count();
+
         return new WeeklyProgressResponse(
-                0L,
-                0L,
+                problemsSolvedThisWeek,
+                topicsReviewedThisWeek,
                 hoursThisWeek,
                 revisionsCompleted,
                 weekJournals.size()
@@ -212,7 +228,11 @@ public class AnalyticsService {
 
     private void ensureTodaySnapshot(UUID userId) {
         if (dailyMetricRepository.findByUserIdAndMetricDate(userId, LocalDate.now()).isEmpty()) {
-            metricSnapshotService.snapshotForUser(userId);
+            try {
+                metricSnapshotService.snapshotForUser(userId);
+            } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                log.debug("Daily snapshot for user {} already created concurrently", userId);
+            }
         }
     }
 
@@ -228,10 +248,10 @@ public class AnalyticsService {
         for (int i = activeDates.size() - 1; i >= 0; i--) {
             if (i > 0 && activeDates.get(i).minusDays(1).equals(activeDates.get(i - 1))) {
                 streak++;
-            } else if (i == 0) {
-                streak++;
+            } else {
+                streak = 1;
             }
-            if ((streak == 7 || streak == 14 || streak == 30) && (i == 0 || activeDates.get(i - 1).equals(activeDates.get(i).minusDays(1)))) {
+            if (streak == 7 || streak == 14 || streak == 30) {
                 final int s = streak;
                 LocalDate date = activeDates.get(i);
                 milestones.add(new LearningCurveResponse.Milestone(date.toString(), "CONSISTENCY", s + "-day active streak"));

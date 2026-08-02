@@ -3,9 +3,11 @@ package com.forge.leetcode.client;
 import com.forge.leetcode.dto.LeetCodeGraphQlResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -73,8 +75,13 @@ public class LeetCodeClient {
             """;
 
     public LeetCodeClient() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(Duration.ofSeconds(10));
+        requestFactory.setReadTimeout(Duration.ofSeconds(30));
+
         this.restClient = RestClient.builder()
                 .baseUrl(GRAPHQL_URL)
+                .requestFactory(requestFactory)
                 .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader("Referer", "https://leetcode.com/")
                 .defaultHeader("Origin", "https://leetcode.com")
@@ -90,28 +97,40 @@ public class LeetCodeClient {
         }
 
         log.info("Fetching LeetCode profile for: {}", username);
-        try {
-            LeetCodeGraphQlResponse response = restClient.post()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of(
-                            "query", COMBINED_QUERY,
-                            "variables", Map.of("username", username),
-                            "operationName", "userCombinedData"
-                    ))
-                    .retrieve()
-                    .body(LeetCodeGraphQlResponse.class);
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            try {
+                LeetCodeGraphQlResponse response = restClient.post()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(Map.of(
+                                "query", COMBINED_QUERY,
+                                "variables", Map.of("username", username),
+                                "operationName", "userCombinedData"
+                        ))
+                        .retrieve()
+                        .body(LeetCodeGraphQlResponse.class);
 
-            if (response != null && response.getData() != null && response.getData().getMatchedUser() != null) {
-                cache.put(username, new CachedResponse(response, System.currentTimeMillis()));
-                return response;
+                if (response != null && response.getData() != null && response.getData().getMatchedUser() != null) {
+                    cache.put(username, new CachedResponse(response, System.currentTimeMillis()));
+                    return response;
+                }
+
+                log.warn("No data returned from LeetCode for user: {}", username);
+                return null;
+            } catch (Exception e) {
+                if (attempt == 1) {
+                    log.warn("LeetCode fetch attempt {} failed for {}: {} — retrying", attempt, username, e.getMessage());
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return null;
+                    }
+                } else {
+                    log.error("Failed to fetch LeetCode profile for {}: {}", username, e.getMessage());
+                }
             }
-
-            log.warn("No data returned from LeetCode for user: {}", username);
-            return null;
-        } catch (Exception e) {
-            log.error("Failed to fetch LeetCode profile for {}: {}", username, e.getMessage());
-            return null;
         }
+        return null;
     }
 
     private record CachedResponse(LeetCodeGraphQlResponse response, long timestamp) {}

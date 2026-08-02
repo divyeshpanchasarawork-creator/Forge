@@ -7,7 +7,7 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = sessionStorage.getItem('forge_token');
-  if (token) {
+  if (token && !isLoggedOut) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -16,10 +16,18 @@ api.interceptors.request.use((config) => {
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: (value: unknown) => void; reject: (reason: unknown) => void }> = [];
 let skipAuthRedirect = false;
+let isLoggedOut = false;
 
 export const setSkipAuthRedirect = (value: boolean) => {
   skipAuthRedirect = value;
 };
+
+export const setLoggedOut = (value: boolean) => {
+  isLoggedOut = value;
+};
+
+const isAuthEndpoint = (url?: string) =>
+  !!url && (url.includes('/auth/login') || url.includes('/auth/register') || url.includes('/auth/refresh'));
 
 const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach(({ resolve, reject }) => {
@@ -56,6 +64,10 @@ api.interceptors.response.use(
 
     // 401 handling with refresh
     if (status === 401 && !originalRequest._retry) {
+      if (isAuthEndpoint(originalRequest.url)) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -75,6 +87,10 @@ api.interceptors.response.use(
           { withCredentials: true }
         );
         const newToken = data.data.token;
+        if (isLoggedOut) {
+          processQueue(error, null);
+          return Promise.reject(error);
+        }
         sessionStorage.setItem('forge_token', newToken);
         processQueue(null, newToken);
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
@@ -90,8 +106,10 @@ api.interceptors.response.use(
     }
 
     if (status === 401) {
-      sessionStorage.removeItem('forge_token');
-      redirectToLogin();
+      if (!isAuthEndpoint(originalRequest.url)) {
+        sessionStorage.removeItem('forge_token');
+        redirectToLogin();
+      }
     }
 
     return Promise.reject(error);

@@ -46,8 +46,13 @@ public class RevisionService {
 
     @Transactional
     public RevisionResponse completeRevision(UUID id, int quality) {
+        UUID userId = SecurityUtils.getCurrentUserId();
         Revision revision = revisionRepository.findByIdWithTopic(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Revision", "id", id));
+
+        if (!revision.getUser().getId().equals(userId)) {
+            throw new ResourceNotFoundException("Revision", "id", id);
+        }
 
         if (revision.getCompleted()) {
             throw new BadRequestException("Revision already completed");
@@ -58,7 +63,6 @@ public class RevisionService {
         revisionRepository.save(revision);
 
         Topic topic = revision.getTopic();
-        topic.setRevisionCount(topic.getRevisionCount() + 1);
         topic.setLastRevision(LocalDateTime.now());
 
         SpacedRepetitionService.Sm2Result sm2 = spacedRepetitionService.calculate(topic, quality);
@@ -66,6 +70,12 @@ public class RevisionService {
         topic.setRepetitionInterval(sm2.intervalDays());
         topic.setLastQuality(quality);
         topic.setNextRevision(LocalDateTime.now().plusDays(sm2.intervalDays()));
+
+        if (quality < 3) {
+            topic.setRevisionCount(0);
+        } else {
+            topic.setRevisionCount((topic.getRevisionCount() != null ? topic.getRevisionCount() : 0) + 1);
+        }
 
         int masteryBoost = sm2.masteryBoost();
         topic.setMastery(Math.max(0, Math.min(100, (topic.getMastery() != null ? topic.getMastery() : 0) + masteryBoost)));

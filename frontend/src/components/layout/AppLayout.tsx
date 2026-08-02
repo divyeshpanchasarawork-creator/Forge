@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopHeader from './TopHeader';
 import CommandPalette from './CommandPalette';
-import { AnimatePresence, motion } from 'framer-motion';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import { SkeletonList } from '@/components/ui/LoadingSkeleton';
 
 export default function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -15,7 +15,8 @@ export default function AppLayout() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [recent, setRecent] = useState<{ path: string; label: string }[]>(() => {
     try {
-      return JSON.parse(localStorage.getItem('forge-recent-pages') || '[]');
+      const parsed = JSON.parse(localStorage.getItem('forge-recent-pages') || '[]');
+      return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
     }
@@ -38,7 +39,11 @@ export default function AppLayout() {
     if (!label) return;
     setRecent((prev) => {
       const next = [{ path: location.pathname, label }, ...prev.filter((r) => r.path !== location.pathname)].slice(0, 5);
-      localStorage.setItem('forge-recent-pages', JSON.stringify(next));
+      try {
+        localStorage.setItem('forge-recent-pages', JSON.stringify(next));
+      } catch {
+        // ignore storage errors (private mode / quota)
+      }
       return next;
     });
   }, [location.pathname]);
@@ -88,19 +93,11 @@ export default function AppLayout() {
         }`}
       >
         <div className="p-4 lg:p-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18, ease: 'easeOut' }}
-            >
-              <ErrorBoundary>
-                <Outlet />
-              </ErrorBoundary>
-            </motion.div>
-          </AnimatePresence>
+          <Suspense fallback={<SkeletonList rows={4} />}>
+            <ErrorBoundary>
+              <Outlet />
+            </ErrorBoundary>
+          </Suspense>
         </div>
       </main>
     </div>

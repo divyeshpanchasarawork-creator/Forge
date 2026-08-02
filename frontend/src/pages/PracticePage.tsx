@@ -53,7 +53,7 @@ function ProblemRow({ problem, index }: { problem: PracticeProblem; index: numbe
       setFeedback(res.data.feedback);
       setOpen(false);
       setError('');
-      queryClient.invalidateQueries({ queryKey: ['practice-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['practice', 'queue'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
     },
     onError: (err: unknown) => setError(parseApiError(err)),
@@ -203,7 +203,7 @@ export default function PracticePage() {
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['practice-queue'],
+    queryKey: ['practice', 'queue'],
     queryFn: () => practiceApi.getQueue().then((res) => res.data.data),
     staleTime: 20_000,
   });
@@ -213,7 +213,7 @@ export default function PracticePage() {
     setSyncError('');
     try {
       await leetcodeApi.sync();
-      queryClient.invalidateQueries({ queryKey: ['practice-queue'] });
+      queryClient.invalidateQueries({ queryKey: ['practice', 'queue'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
       queryClient.invalidateQueries({ queryKey: ['recommendations'] });

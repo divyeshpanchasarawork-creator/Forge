@@ -40,7 +40,10 @@ public class ProblemScorer {
 
     public record ScoredProblem(ProblemLoader.ProblemEntry problem, String tagSlug, int score, ScoreBreakdown breakdown) {}
 
-    public ScoreBreakdown breakdown(UUID userId, ProblemLoader.ProblemEntry candidate, String tagSlug) {
+    public record ScoringContext(User user, List<LeetCodeTagStat> stats, List<Topic> topics,
+                                 List<ProblemAttempt> attempts, List<String> suggestedSlugs, int targetLevel) {}
+
+    public ScoringContext context(UUID userId) {
         User user = userRepository.findById(userId).orElse(null);
         List<LeetCodeTagStat> stats = tagStatRepository.findByUserId(userId);
         List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 100)).getContent();
@@ -48,21 +51,23 @@ public class ProblemScorer {
         List<String> suggestedSlugs = problemSuggestionRepository.findByUserId(userId).stream()
                 .map(com.forge.leetcode.entity.ProblemSuggestion::getTitleSlug)
                 .toList();
-
         int targetLevel = user != null && user.getTargetLevel() != null ? user.getTargetLevel() : 5;
+        return new ScoringContext(user, stats, topics, attempts, suggestedSlugs, targetLevel);
+    }
 
+    public ScoreBreakdown breakdown(ScoringContext ctx, ProblemLoader.ProblemEntry candidate, String tagSlug) {
         List<Signal> signals = List.of(
-                new Signal("Weak tag", 0.15, weakTagMatch(stats, tagSlug)),
-                new Signal("Mastery gap", 0.12, topicMasteryGap(topics, tagSlug)),
-                new Signal("Difficulty fit", 0.10, difficultyFit(stats, candidate.getDifficulty())),
-                new Signal("Learning gain", 0.10, expectedLearningGain(topics, tagSlug)),
-                new Signal("Revision urgency", 0.10, revisionUrgency(topics, tagSlug)),
-                new Signal("Confidence decay", 0.08, confidenceDecay(topics, tagSlug)),
-                new Signal("Readiness", 0.08, readiness(topics, candidate.getDifficulty())),
-                new Signal("Time since practice", 0.08, timeSinceLastPractice(attempts, candidate.getTitleSlug(), tagSlug)),
-                new Signal("Coverage balance", 0.07, coverageBalance(attempts, tagSlug)),
-                new Signal("Goal alignment", 0.06, goalAlignment(candidate.getDifficulty(), targetLevel)),
-                new Signal("Not suggested", 0.04, notPreviouslySuggested(suggestedSlugs, candidate)),
+                new Signal("Weak tag", 0.15, weakTagMatch(ctx.stats(), tagSlug)),
+                new Signal("Mastery gap", 0.12, topicMasteryGap(ctx.topics(), tagSlug)),
+                new Signal("Difficulty fit", 0.10, difficultyFit(ctx.stats(), candidate.getDifficulty())),
+                new Signal("Learning gain", 0.10, expectedLearningGain(ctx.topics(), tagSlug)),
+                new Signal("Revision urgency", 0.10, revisionUrgency(ctx.topics(), tagSlug)),
+                new Signal("Confidence decay", 0.08, confidenceDecay(ctx.topics(), tagSlug)),
+                new Signal("Readiness", 0.08, readiness(ctx.topics(), candidate.getDifficulty())),
+                new Signal("Time since practice", 0.08, timeSinceLastPractice(ctx.attempts(), candidate.getTitleSlug(), tagSlug)),
+                new Signal("Coverage balance", 0.07, coverageBalance(ctx.attempts(), tagSlug)),
+                new Signal("Goal alignment", 0.06, goalAlignment(candidate.getDifficulty(), ctx.targetLevel())),
+                new Signal("Not suggested", 0.04, notPreviouslySuggested(ctx.suggestedSlugs(), candidate)),
                 new Signal("Diversity", 0.02, 50.0)
         );
 
@@ -77,8 +82,16 @@ public class ProblemScorer {
         return new ScoreBreakdown(Math.min(100, (int) Math.round(total)), items);
     }
 
+    public int score(ScoringContext ctx, ProblemLoader.ProblemEntry candidate, String tagSlug) {
+        return breakdown(ctx, candidate, tagSlug).total();
+    }
+
+    public ScoreBreakdown breakdown(UUID userId, ProblemLoader.ProblemEntry candidate, String tagSlug) {
+        return breakdown(context(userId), candidate, tagSlug);
+    }
+
     public int score(UUID userId, ProblemLoader.ProblemEntry candidate, String tagSlug) {
-        return breakdown(userId, candidate, tagSlug).total();
+        return score(context(userId), candidate, tagSlug);
     }
 
     private double weakTagMatch(List<LeetCodeTagStat> stats, String tagSlug) {

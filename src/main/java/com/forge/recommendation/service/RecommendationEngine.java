@@ -95,6 +95,13 @@ public class RecommendationEngine {
         problemSuggestionRepository.findByUserId(userId)
                 .forEach(ps -> existingSlugs.add(ps.getTitleSlug()));
 
+        Map<String, String> slugToTag = new HashMap<>();
+        for (String tag : problemLoader.getAllTagSlugs()) {
+            for (ProblemLoader.ProblemEntry p : problemLoader.getProblemsForTag(tag)) {
+                slugToTag.putIfAbsent(p.getTitleSlug(), tag);
+            }
+        }
+
         List<ProblemSuggestion> toSave = new ArrayList<>();
         for (Recommendation rec : recsWithProblems) {
             if (!existingSlugs.contains(rec.getProblemSlug())) {
@@ -103,6 +110,7 @@ public class RecommendationEngine {
                 suggestion.setTitle(rec.getProblemTitle());
                 suggestion.setTitleSlug(rec.getProblemSlug());
                 suggestion.setDifficulty(rec.getProblemDifficulty());
+                suggestion.setTopicTagSlug(slugToTag.get(rec.getProblemSlug()));
                 suggestion.setSource("RECOMMENDATION");
                 toSave.add(suggestion);
                 existingSlugs.add(rec.getProblemSlug());
@@ -263,7 +271,8 @@ public class RecommendationEngine {
             }
         }
 
-        if (snapshot.getEasySolved() > 0) {
+        if (snapshot.getEasySolved() != null && snapshot.getTotalSolved() != null
+                && snapshot.getTotalSolved() > 0 && snapshot.getEasySolved() > 0) {
             double easyRatio = (double) snapshot.getEasySolved() / snapshot.getTotalSolved();
             if (easyRatio > 0.6 && snapshot.getMediumSolved() < snapshot.getEasySolved() / 2) {
                 recs.add(createRecommendation(
@@ -335,11 +344,12 @@ public class RecommendationEngine {
         }
 
         List<ProblemScorer.ScoredProblem> scored = new ArrayList<>();
+        ProblemScorer.ScoringContext ctx = problemScorer.context(userId);
         for (String ct : candidateTags) {
             List<ProblemLoader.ProblemEntry> candidates = problemLoader.getProblemsForTag(ct);
             for (ProblemLoader.ProblemEntry c : candidates) {
                 if (difficulty != null && !c.getDifficulty().equalsIgnoreCase(difficulty)) continue;
-                ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(userId, c, ct);
+                ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx, c, ct);
                 scored.add(new ProblemScorer.ScoredProblem(c, ct, breakdown.total(), breakdown));
             }
         }
@@ -415,9 +425,10 @@ public class RecommendationEngine {
         }
         if (candidates.isEmpty()) return null;
 
+        ProblemScorer.ScoringContext ctx = problemScorer.context(userId);
         List<ProblemScorer.ScoredProblem> scored = candidates.stream()
                 .map(c -> {
-                    ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(userId, c, topicSlug);
+                    ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx, c, topicSlug);
                     return new ProblemScorer.ScoredProblem(c, topicSlug, breakdown.total(), breakdown);
                 })
                 .sorted((a, b) -> Integer.compare(b.score(), a.score()))

@@ -17,8 +17,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Order(1)
 public class RateLimitingFilter extends OncePerRequestFilter {
 
-    private static final int MAX_REQUESTS = 10;
+    private static final int MAX_REQUESTS = 5;
     private static final long WINDOW_MS = 60_000L;
+    private static final long IDLE_EVICT_MS = 10 * 60_000L;
+    private static final int MAX_BUCKETS = 10_000;
 
     private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
@@ -31,6 +33,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
+
+        evictIfNeeded();
 
         String ip = getClientIp(request);
         Bucket bucket = buckets.computeIfAbsent(ip, k -> new Bucket());
@@ -47,14 +51,27 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private String getClientIp(HttpServletRequest request) {
         String xf = request.getHeader("X-Forwarded-For");
         if (xf != null && !xf.isBlank()) {
-            return xf.split(",")[0].trim();
+            String[] parts = xf.split(",");
+            for (int i = parts.length - 1; i >= 0; i--) {
+                String candidate = parts[i].trim();
+                if (!candidate.isEmpty()) {
+                    return candidate;
+                }
+            }
         }
         return request.getRemoteAddr();
+    }
+
+    private void evictIfNeeded() {
+        if (buckets.size() < MAX_BUCKETS) return;
+        long now = System.currentTimeMillis();
+        buckets.entrySet().removeIf(e -> now - e.getValue().lastAccess() > IDLE_EVICT_MS);
     }
 
     private static class Bucket {
         private final AtomicInteger count = new AtomicInteger(0);
         private volatile long windowStart = System.currentTimeMillis();
+        private volatile long lastAccess = System.currentTimeMillis();
 
         boolean tryConsume() {
             long now = System.currentTimeMillis();
@@ -67,7 +84,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                     }
                 }
             }
+            lastAccess = now;
             return count.incrementAndGet() <= MAX_REQUESTS;
+        }
+
+        long lastAccess() {
+            return lastAccess;
         }
     }
 }

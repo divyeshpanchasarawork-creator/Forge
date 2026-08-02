@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MotionConfig } from 'framer-motion';
@@ -18,6 +18,18 @@ const JournalPage = lazy(() => import('@/pages/JournalPage'));
 const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage'));
 const MemoryPage = lazy(() => import('@/pages/MemoryPage'));
 const ProfilePage = lazy(() => import('@/pages/ProfilePage'));
+
+function PreloadCorePages() {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      import('@/pages/DashboardPage');
+      import('@/pages/PracticePage');
+      import('@/pages/RevisionPage');
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+  return null;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,6 +63,7 @@ export default function App() {
           <ThemeProvider>
             <AuthProvider>
               <BrowserRouter>
+                <PreloadCorePages />
                 <ColdStartGate>
                   <Suspense
                     fallback={

@@ -19,12 +19,19 @@ export default function ColdStartGate({ children }: { children: ReactNode }) {
 
     resolvedRef.current = false;
 
+    const stopTimers = () => {
+      clearTimeout(pollTimer);
+      clearTimeout(timeoutTimer);
+      clearInterval(elapsedInterval);
+    };
+
     const fail = () => {
       if (resolvedRef.current) return;
       setAttempt((a) => {
         const next = a + 1;
         if (next >= MAX_RETRIES) {
           setState('timeout');
+          stopTimers();
           return next;
         }
         pollTimer = setTimeout(poll, POLL_INTERVAL);
@@ -41,9 +48,9 @@ export default function ColdStartGate({ children }: { children: ReactNode }) {
         signal: reqController.signal,
       })
         .then((res) => {
-          clearTimeout(timeoutTimer);
           if (!res.ok) throw new Error('health check failed');
           resolvedRef.current = true;
+          stopTimers();
           setState('ready');
         })
         .catch(() => {
@@ -59,9 +66,7 @@ export default function ColdStartGate({ children }: { children: ReactNode }) {
     poll();
 
     return () => {
-      clearTimeout(pollTimer);
-      clearTimeout(timeoutTimer);
-      clearInterval(elapsedInterval);
+      stopTimers();
     };
   }, [cycle]);
 

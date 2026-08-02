@@ -68,6 +68,20 @@ public class JwtTokenProvider {
         }
     }
 
+    public boolean isAccessToken(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return "access".equals(claims.get("type", String.class));
+        } catch (JwtException | IllegalArgumentException e) {
+            log.warn("Invalid JWT token: {}", e.getMessage());
+            return false;
+        }
+    }
+
     public boolean validateRefreshToken(String token) {
         try {
             Claims claims = Jwts.parser()

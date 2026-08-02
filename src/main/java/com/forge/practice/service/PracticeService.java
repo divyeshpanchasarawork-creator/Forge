@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 public class PracticeService {
 
     private static final Set<String> VALID_OUTCOMES = Set.of("SOLVED", "FAILED", "PARTIAL", "SKIPPED");
-    private static final int MAX_CANDIDATES = 400;
+    private static final int MAX_CANDIDATES = 150;
     private static final List<String> STARTER_TAGS = List.of("array", "hash-table", "two-pointers", "string", "binary-search");
 
     private final LeetCodeTagStatRepository tagStatRepository;
@@ -140,6 +140,7 @@ public class PracticeService {
     private List<ProblemScorer.ScoredProblem> scoreCandidatePool(UUID userId) {
         List<ProblemScorer.ScoredProblem> scored = new ArrayList<>();
         Set<String> seen = new HashSet<>();
+        ProblemScorer.ScoringContext ctx = problemScorer.context(userId);
 
         List<ProblemSuggestion> recSuggestions = problemSuggestionRepository.findByUserId(userId).stream()
                 .filter(ps -> "RECOMMENDATION".equals(ps.getSource()))
@@ -148,8 +149,8 @@ public class PracticeService {
             String tag = ps.getTopicTagSlug();
             ProblemLoader.ProblemEntry entry = new ProblemLoader.ProblemEntry(ps.getTitle(), ps.getTitleSlug(), ps.getDifficulty());
             if (seen.add(ps.getTitleSlug())) {
-                scored.add(new ProblemScorer.ScoredProblem(entry, tag, problemScorer.score(userId, entry, tag),
-                        problemScorer.breakdown(userId, entry, tag)));
+                ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx, entry, tag);
+                scored.add(new ProblemScorer.ScoredProblem(entry, tag, breakdown.total(), breakdown));
             }
         }
 
@@ -178,8 +179,8 @@ public class PracticeService {
             for (ProblemLoader.ProblemEntry candidate : problemLoader.getProblemsForTag(tagSlug)) {
                 if (scored.size() >= MAX_CANDIDATES) break;
                 if (!seen.add(candidate.getTitleSlug())) continue;
-                scored.add(new ProblemScorer.ScoredProblem(candidate, tagSlug, problemScorer.score(userId, candidate, tagSlug),
-                        problemScorer.breakdown(userId, candidate, tagSlug)));
+                ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx, candidate, tagSlug);
+                scored.add(new ProblemScorer.ScoredProblem(candidate, tagSlug, breakdown.total(), breakdown));
             }
         }
 

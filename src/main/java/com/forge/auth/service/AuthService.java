@@ -79,7 +79,7 @@ public class AuthService {
         user.setDisplayName(username);
 
         userRepository.save(user);
-        log.info("User registered: {} ({})", user.getUsername(), user.getEmail());
+        log.info("User registered: {}", user.getUsername());
     }
 
     public LoginResponse.UserInfo getProfile() {

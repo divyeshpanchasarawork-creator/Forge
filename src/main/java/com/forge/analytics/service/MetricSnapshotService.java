@@ -39,6 +39,7 @@ public class MetricSnapshotService {
     private final ForgettingCurveService forgettingCurveService;
     private final SkillRatingService skillRatingService;
     private final UserRepository userRepository;
+    private final org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     @Transactional
     public DailyMetric snapshotForUser(UUID userId) {
@@ -48,8 +49,10 @@ public class MetricSnapshotService {
                 .stream()
                 .filter(com.forge.common.util.TopicFilters::isEngaged)
                 .toList();
-        double avgMastery = topics.isEmpty() ? 0 : topics.stream().mapToInt(Topic::getMastery).average().orElse(0);
-        double avgConfidence = topics.isEmpty() ? 0 : topics.stream().mapToInt(Topic::getConfidence).average().orElse(0);
+        double avgMastery = topics.isEmpty() ? 0 : topics.stream()
+                .mapToInt(t -> t.getMastery() != null ? t.getMastery() : 0).average().orElse(0);
+        double avgConfidence = topics.isEmpty() ? 0 : topics.stream()
+                .mapToInt(t -> t.getConfidence() != null ? t.getConfidence() : 0).average().orElse(0);
         double avgRetention = topics.isEmpty() ? 100 : topics.stream()
                 .mapToDouble(t -> forgettingCurveService.computeRetention(t, LocalDateTime.now()))
                 .average().orElse(100);
@@ -87,12 +90,13 @@ public class MetricSnapshotService {
         return dailyMetricRepository.save(metric);
     }
 
-    @Transactional
     public void snapshotAllUsers() {
         List<User> users = userRepository.findAll();
+        org.springframework.transaction.support.TransactionTemplate txTemplate =
+                new org.springframework.transaction.support.TransactionTemplate(transactionManager);
         for (User user : users) {
             try {
-                snapshotForUser(user.getId());
+                txTemplate.executeWithoutResult(status -> snapshotForUser(user.getId()));
             } catch (Exception e) {
                 log.warn("Snapshot failed for user {}: {}", user.getId(), e.getMessage());
             }

@@ -77,11 +77,11 @@ export default function RoadmapPage() {
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-            {analysis.strongTags.length > 0 && (
+            {(analysis.strongTags ?? []).length > 0 && (
               <div>
                 <p className="mb-2 text-xs font-semibold text-green-400">Strong Areas</p>
                 <div className="flex flex-wrap gap-2">
-                  {analysis.strongTags.map((t: any) => (
+                  {(analysis.strongTags ?? []).map((t: any) => (
                     <span key={t.slug} className="rounded-full bg-green-500/10 px-2.5 py-1 text-xs text-green-400">
                       {t.name} ({t.solved})
                     </span>
@@ -89,11 +89,11 @@ export default function RoadmapPage() {
                 </div>
               </div>
             )}
-            {analysis.weakTags.length > 0 && (
+            {(analysis.weakTags ?? []).length > 0 && (
               <div>
                 <p className="mb-2 text-xs font-semibold text-red-400">Needs Work</p>
                 <div className="flex flex-wrap gap-2">
-                  {analysis.weakTags.map((t: any) => (
+                  {(analysis.weakTags ?? []).map((t: any) => (
                     <span key={t.slug} className="rounded-full bg-red-500/10 px-2.5 py-1 text-xs text-red-400">
                       {t.name} ({t.solved})
                     </span>

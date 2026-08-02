@@ -8,6 +8,13 @@
     <meta name="description" content="Forge - Your personal engineering companion. Track topics, solve problems, build consistency, and master your craft with LeetCode integration." />
     <meta name="theme-color" content="#6d5dfc" />
     <meta name="color-scheme" content="dark" />
+    <script>
+      (function () {
+        try {
+          document.documentElement.classList.toggle('light', localStorage.getItem('forge-theme') === 'light');
+        } catch (e) {}
+      })();
+    </script>
     <meta property="og:title" content="Forge" />
     <meta property="og:description" content="Your personal engineering companion. Track, practice, and master." />
     <meta property="og:type" content="website" />

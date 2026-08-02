@@ -258,6 +258,7 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
   }, [active]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (items.length === 0) return;
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       setActive((a) => Math.min(a + 1, items.length - 1));

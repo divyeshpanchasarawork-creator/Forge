@@ -66,8 +66,12 @@ public class RecommendationService {
     }
 
     public RecommendationResponse dismissRecommendation(UUID id) {
+        UUID userId = SecurityUtils.getCurrentUserId();
         Recommendation rec = recommendationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Recommendation", "id", id));
+        if (!rec.getUser().getId().equals(userId)) {
+            throw new ResourceNotFoundException("Recommendation", "id", id);
+        }
         rec.setDismissed(true);
         rec = recommendationRepository.save(rec);
         return recommendationMapper.toResponse(rec);

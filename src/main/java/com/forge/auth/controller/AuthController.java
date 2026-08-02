@@ -60,7 +60,7 @@ public class AuthController {
     }
 
     @PutMapping("/profile")
-    public ResponseEntity<ApiResponse<LoginResponse.UserInfo>> updateProfile(@RequestBody ProfileRequest request) {
+    public ResponseEntity<ApiResponse<LoginResponse.UserInfo>> updateProfile(@Valid @RequestBody ProfileRequest request) {
         LoginResponse.UserInfo profile = authService.updateProfile(request);
         return ResponseEntity.ok(ApiResponse.success("Profile updated", profile));
     }

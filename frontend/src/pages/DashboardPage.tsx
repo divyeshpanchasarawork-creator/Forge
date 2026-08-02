@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import type { PracticeProblem } from '@/types';
+import type { PracticeQueueResponse } from '@/types';
 
 const REVISION_MINS = 5;
 const DIFFICULTY_MINS: Record<string, number> = { Easy: 20, Medium: 35, Hard: 50 };
@@ -61,9 +61,9 @@ export default function DashboardPage() {
     queryFn: () => dashboardApi.get().then((res) => res.data.data),
   });
 
-  const { data: practiceQueue } = useQuery<PracticeProblem[]>({
-    queryKey: ['practice-queue'],
-    queryFn: () => practiceApi.getQueue().then((res) => res.data.data?.queue || []),
+  const { data: practiceQueue } = useQuery<PracticeQueueResponse>({
+    queryKey: ['practice', 'queue'],
+    queryFn: () => practiceApi.getQueue().then((res) => res.data.data),
     staleTime: 20_000,
   });
 
@@ -94,7 +94,7 @@ export default function DashboardPage() {
   const tp = data.targetProgress;
   const hasLeetcode = !!user?.leetcodeUsername;
   const dueRevs = data.revisionsDue || [];
-  const queue = practiceQueue || [];
+  const queue = practiceQueue?.queue ?? [];
 
   const queueMins =
     dueRevs.length * REVISION_MINS +
@@ -265,7 +265,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-xl bg-secondary/50 p-3">
-                  <p className="text-lg font-bold">{weekly?.hoursStudied ? weekly.hoursStudied.toFixed(1) : '0'}h</p>
+                  <p className="text-lg font-bold">{weekly?.hoursStudied ? Number(weekly.hoursStudied).toFixed(1) : '0'}h</p>
                   <p className="text-[11px] text-muted-foreground">Studied</p>
                 </div>
                 <div className="rounded-xl bg-secondary/50 p-3">
@@ -498,7 +498,7 @@ export default function DashboardPage() {
             {data.recommendations?.length === 0 && (
               <p className="text-sm text-muted-foreground">All caught up. No recommendations right now.</p>
             )}
-            {data.recommendations?.slice(0, 5).map((rec: any) => (
+            {(data.recommendations ?? []).slice(0, 5).map((rec: any) => (
               <div key={rec.id} className="rounded-lg bg-secondary/50 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium">{rec.title}</p>

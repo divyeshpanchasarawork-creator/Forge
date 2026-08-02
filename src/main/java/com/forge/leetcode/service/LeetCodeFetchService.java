@@ -24,12 +24,16 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class LeetCodeFetchService {
+
+    private static final Map<UUID, Object> SYNC_LOCKS = new ConcurrentHashMap<>();
 
     private final LeetCodeClient leetCodeClient;
     private final LeetCodeSnapshotRepository snapshotRepository;
@@ -41,8 +45,19 @@ public class LeetCodeFetchService {
     private final RecommendationEngine recommendationEngine;
     private final ProblemLoader problemLoader;
 
-    @Transactional
     public LeetCodeStatsResponse syncUserProfile(UUID userId) {
+        Object lock = SYNC_LOCKS.computeIfAbsent(userId, k -> new Object());
+        synchronized (lock) {
+            try {
+                return doSyncUserProfile(userId);
+            } finally {
+                SYNC_LOCKS.remove(userId, lock);
+            }
+        }
+    }
+
+    @Transactional
+    private LeetCodeStatsResponse doSyncUserProfile(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
@@ -64,8 +79,9 @@ public class LeetCodeFetchService {
 
         LeetCodeSnapshot snapshot = saveSnapshot(userId, data, matchedUser);
         saveTagStats(userId, matchedUser);
-        syncTopicsFromTags(user, matchedUser);
-        fetchAndSaveProblemSuggestions(user, matchedUser);
+        User managedUser = userRepository.getReferenceById(userId);
+        syncTopicsFromTags(managedUser, matchedUser);
+        fetchAndSaveProblemSuggestions(managedUser, matchedUser);
 
         recommendationEngine.generateForUser(userId, true);
         log.info("LeetCode sync complete for user: {} (solved: {})", lcUsername, snapshot.getTotalSolved());
@@ -211,7 +227,7 @@ public class LeetCodeFetchService {
         }
 
         if (!suggestions.isEmpty()) {
-            problemSuggestionRepository.deleteByUserId(userId);
+            problemSuggestionRepository.deleteByUserIdAndSource(userId, "WEAK_TAG");
             problemSuggestionRepository.flush();
             problemSuggestionRepository.saveAll(suggestions);
             log.info("Saved {} problem suggestions for {} weak tags (user {})", suggestions.size(), weakTagSlugs.size(), userId);
@@ -262,7 +278,7 @@ public class LeetCodeFetchService {
         }
 
         if (!suggestions.isEmpty()) {
-            problemSuggestionRepository.deleteByUserId(userId);
+            problemSuggestionRepository.deleteByUserIdAndSource(userId, "WEAK_TAG");
             problemSuggestionRepository.flush();
             problemSuggestionRepository.saveAll(suggestions);
             log.info("Refreshed {} problem suggestions for {} weak tags (user {})", suggestions.size(), weakTagSlugs.size(), userId);

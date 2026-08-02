@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { authApi } from '@/api';
-import { setSkipAuthRedirect } from '@/api/client';
+import { setLoggedOut, setSkipAuthRedirect } from '@/api/client';
 
 interface User {
   id: string;
@@ -33,11 +34,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     let cancelled = false;
 
     async function init() {
+      setLoggedOut(false);
       setSkipAuthRedirect(true);
       try {
         const storedToken = sessionStorage.getItem('forge_token');
@@ -86,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (username: string, password: string) => {
+    setLoggedOut(false);
     setLoggingOut(false);
     setSkipAuthRedirect(false);
     const response = await authApi.login(username, password);
@@ -96,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (data: { email: string; password: string }) => {
+    setLoggedOut(false);
     setLoggingOut(false);
     setSkipAuthRedirect(false);
     await authApi.register(data);
@@ -108,10 +113,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setLoggingOut(true);
+    setLoggedOut(true);
     setSkipAuthRedirect(true);
     setToken(null);
     setUser(null);
     sessionStorage.removeItem('forge_token');
+    queryClient.clear();
     authApi.logout().catch(() => {});
     setTimeout(() => setLoggingOut(false), 500);
   };

@@ -50,9 +50,7 @@ public class TopicService {
     }
 
     public TopicResponse getTopicById(UUID id) {
-        Topic topic = topicRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Topic", "id", id));
-        return topicMapper.toResponse(topic);
+        return topicMapper.toResponse(findOwnedTopic(id));
     }
 
     public TopicResponse createTopic(TopicRequest request) {
@@ -75,8 +73,7 @@ public class TopicService {
     }
 
     public TopicResponse updateTopic(UUID id, TopicRequest request) {
-        Topic topic = topicRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Topic", "id", id));
+        Topic topic = findOwnedTopic(id);
 
         topic.setTitle(request.getTitle());
         topic.setDescription(request.getDescription());
@@ -91,10 +88,19 @@ public class TopicService {
     }
 
     public void deleteTopic(UUID id) {
-        Topic topic = topicRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Topic", "id", id));
+        Topic topic = findOwnedTopic(id);
         topicRepository.delete(topic);
         log.info("Topic deleted: {}", topic.getTitle());
+    }
+
+    private Topic findOwnedTopic(UUID id) {
+        UUID userId = SecurityUtils.getCurrentUserId();
+        Topic topic = topicRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Topic", "id", id));
+        if (!topic.getUser().getId().equals(userId)) {
+            throw new ResourceNotFoundException("Topic", "id", id);
+        }
+        return topic;
     }
 
     public List<TopicResponse> getWeakTopics() {
