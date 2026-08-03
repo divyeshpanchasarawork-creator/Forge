@@ -88,13 +88,13 @@ public class KnowledgeGraphService implements ApplicationRunner {
     public List<String> getPrerequisites(String conceptSlug) {
         return prerequisiteRepository.findByConceptSlug(conceptSlug).stream()
                 .map(ConceptPrerequisite::getPrerequisiteSlug)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public List<String> getDependents(String conceptSlug) {
         return prerequisiteRepository.findByPrerequisiteSlug(conceptSlug).stream()
                 .map(ConceptPrerequisite::getConceptSlug)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public String matchConcept(String topicTitle) {
