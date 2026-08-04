@@ -11,6 +11,7 @@ interface User {
   leetcodeUsername: string | null;
   targetLevel: number;
   preferredAnalysisTime?: string | null;
+  timezone?: string | null;
   dailyGenerationsUsed?: number | null;
   lastGenerationDate?: string | null;
 }

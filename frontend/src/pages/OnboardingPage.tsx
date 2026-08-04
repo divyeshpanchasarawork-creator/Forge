@@ -23,6 +23,7 @@ export default function OnboardingPage() {
       const res = await authApi.updateProfile({
         targetLevel,
         leetcodeUsername: skipLeetcode ? undefined : leetcodeUsername || undefined,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
       setUser(res.data.data);
       navigate('/app');

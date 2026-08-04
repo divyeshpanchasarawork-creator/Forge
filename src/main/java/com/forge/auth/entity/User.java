@@ -37,6 +37,9 @@ public class User extends BaseEntity {
     @Column(name = "preferred_analysis_time")
     private java.time.LocalTime preferredAnalysisTime;
 
+    @Column(name = "timezone", length = 50)
+    private String timezone = "UTC";
+
     @Column(name = "daily_generations_used")
     private Integer dailyGenerationsUsed = 0;
 

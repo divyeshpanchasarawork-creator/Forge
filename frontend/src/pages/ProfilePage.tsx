@@ -18,13 +18,14 @@ export default function ProfilePage() {
   const [syncVisible, setSyncVisible] = useState(!!user?.leetcodeUsername);
 
   const currentConfig = getTargetLevel(targetLevel);
+  const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   useEffect(() => {
     setSyncVisible(!!leetcodeUsername);
   }, [leetcodeUsername]);
 
   const profileMutation = useMutation({
-    mutationFn: () => authApi.updateProfile({ displayName, email, leetcodeUsername, targetLevel, preferredAnalysisTime: preferredAnalysisTime || undefined }),
+    mutationFn: () => authApi.updateProfile({ displayName, email, leetcodeUsername, targetLevel, preferredAnalysisTime: preferredAnalysisTime || undefined, timezone: browserTimezone }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       setUser?.(res.data.data);
@@ -152,6 +153,9 @@ export default function ProfilePage() {
           </div>
           <div className="text-xs text-muted-foreground">
             Generations used today: {user?.dailyGenerationsUsed ?? 0} / 4
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Timezone: <span className="font-medium text-foreground">{browserTimezone}</span> — scheduled analysis runs in your local time.
           </div>
         </CardContent>
       </Card>

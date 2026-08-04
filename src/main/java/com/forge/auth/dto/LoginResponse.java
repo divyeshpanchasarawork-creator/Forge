@@ -28,6 +28,7 @@ public class LoginResponse {
         private String leetcodeUsername;
         private Integer targetLevel;
         private String preferredAnalysisTime;
+        private String timezone;
         private Integer dailyGenerationsUsed;
         private String lastGenerationDate;
     }

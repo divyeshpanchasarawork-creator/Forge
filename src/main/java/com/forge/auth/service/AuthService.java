@@ -101,6 +101,7 @@ public class AuthService {
         if (request.getTargetLevel() != null) user.setTargetLevel(request.getTargetLevel());
         if (request.getPreferredAnalysisTime() != null)
             user.setPreferredAnalysisTime(java.time.LocalTime.parse(request.getPreferredAnalysisTime()));
+        if (request.getTimezone() != null) user.setTimezone(request.getTimezone());
 
         user = userRepository.save(user);
         log.info("Profile updated for user: {}", user.getUsername());
@@ -116,6 +117,7 @@ public class AuthService {
                 user.getLeetcodeUsername(),
                 user.getTargetLevel(),
                 user.getPreferredAnalysisTime() != null ? user.getPreferredAnalysisTime().toString() : null,
+                user.getTimezone(),
                 user.getDailyGenerationsUsed() != null ? user.getDailyGenerationsUsed() : 0,
                 user.getLastGenerationDate() != null ? user.getLastGenerationDate().toString() : null
         );

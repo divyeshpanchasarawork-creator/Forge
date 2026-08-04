@@ -107,7 +107,7 @@ function openLeetCode(slug: string) {
   window.open(`https://leetcode.com/problems/${slug}/`, '_blank', 'noopener,noreferrer');
 }
 
-export default function CommandPalette({ open, onOpen, onClose, recent }: { open: boolean; onOpen: () => void; onClose: () => void; recent: { path: string; label: string }[] }) {
+export default function CommandPalette({ open, onClose, recent }: { open: boolean; onClose: () => void; recent: { path: string; label: string }[] }) {
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [active, setActive] = useState(0);
@@ -135,17 +135,13 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        if (open) onClose();
-        else onOpen();
-      } else if (e.key === 'Escape' && open) {
+      if (e.key === 'Escape' && open) {
         onClose();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose, onOpen]);
+  }, [open, onClose]);
 
   useEffect(() => {
     if (open) {

@@ -93,6 +93,7 @@ export interface LoginResponse {
     leetcodeUsername: string | null;
     targetLevel: number;
     preferredAnalysisTime: string | null;
+    timezone: string | null;
     dailyGenerationsUsed: number;
     lastGenerationDate: string | null;
   };

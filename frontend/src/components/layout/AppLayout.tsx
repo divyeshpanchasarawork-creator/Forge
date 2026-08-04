@@ -52,6 +52,18 @@ export default function AppLayout() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteMounted(true);
+        setPaletteOpen((o) => !o);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
       const routeByNum: Record<string, string> = {
@@ -89,7 +101,7 @@ export default function AppLayout() {
       <TopHeader sidebarCollapsed={sidebarCollapsed} onMenuClick={() => setMobileOpen(true)} onOpenSearch={openPalette} />
       {paletteMounted && (
         <Suspense fallback={null}>
-          <CommandPalette open={paletteOpen} onOpen={openPalette} onClose={() => setPaletteOpen(false)} recent={recent} />
+          <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} recent={recent} />
         </Suspense>
       )}
       <Sidebar

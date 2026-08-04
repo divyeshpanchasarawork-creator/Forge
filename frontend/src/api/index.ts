@@ -12,7 +12,7 @@ export const authApi = {
     api.post<ApiResponse<void>>('/auth/logout'),
   getProfile: () =>
     api.get<ApiResponse<LoginResponse['user']>>('/auth/profile'),
-  updateProfile: (data: { displayName?: string; email?: string; leetcodeUsername?: string; targetLevel?: number; preferredAnalysisTime?: string }) =>
+  updateProfile: (data: { displayName?: string; email?: string; leetcodeUsername?: string; targetLevel?: number; preferredAnalysisTime?: string; timezone?: string }) =>
     api.put<ApiResponse<LoginResponse['user']>>('/auth/profile', data),
 };
 

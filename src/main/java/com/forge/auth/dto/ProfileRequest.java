@@ -30,4 +30,7 @@ public class ProfileRequest {
 
     @Pattern(regexp = "^([01]?[0-9]|2[0-3]):[0-5][0-9]$", message = "Analysis time must be in HH:mm format")
     private String preferredAnalysisTime;
+
+    @Size(max = 50, message = "Timezone must be at most 50 characters")
+    private String timezone;
 }
