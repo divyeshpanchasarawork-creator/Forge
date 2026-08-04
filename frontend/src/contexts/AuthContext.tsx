@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { AxiosError } from 'axios';
 import { authApi } from '@/api';
 import { setLoggedOut, setSkipAuthRedirect } from '@/api/client';
 
@@ -52,11 +53,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const res = await authApi.getProfile();
             if (cancelled) return;
             setUser(res.data.data);
-          } catch {
+          } catch (error) {
             if (cancelled) return;
-            sessionStorage.removeItem('forge_token');
-            setToken(null);
-            await tryRefreshToken();
+            const status = (error as AxiosError).response?.status;
+            if (status === 401) {
+              sessionStorage.removeItem('forge_token');
+              setToken(null);
+              await tryRefreshToken();
+            } else {
+              setUser(null);
+            }
           }
         } else {
           await tryRefreshToken();

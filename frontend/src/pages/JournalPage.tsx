@@ -16,10 +16,14 @@ export default function JournalPage() {
     lessons: '',
   });
 
-  const { data: recentJournals } = useQuery({
-    queryKey: ['journal', 'recent'],
-    queryFn: () => journalsApi.getRecent().then((res) => res.data.data),
+  const [page, setPage] = useState(0);
+
+  const { data: journalPage } = useQuery({
+    queryKey: ['journal', 'all', page],
+    queryFn: () => journalsApi.getAll(page, 20).then((res) => res.data.data),
   });
+
+  const entries = journalPage?.content ?? [];
 
   const saveMutation = useMutation({
     mutationFn: journalsApi.save,
@@ -124,14 +128,14 @@ export default function JournalPage() {
         </CardContent>
       </Card>
 
-      {/* Recent Entries */}
-      {recentJournals && recentJournals.length > 0 ? (
+      {/* All Entries */}
+      {entries.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>Recent Entries</CardTitle>
+            <CardTitle>All Entries</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {recentJournals.map((journal) => (
+            {entries.map((journal) => (
               <div key={journal.id} className="rounded-xl bg-secondary/30 px-5 py-4">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-medium">{new Date(journal.entryDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</p>
@@ -144,6 +148,25 @@ export default function JournalPage() {
                 {journal.achievements && <p className="text-sm text-green-400">Achieved: {journal.achievements}</p>}
               </div>
             ))}
+          </CardContent>
+          <CardContent className="flex items-center justify-between border-t border-border pt-4">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <span className="text-xs text-muted-foreground">
+              Page {journalPage ? journalPage.page + 1 : 1} of {journalPage?.totalPages ?? 1}
+            </span>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={!journalPage || journalPage.last}
+              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary disabled:opacity-40"
+            >
+              Next
+            </button>
           </CardContent>
         </Card>
       ) : (

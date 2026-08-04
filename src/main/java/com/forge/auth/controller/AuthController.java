@@ -10,17 +10,25 @@ import com.forge.security.JwtTokenProvider;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final boolean secureCookies;
+
+    public AuthController(AuthService authService,
+                          JwtTokenProvider jwtTokenProvider,
+                          @Value("${app.cookies.secure:true}") boolean secureCookies) {
+        this.authService = authService;
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.secureCookies = secureCookies;
+    }
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request,
@@ -68,7 +76,7 @@ public class AuthController {
     private void setAuthCookies(HttpServletResponse response, LoginResponse loginResponse) {
         Cookie accessCookie = new Cookie("forge_token", loginResponse.getToken());
         accessCookie.setHttpOnly(true);
-        accessCookie.setSecure(true);
+        accessCookie.setSecure(secureCookies);
         accessCookie.setAttribute("SameSite", "Lax");
         accessCookie.setPath("/");
         accessCookie.setMaxAge((int) (jwtTokenProvider.getExpirationMs() / 1000));
@@ -76,7 +84,7 @@ public class AuthController {
 
         Cookie refreshCookie = new Cookie("forge_refresh", loginResponse.getRefreshToken());
         refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(true);
+        refreshCookie.setSecure(secureCookies);
         refreshCookie.setAttribute("SameSite", "Lax");
         refreshCookie.setPath("/api/auth/refresh");
         refreshCookie.setMaxAge((int) (jwtTokenProvider.getRefreshExpirationMs() / 1000));
@@ -86,7 +94,7 @@ public class AuthController {
     private void clearAuthCookies(HttpServletResponse response) {
         Cookie accessCookie = new Cookie("forge_token", null);
         accessCookie.setHttpOnly(true);
-        accessCookie.setSecure(true);
+        accessCookie.setSecure(secureCookies);
         accessCookie.setAttribute("SameSite", "Lax");
         accessCookie.setPath("/");
         accessCookie.setMaxAge(0);
@@ -94,7 +102,7 @@ public class AuthController {
 
         Cookie refreshCookie = new Cookie("forge_refresh", null);
         refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(true);
+        refreshCookie.setSecure(secureCookies);
         refreshCookie.setAttribute("SameSite", "Lax");
         refreshCookie.setPath("/api/auth/refresh");
         refreshCookie.setMaxAge(0);
