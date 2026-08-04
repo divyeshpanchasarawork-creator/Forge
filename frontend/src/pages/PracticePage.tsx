@@ -99,7 +99,7 @@ const ProblemRow = memo(function ProblemRow({ problem, index }: { problem: Pract
                 {problem.score}
               </span>
             )}
-            {problem.attempts && problem.attempts > 0 && (
+            {problem.attempts != null && problem.attempts > 0 && (
               <span className="shrink-0 text-[11px] text-muted-foreground">
                 {problem.solved}/{problem.attempts} solved
               </span>
