@@ -32,7 +32,7 @@ function CelebrationOverlay({ onLogJournal, onClose }: { onLogJournal: () => voi
       </div>
 
       <div
-        className="fade-in-up relative w-full max-w-md rounded-2xl border border-primary/30 bg-card p-8 text-center shadow-2xl"
+        className="fade-in-up relative w-full max-w-md rounded-2xl border border-primary/30 bg-card p-8 text-center"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/15">
@@ -106,7 +106,7 @@ export default function RevisionPage() {
       <h1 className="text-2xl font-bold">Revision</h1>
 
       {/* Today's Mission — hero */}
-      <section className="fade-in-up rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-6 shadow-soft">
+      <section className="fade-in-up rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-widest text-primary">Today's Mission</p>

@@ -52,7 +52,7 @@ export default function OnboardingPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card/70 p-6 shadow-2xl backdrop-blur-xl">
+        <div className="rounded-2xl border border-border bg-card p-6">
           {/* Step 1: Target level */}
           <div className="space-y-4">
             <div>
@@ -137,7 +137,7 @@ export default function OnboardingPage() {
           <button
             onClick={() => saveAndContinue(false)}
             disabled={saving}
-            className="group flex flex-[2] items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:opacity-50"
+            className="group flex flex-[2] items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Start Forging'}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />

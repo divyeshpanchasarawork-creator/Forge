@@ -295,7 +295,7 @@ export default function CommandPalette({ open, onOpen, onClose, recent }: { open
         aria-label="Command palette"
         inert={!open}
         className={cn(
-          'flex h-full w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur-xl transition-all duration-150 md:h-[72vh] md:max-h-[760px] md:max-w-[920px] md:w-[min(92vw,760px)] md:rounded-2xl md:p-4 xl:w-[min(92vw,820px)] 2xl:w-[min(88vw,880px)]',
+          'flex h-full w-full flex-col overflow-hidden rounded-t-2xl border border-border bg-card p-3 transition-all duration-150 md:h-[72vh] md:max-h-[760px] md:max-w-[920px] md:w-[min(92vw,760px)] md:rounded-2xl md:p-4 xl:w-[min(92vw,820px)] 2xl:w-[min(88vw,880px)]',
           open ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none translate-y-4 scale-[0.98] opacity-0'
         )}
         onClick={(e) => e.stopPropagation()}

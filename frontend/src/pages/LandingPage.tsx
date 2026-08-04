@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BarChart3, BookOpen, Code2, RefreshCw, Zap, Target, ArrowRight, Sparkles, ChevronDown, X, CheckCircle2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, buttonVariants } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { Logo } from '@/components/brand/Logo';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import AuthCard, { type AuthTab } from '@/components/auth/AuthCard';
@@ -49,7 +50,7 @@ export default function LandingPage() {
       {/* Signed-out acknowledgment */}
       {showSignedOut && (
         <div className="fade-in-up fixed left-1/2 top-20 z-30 -translate-x-1/2 px-4">
-          <div className="flex items-center gap-3 rounded-full border border-green-500/30 bg-card px-4 py-2 text-sm shadow-2xl">
+          <div className="flex items-center gap-3 rounded-full border border-green-500/30 bg-card px-4 py-2 text-sm">
             <CheckCircle2 className="h-4 w-4 text-green-400" />
             <span className="font-medium text-green-400">Signed out</span>
             <span className="text-muted-foreground">See you soon — your progress is saved.</span>
@@ -119,7 +120,7 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={() => focusAuth('signup')}
-                className={buttonVariants({ size: 'lg', className: 'group rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/25 hover:brightness-110' })}
+                className={buttonVariants({ size: 'lg', className: 'group rounded-xl hover:brightness-110' })}
               >
                 Get Started Free
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -172,16 +173,16 @@ export default function LandingPage() {
           </div>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
-              <div
+              <Card
                 key={f.title}
-                className="group rounded-2xl border border-border bg-card/30 p-6 transition-all hover:border-primary/20 hover:bg-card/60 hover:shadow-soft"
+                className="group bg-card/30 p-6 transition-all hover:border-primary/20 hover:bg-card/60"
               >
                 <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/15">
                   <f.icon className="h-5 w-5 text-primary" />
                 </div>
                 <h3 className="mb-2 text-base font-semibold">{f.title}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
-              </div>
+              </Card>
             ))}
           </div>
         </div>

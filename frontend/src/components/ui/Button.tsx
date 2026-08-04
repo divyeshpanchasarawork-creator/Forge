@@ -6,7 +6,7 @@ type ButtonSize = 'sm' | 'md' | 'lg';
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    'bg-primary font-semibold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/25',
+    'bg-primary font-semibold text-primary-foreground hover:bg-primary/90',
   outline:
     'border border-border bg-secondary/40 text-foreground hover:border-primary/30 hover:bg-secondary',
   ghost: 'text-muted-foreground hover:bg-secondary hover:text-foreground',

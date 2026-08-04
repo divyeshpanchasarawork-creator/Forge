@@ -88,7 +88,7 @@ export default function Sidebar({
                         </>
                       )}
                       {collapsed && (
-                        <span className="pointer-events-none absolute left-full z-50 ml-2 whitespace-nowrap rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground opacity-0 shadow-soft transition-opacity duration-150 group-hover:opacity-100">
+                        <span className="pointer-events-none absolute left-full z-50 ml-2 whitespace-nowrap rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-medium text-foreground opacity-0 transition-opacity duration-150 group-hover:opacity-100">
                           {item.label}
                         </span>
                       )}
@@ -123,7 +123,7 @@ export default function Sidebar({
       {/* Desktop floating sidebar */}
       <aside
         className={cn(
-          'fixed left-3 top-3 bottom-3 z-40 hidden flex-col rounded-2xl bg-sidebar shadow-soft transition-all duration-200 lg:flex',
+          'fixed left-3 top-3 bottom-3 z-40 hidden flex-col rounded-2xl border border-border bg-sidebar transition-all duration-200 lg:flex',
           collapsed ? 'w-16' : 'w-60'
         )}
       >
@@ -140,7 +140,7 @@ export default function Sidebar({
       />
       <aside
         className={cn(
-          'fixed left-3 top-3 bottom-3 z-50 flex w-64 flex-col rounded-2xl bg-sidebar shadow-soft transition-transform duration-200 lg:hidden',
+          'fixed left-3 top-3 bottom-3 z-50 flex w-64 flex-col rounded-2xl border border-border bg-sidebar transition-transform duration-200 lg:hidden',
           mobileOpen ? 'translate-x-0' : 'pointer-events-none -translate-x-[110%]'
         )}
       >

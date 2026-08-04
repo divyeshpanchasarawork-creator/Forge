@@ -41,7 +41,7 @@ export default function RoadmapPage() {
       <h1 className="text-2xl font-bold">Roadmap</h1>
 
       {analysis && (
-        <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-6 shadow-soft">
+        <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-6">
           <div className="mb-4 flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
             <h2 className="font-semibold">Your Personal Analysis</h2>

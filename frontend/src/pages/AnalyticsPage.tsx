@@ -131,9 +131,9 @@ const InsightCard = memo(function InsightCard({ insight }: { insight: Insight })
     ) : null;
 
   return (
-    <div
-      className={`rounded-2xl border p-5 shadow-soft transition-all ${
-        isUnlock ? 'border-dashed border-border bg-card/40' : 'border-border bg-card hover:border-primary/20'
+    <Card
+      className={`p-5 transition-all ${
+        isUnlock ? 'border-dashed bg-card/40' : 'hover:border-primary/20'
       }`}
     >
       <div className="flex items-center justify-between gap-2">
@@ -148,7 +148,7 @@ const InsightCard = memo(function InsightCard({ insight }: { insight: Insight })
             className="group/btn relative shrink-0 rounded-md p-0.5 text-muted-foreground/60 transition-colors hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <Info className="h-3.5 w-3.5" />
-            <span className="pointer-events-none absolute bottom-full right-0 z-20 mb-2 hidden w-64 rounded-lg border border-border bg-card p-3 text-left shadow-2xl group-hover/btn:block group-focus-within/btn:block">
+            <span className="pointer-events-none absolute bottom-full right-0 z-20 mb-2 hidden w-64 rounded-lg border border-border bg-card p-3 text-left group-hover/btn:block group-focus-within/btn:block">
               <p className="text-[11px] font-semibold text-foreground">What is this?</p>
               <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{explain.what}</p>
               <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
@@ -165,7 +165,7 @@ const InsightCard = memo(function InsightCard({ insight }: { insight: Insight })
         </div>
       )}
       <p className={`text-xs leading-relaxed text-muted-foreground ${isUnlock ? 'mt-3' : 'mt-1.5'}`}>{insight.message}</p>
-    </div>
+    </Card>
   );
 });
 
@@ -523,7 +523,7 @@ export default function AnalyticsPage() {
       <h1 className="text-2xl font-bold">Analytics</h1>
 
       {/* Company Readiness – Hero */}
-      <section className="fade-in-up rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-6 shadow-soft">
+      <section className="fade-in-up rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-6">
         <CardTitle className="flex items-center gap-2">
           <Target className="h-4 w-4 text-primary" />
           Company Readiness

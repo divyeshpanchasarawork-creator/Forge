@@ -92,7 +92,7 @@ export default function TopHeader({ sidebarCollapsed, onMenuClick, onOpenSearch 
           </button>
           <div
             className={cn(
-              'absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-border bg-card p-1.5 shadow-soft transition-all duration-150',
+              'absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-border bg-card p-1.5 transition-all duration-150',
               menuOpen ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-1 opacity-0'
             )}
           >

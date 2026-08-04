@@ -136,14 +136,14 @@ export default function AuthCard({ tab, onTabChange }: AuthCardProps) {
   ) : null;
 
   return (
-    <div className="rounded-2xl border border-border bg-card/70 p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+    <div className="rounded-2xl border border-border bg-card p-6 sm:p-8">
       <div className="flex rounded-lg bg-secondary/60 p-1">
         <button
           type="button"
           onClick={() => onTabChange('signin')}
           className={cn(
             'flex-1 rounded-md py-2 text-sm font-medium transition-colors',
-            tab === 'signin' ? 'bg-card text-foreground shadow' : 'text-muted-foreground hover:text-foreground'
+            tab === 'signin' ? 'bg-card text-foreground' : 'text-muted-foreground hover:text-foreground'
           )}
         >
           Sign In
@@ -153,7 +153,7 @@ export default function AuthCard({ tab, onTabChange }: AuthCardProps) {
           onClick={() => onTabChange('signup')}
           className={cn(
             'flex-1 rounded-md py-2 text-sm font-medium transition-colors',
-            tab === 'signup' ? 'bg-card text-foreground shadow' : 'text-muted-foreground hover:text-foreground'
+            tab === 'signup' ? 'bg-card text-foreground' : 'text-muted-foreground hover:text-foreground'
           )}
         >
           Create Account
