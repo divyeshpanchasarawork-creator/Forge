@@ -1,10 +1,11 @@
-import { Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopHeader from './TopHeader';
-import CommandPalette from './CommandPalette';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import { SkeletonList } from '@/components/ui/LoadingSkeleton';
+
+const CommandPalette = lazy(() => import('./CommandPalette'));
 
 export default function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -13,6 +14,7 @@ export default function AppLayout() {
   });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteMounted, setPaletteMounted] = useState(false);
   const [recent, setRecent] = useState<{ path: string; label: string }[]>(() => {
     try {
       const parsed = JSON.parse(localStorage.getItem('forge-recent-pages') || '[]');
@@ -77,10 +79,19 @@ export default function AppLayout() {
     });
   };
 
+  const openPalette = () => {
+    setPaletteMounted(true);
+    setPaletteOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      <TopHeader sidebarCollapsed={sidebarCollapsed} onMenuClick={() => setMobileOpen(true)} onOpenSearch={() => setPaletteOpen(true)} />
-      <CommandPalette open={paletteOpen} onOpen={() => setPaletteOpen(true)} onClose={() => setPaletteOpen(false)} recent={recent} />
+      <TopHeader sidebarCollapsed={sidebarCollapsed} onMenuClick={() => setMobileOpen(true)} onOpenSearch={openPalette} />
+      {paletteMounted && (
+        <Suspense fallback={null}>
+          <CommandPalette open={paletteOpen} onOpen={openPalette} onClose={() => setPaletteOpen(false)} recent={recent} />
+        </Suspense>
+      )}
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={toggleSidebar}

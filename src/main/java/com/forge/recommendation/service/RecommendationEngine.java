@@ -78,10 +78,6 @@ public class RecommendationEngine {
         return sorted;
     }
 
-    public List<Recommendation> generateForUser(UUID userId) {
-        return generateForUser(userId, false);
-    }
-
     private void syncRecProblemsToSuggestions(UUID userId, User user) {
         List<Recommendation> recsWithProblems = recommendationRepository
                 .findByUserIdAndDismissedOrderByPriorityAscCreatedAtDesc(userId, false)

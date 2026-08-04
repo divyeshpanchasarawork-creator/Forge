@@ -39,7 +39,6 @@ public class MetricSnapshotService {
     private final ForgettingCurveService forgettingCurveService;
     private final SkillRatingService skillRatingService;
     private final UserRepository userRepository;
-    private final org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     @Transactional
     public DailyMetric snapshotForUser(UUID userId) {
@@ -88,19 +87,6 @@ public class MetricSnapshotService {
         metric.setConsistency(Math.round(computeConsistency(userId) * 100) / 100.0);
 
         return dailyMetricRepository.save(metric);
-    }
-
-    public void snapshotAllUsers() {
-        List<User> users = userRepository.findAll();
-        org.springframework.transaction.support.TransactionTemplate txTemplate =
-                new org.springframework.transaction.support.TransactionTemplate(transactionManager);
-        for (User user : users) {
-            try {
-                txTemplate.executeWithoutResult(status -> snapshotForUser(user.getId()));
-            } catch (Exception e) {
-                log.warn("Snapshot failed for user {}: {}", user.getId(), e.getMessage());
-            }
-        }
     }
 
     public double computeConsistency(UUID userId) {

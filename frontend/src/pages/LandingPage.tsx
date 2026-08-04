@@ -1,7 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BarChart3, BookOpen, Code2, RefreshCw, Zap, Target, ArrowRight, Sparkles, ChevronDown, X, CheckCircle2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { Button, buttonVariants } from '@/components/ui/Button';
 import { Logo } from '@/components/brand/Logo';
 import ThemeToggle from '@/components/ui/ThemeToggle';
@@ -48,30 +47,22 @@ export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Signed-out acknowledgment */}
-      <AnimatePresence>
-        {showSignedOut && (
-          <motion.div
-            initial={{ opacity: 0, y: -16, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -12, scale: 0.96 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="fixed left-1/2 top-20 z-30 -translate-x-1/2 px-4"
-          >
-            <div className="flex items-center gap-3 rounded-full border border-green-500/30 bg-card px-4 py-2 text-sm shadow-2xl">
-              <CheckCircle2 className="h-4 w-4 text-green-400" />
-              <span className="font-medium text-green-400">Signed out</span>
-              <span className="text-muted-foreground">See you soon — your progress is saved.</span>
-              <button
-                onClick={dismissSignedOut}
-                className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                aria-label="Dismiss"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {showSignedOut && (
+        <div className="fade-in-up fixed left-1/2 top-20 z-30 -translate-x-1/2 px-4">
+          <div className="flex items-center gap-3 rounded-full border border-green-500/30 bg-card px-4 py-2 text-sm shadow-2xl">
+            <CheckCircle2 className="h-4 w-4 text-green-400" />
+            <span className="font-medium text-green-400">Signed out</span>
+            <span className="text-muted-foreground">See you soon — your progress is saved.</span>
+            <button
+              onClick={dismissSignedOut}
+              className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+              aria-label="Dismiss"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        </div>
+      )}
       {/* Animated background gradient */}
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute left-1/4 top-0 h-[600px] w-[600px] animate-pulse rounded-full bg-primary/8 blur-[160px]" />
@@ -183,7 +174,7 @@ export default function LandingPage() {
             {features.map((f) => (
               <div
                 key={f.title}
-                className="group rounded-xl border border-border bg-card/30 p-6 transition-all hover:border-primary/20 hover:bg-card/60 hover:shadow-soft"
+                className="group rounded-2xl border border-border bg-card/30 p-6 transition-all hover:border-primary/20 hover:bg-card/60 hover:shadow-soft"
               >
                 <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/15">
                   <f.icon className="h-5 w-5 text-primary" />

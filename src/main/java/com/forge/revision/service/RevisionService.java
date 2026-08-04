@@ -92,14 +92,4 @@ public class RevisionService {
 
         return revisionMapper.toResponse(revision);
     }
-
-    public long getCompletedCount() {
-        UUID userId = SecurityUtils.getCurrentUserId();
-        return revisionRepository.countByUserIdAndCompleted(userId, true);
-    }
-
-    public long getCompletedInRange(LocalDate start, LocalDate end) {
-        UUID userId = SecurityUtils.getCurrentUserId();
-        return revisionRepository.countCompletedInRangeByUserId(userId, start, end);
-    }
 }

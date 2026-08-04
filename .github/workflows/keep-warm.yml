@@ -1,5 +1,23 @@
 name: keep-warm
 
+# Keeps the Render free-tier backend (+ Postgres) awake so cold starts stay rare.
+#
+# Two failure modes are handled:
+#   1. GitHub Actions schedules are frequently delayed by minutes-to-hours.
+#      Fix: each run pings for ~30 minutes instead of a one-shot burst, so an
+#      overlapping run is almost always alive to keep the instance warm.
+#   2. Render's spin-up page returns HTTP 200 even while the app is still
+#      booting. Fix: we check the response BODY for "db":"UP" (the health
+#      endpoint returns 503 + db=DOWN when Postgres is asleep), not just the
+#      status code.
+#
+# Recommended extra layer (outside this repo): an external uptime monitor such
+# as UptimeRobot (free, 5-min interval) pointed at
+# https://forge-api-a4uy.onrender.com/api/health. It runs independently of
+# GitHub's scheduler and tolerates 4xx/503 as "down", so it reliably wakes
+# Render even when this workflow is delayed. Accept any 2xx/3xx/4xx status;
+# the Render boot page returns 200.
+
 on:
   schedule:
     - cron: '*/10 * * * *'
@@ -8,23 +26,26 @@ on:
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 35
     steps:
-      - name: Ping Render backend to prevent free-tier spin-down
+      - name: Ping Render backend + Postgres to prevent free-tier spin-down
         run: |
           url="https://forge-api-a4uy.onrender.com/api/health"
-          attempts=5
-          for i in $(seq 1 $attempts); do
-            code=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 120 "$url" || echo "000")
-            echo "Attempt $i/$attempts: GET /api/health -> $code"
-            if [ "$code" = "200" ]; then
-              echo "Health check OK"
-              exit 0
+          ok=0
+          for i in $(seq 1 30); do
+            body=$(curl -sS --max-time 100 "$url" || echo "")
+            if echo "$body" | grep -q '"db":"UP"'; then
+              ok=$((ok+1))
+              echo "Attempt $i/30: healthy (db=UP)"
+            else
+              echo "Attempt $i/30: cold or sleeping — request triggered spin-up"
             fi
-            if [ "$i" -lt "$attempts" ]; then
-              echo "Backend not ready yet, retrying in 15s..."
-              sleep 15
+            if [ "$i" -lt 30 ]; then
+              sleep 45
             fi
           done
-          echo "Health check failed after $attempts attempts"
-          exit 1
+          echo "keep-warm finished: $ok/30 healthy pings"
+          if [ "$ok" -eq 0 ]; then
+            echo "All pings failed — backend unreachable"
+            exit 1
+          fi

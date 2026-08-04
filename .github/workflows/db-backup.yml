@@ -1,0 +1,72 @@
+name: db-backup
+
+# Nightly Postgres dump so the Forge data survives Render's free-tier database
+# lifecycle (free Postgres instances are deleted after ~30 days of inactivity).
+#
+# Requires repo secrets (Settings > Secrets and variables > Actions), taken
+# from the Render Postgres dashboard ("External Connection"):
+#   BACKUP_DB_HOST, BACKUP_DB_PORT, BACKUP_DB_USER,
+#   BACKUP_DB_PASSWORD, BACKUP_DB_NAME
+#
+# Until those secrets are configured, this workflow logs a notice and exits
+# 0 so the repo stays green. Artifacts are retained for 14 days.
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+env:
+  BACKUP_DB_HOST: ${{ secrets.BACKUP_DB_HOST }}
+  BACKUP_DB_PORT: ${{ secrets.BACKUP_DB_PORT }}
+  BACKUP_DB_USER: ${{ secrets.BACKUP_DB_USER }}
+  BACKUP_DB_PASSWORD: ${{ secrets.BACKUP_DB_PASSWORD }}
+  BACKUP_DB_NAME: ${{ secrets.BACKUP_DB_NAME }}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check backup secrets are configured
+        id: check
+        run: |
+          if [ -z "$BACKUP_DB_HOST" ] || [ -z "$BACKUP_DB_PORT" ] || \
+             [ -z "$BACKUP_DB_USER" ] || [ -z "$BACKUP_DB_PASSWORD" ] || [ -z "$BACKUP_DB_NAME" ]; then
+            echo "DB backup secrets not configured yet. Set BACKUP_DB_* secrets to enable nightly dumps."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install postgresql client
+        if: steps.check.outputs.configured == 'true'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+
+      - name: Dump database
+        if: steps.check.outputs.configured == 'true'
+        env:
+          PGPASSWORD: ${{ env.BACKUP_DB_PASSWORD }}
+        run: |
+          mkdir -p backup
+          pg_dump \
+            --host="$BACKUP_DB_HOST" \
+            --port="$BACKUP_DB_PORT" \
+            --username="$BACKUP_DB_USER" \
+            --dbname="$BACKUP_DB_NAME" \
+            --no-owner \
+            --format=custom \
+            --file="backup/forge.dump"
+          date_stamp=$(date -u +%Y-%m-%d)
+          gzip -c backup/forge.dump > "backup/forge-${date_stamp}.dump.gz"
+          rm backup/forge.dump
+          ls -lh backup
+
+      - name: Upload artifact
+        if: steps.check.outputs.configured == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: forge-db-backup
+          path: backup/forge-*.dump.gz
+          retention-days: 14

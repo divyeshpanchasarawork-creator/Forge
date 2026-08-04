@@ -82,18 +82,6 @@ public class ProblemScorer {
         return new ScoreBreakdown(Math.min(100, (int) Math.round(total)), items);
     }
 
-    public int score(ScoringContext ctx, ProblemLoader.ProblemEntry candidate, String tagSlug) {
-        return breakdown(ctx, candidate, tagSlug).total();
-    }
-
-    public ScoreBreakdown breakdown(UUID userId, ProblemLoader.ProblemEntry candidate, String tagSlug) {
-        return breakdown(context(userId), candidate, tagSlug);
-    }
-
-    public int score(UUID userId, ProblemLoader.ProblemEntry candidate, String tagSlug) {
-        return score(context(userId), candidate, tagSlug);
-    }
-
     private double weakTagMatch(List<LeetCodeTagStat> stats, String tagSlug) {
         return stats.stream()
                 .filter(ts -> ts.getTagSlug().equals(tagSlug))

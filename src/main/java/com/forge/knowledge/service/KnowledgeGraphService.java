@@ -110,24 +110,6 @@ public class KnowledgeGraphService implements ApplicationRunner {
         return null;
     }
 
-    public List<Topic> findTopicsForConcept(UUID userId, String conceptSlug) {
-        return topicRepository.findByUserId(userId, PageRequest.of(0, 200)).getContent().stream()
-                .filter(t -> conceptSlug.equals(matchConcept(t.getTitle())))
-                .toList();
-    }
-
-    public List<Topic> findRelatedTopics(UUID userId, String conceptSlug, double depth) {
-        List<String> related = getPrerequisites(conceptSlug);
-        related.addAll(getDependents(conceptSlug));
-        List<Topic> all = topicRepository.findByUserId(userId, PageRequest.of(0, 200)).getContent();
-        return all.stream()
-                .filter(t -> {
-                    String c = matchConcept(t.getTitle());
-                    return c != null && related.contains(c);
-                })
-                .toList();
-    }
-
     @Transactional
     public int propagateBoost(UUID userId, String conceptSlug, int delta) {
         if (conceptSlug == null || delta == 0) {
@@ -155,14 +137,5 @@ public class KnowledgeGraphService implements ApplicationRunner {
             topicRepository.saveAll(targets);
         }
         return targets.size();
-    }
-
-    public int graphSize() {
-        return CURATED_GRAPH.size();
-    }
-
-    public Map<String, List<String>> getGraphSnapshot() {
-        return CURATED_GRAPH.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, LinkedHashMap::new));
     }
 }

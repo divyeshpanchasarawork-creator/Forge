@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Check, Eye, EyeOff, X } from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { parseApiError } from '@/lib/error';
 import { cn } from '@/lib/utils';
@@ -170,17 +169,12 @@ export default function AuthCard({ tab, onTabChange }: AuthCardProps) {
         </p>
       </div>
 
-      <AnimatePresence mode="wait" initial={false}>
-        {tab === 'signin' ? (
-          <motion.form
-            key="signin"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.18 }}
-            onSubmit={handleLogin}
-            className="space-y-4"
-          >
+      {tab === 'signin' ? (
+        <form
+          key="signin"
+          onSubmit={handleLogin}
+          className="fade-in-up space-y-4"
+        >
             <div>
               <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-muted-foreground">
                 Email or Username
@@ -207,16 +201,12 @@ export default function AuthCard({ tab, onTabChange }: AuthCardProps) {
             <Button type="submit" size="lg" className="w-full" loading={loading}>
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
-          </motion.form>
+          </form>
         ) : (
-          <motion.form
+          <form
             key="signup"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.18 }}
             onSubmit={handleRegister}
-            className="space-y-4"
+            className="fade-in-up space-y-4"
           >
             <div>
               <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-muted-foreground">
@@ -265,9 +255,8 @@ export default function AuthCard({ tab, onTabChange }: AuthCardProps) {
             <Button type="submit" size="lg" className="w-full" loading={loading}>
               {loading ? 'Creating account...' : 'Create Account'}
             </Button>
-          </motion.form>
+          </form>
         )}
-      </AnimatePresence>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
         {tab === 'signin' ? (

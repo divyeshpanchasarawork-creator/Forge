@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import KpiCard from '@/components/ui/KpiCard';
 import { SkeletonList } from '@/components/ui/LoadingSkeleton';
 import { useAuth } from '@/contexts/AuthContext';
-import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import {
   CheckCircle, Clock, Calendar, ListTodo, TrendingUp, Brain, Target, PartyPopper,
@@ -15,13 +14,7 @@ const REVISION_MINS = 5;
 
 function CelebrationOverlay({ onLogJournal, onClose }: { onLogJournal: () => void; onClose: () => void }) {
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
+    <div className="fade-in fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {Array.from({ length: 32 }).map((_, i) => {
           const left = (i * 37 + 13) % 100;
@@ -29,24 +22,17 @@ function CelebrationOverlay({ onLogJournal, onClose }: { onLogJournal: () => voi
           const duration = 1.6 + (i % 6) * 0.25;
           const color = ['#6d5dfc', '#22c55e', '#f59e0b', '#ef4444', '#ec4899'][i % 5];
           return (
-            <motion.span
+            <span
               key={i}
               className="absolute top-[-20px] block h-2.5 w-1.5 rounded-sm"
-              style={{ left: `${left}%`, backgroundColor: color }}
-              initial={{ y: -20, opacity: 0, rotate: 0 }}
-              animate={{ y: '110vh', opacity: [0, 1, 1, 0], rotate: 360 + (i % 3) * 180 }}
-              transition={{ delay, duration, ease: 'easeIn' }}
+              style={{ left: `${left}%`, backgroundColor: color, animation: `confetti-fall ${duration}s ${delay}s linear both` }}
             />
           );
         })}
       </div>
 
-      <motion.div
-        className="relative w-full max-w-md rounded-2xl border border-primary/30 bg-card p-8 text-center shadow-2xl"
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ type: 'spring', damping: 20, stiffness: 260 }}
+      <div
+        className="fade-in-up relative w-full max-w-md rounded-2xl border border-primary/30 bg-card p-8 text-center shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/15">
@@ -57,13 +43,12 @@ function CelebrationOverlay({ onLogJournal, onClose }: { onLogJournal: () => voi
           All of today's revisions are done. Your long-term retention is locked in — this is how streaks are built.
         </p>
         <div className="mt-6 flex flex-col gap-2">
-          <motion.button
-            whileTap={{ scale: 0.97 }}
+          <button
             onClick={onLogJournal}
-            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:brightness-110"
+            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:brightness-110 active:scale-[0.97]"
           >
             Log a journal entry
-          </motion.button>
+          </button>
           <button
             onClick={onClose}
             className="rounded-xl border border-border px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary"
@@ -71,8 +56,8 @@ function CelebrationOverlay({ onLogJournal, onClose }: { onLogJournal: () => voi
             Back to queue
           </button>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
 
@@ -149,12 +134,7 @@ export default function RevisionPage() {
         </div>
         {totalDue > 0 && (
           <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-secondary">
-            <motion.div
-              className="h-2.5 rounded-full bg-primary"
-              initial={false}
-              animate={{ width: `${pct}%` }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            />
+            <div className="h-2.5 rounded-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} />
           </div>
         )}
       </section>
@@ -226,15 +206,14 @@ export default function RevisionPage() {
               {rev.completed ? (
                 <span className="shrink-0 text-xs font-medium text-green-400">Done</span>
               ) : (
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
+                <button
                   onClick={() => completeMutation.mutate(rev.id)}
                   disabled={completeMutation.isPending}
-                  className="flex shrink-0 items-center gap-2 rounded-lg bg-green-500/10 px-4 py-2 text-sm font-medium text-green-400 transition-colors hover:bg-green-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex shrink-0 items-center gap-2 rounded-lg bg-green-500/10 px-4 py-2 text-sm font-medium text-green-400 transition-colors hover:bg-green-500/20 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <CheckCircle className="h-4 w-4" />
                   Complete
-                </motion.button>
+                </button>
               )}
             </div>
           ))}
@@ -266,17 +245,15 @@ export default function RevisionPage() {
         </Card>
       )}
 
-      <AnimatePresence>
-        {celebrate && (
-          <CelebrationOverlay
-            onLogJournal={() => {
-              setCelebrate(false);
-              navigate('/app/journal');
-            }}
-            onClose={() => setCelebrate(false)}
-          />
-        )}
-      </AnimatePresence>
+      {celebrate && (
+        <CelebrationOverlay
+          onLogJournal={() => {
+            setCelebrate(false);
+            navigate('/app/journal');
+          }}
+          onClose={() => setCelebrate(false)}
+        />
+      )}
     </div>
   );
 }

@@ -13,7 +13,6 @@ import {
   Clock, CalendarCheck2, NotebookPen, ListChecks,
 } from 'lucide-react';
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import type { PracticeQueueResponse } from '@/types';
 
 const REVISION_MINS = 5;
@@ -130,14 +129,13 @@ export default function DashboardPage() {
               {mission}
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-3">
-              <motion.button
-                whileTap={{ scale: 0.97 }}
+              <button
                 onClick={() => navigate(ctaTo)}
-                className="group inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:brightness-110"
+                className="group inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:brightness-110 active:scale-[0.97]"
               >
                 {ctaLabel}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </motion.button>
+              </button>
               {streak > 0 && (
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-500/10 px-3 py-1.5 text-xs font-medium text-orange-400">
                   <Flame className="h-3.5 w-3.5" />
@@ -479,15 +477,14 @@ export default function DashboardPage() {
                     {remaining} left today
                   </span>
                 )}
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
+                <button
                   onClick={() => generateMutation.mutate()}
                   disabled={generateMutation.isPending}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Sparkles className="h-3.5 w-3.5" />
                   {generateMutation.isPending ? 'Generating...' : 'Generate'}
-                </motion.button>
+                </button>
               </div>
             </div>
             {generateError && (

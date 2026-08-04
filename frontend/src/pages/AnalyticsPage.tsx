@@ -132,7 +132,7 @@ const InsightCard = memo(function InsightCard({ insight }: { insight: Insight })
 
   return (
     <div
-      className={`rounded-xl border p-5 shadow-soft transition-all ${
+      className={`rounded-2xl border p-5 shadow-soft transition-all ${
         isUnlock ? 'border-dashed border-border bg-card/40' : 'border-border bg-card hover:border-primary/20'
       }`}
     >
