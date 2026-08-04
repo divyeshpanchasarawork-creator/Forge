@@ -317,3 +317,11 @@ export interface WeeklyProgress {
   revisionsCompleted: number;
   journalEntries: number;
 }
+
+export interface ActivityDay {
+  date: string;
+  active: boolean;
+  hours: number;
+  attempts: number;
+  revisions: number;
+}

@@ -1,5 +1,5 @@
 import api from './client';
-import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Journal, JournalRequest, AnalyticsResponse, WeeklyProgress, LeetCodeStats, MemoryResponse, PracticeQueueResponse, RoadmapAnalysis, PagedResponse, ProblemAttempt, ProblemAttemptRequest, ProblemAttemptResponse, LearningCurveResponse } from '@/types';
+import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Journal, JournalRequest, AnalyticsResponse, WeeklyProgress, LeetCodeStats, MemoryResponse, PracticeQueueResponse, RoadmapAnalysis, PagedResponse, ProblemAttempt, ProblemAttemptRequest, ProblemAttemptResponse, LearningCurveResponse, ActivityDay } from '@/types';
 
 export const authApi = {
   login: (username: string, password: string) =>
@@ -40,6 +40,7 @@ export const analyticsApi = {
   get: () => api.get<ApiResponse<AnalyticsResponse>>('/analytics'),
   getWeekly: () => api.get<ApiResponse<WeeklyProgress>>('/analytics/weekly'),
   getLearningCurve: (days = 30) => api.get<ApiResponse<LearningCurveResponse>>(`/analytics/learning-curve?days=${days}`),
+  getHeatmap: (weeks = 28) => api.get<ApiResponse<ActivityDay[]>>(`/analytics/heatmap?weeks=${weeks}`),
 };
 
 export const practiceApi = {

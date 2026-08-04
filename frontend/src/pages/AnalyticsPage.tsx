@@ -1,7 +1,7 @@
 import { memo, useMemo, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { analyticsApi, journalsApi } from '@/api';
+import { analyticsApi } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ChartSkeleton, SkeletonCard } from '@/components/ui/LoadingSkeleton';
 import { targetLevels, getTargetLevel } from '@/lib/targetLevels';
@@ -13,7 +13,7 @@ import {
   Target, Zap, BarChart3, Gauge, Flame, AlertTriangle,
   Code2, BookOpen, TrendingUp, Sparkles, ArrowRight, TrendingDown, Trophy, Lightbulb, Info,
 } from 'lucide-react';
-import type { AnalyticsResponse, Journal, WeeklyProgress, LearningCurveResponse, Insight } from '@/types';
+import type { AnalyticsResponse, ActivityDay, WeeklyProgress, LearningCurveResponse, Insight } from '@/types';
 
 const readinessColor = (score: number) => {
   if (score >= 80) return 'text-green-400';
@@ -86,7 +86,7 @@ const insightExplain: Record<string, { what: string; improve: string }> = {
     improve: 'Tackle problems slightly above your level and keep up with revision to climb.',
   },
   CONSISTENCY: {
-    what: 'Share of the last 14 days where you practiced or revised. Consistency is the strongest predictor of interview performance.',
+    what: 'Share of the last 14 days where you practiced, revised, or journaled. Consistency is the strongest predictor of interview performance.',
     improve: 'Even a few focused minutes daily beats a big weekend session — build the habit.',
   },
   ACCURACY: {
@@ -325,46 +325,32 @@ function SoWhat({ children }: { children: ReactNode }) {
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-function ConsistencyHeatmap({ journals }: { journals: Journal[] }) {
+function formatDayLabel(date: string): string {
+  const d = new Date(`${date.slice(0, 10)}T00:00:00`);
+  return isNaN(d.getTime()) ? date.slice(0, 10) : d.toDateString();
+}
+
+function ConsistencyHeatmap({ activity }: { activity: ActivityDay[] }) {
   const grid = useMemo(() => {
-    const byDate = new Map<string, number>();
-    for (const j of journals) {
-      if (!j.entryDate) continue;
-      const key = j.entryDate.slice(0, 10);
-      byDate.set(key, (byDate.get(key) ?? 0) + (j.hoursStudied ?? 1));
-    }
+    const weeks: ActivityDay[][] = [];
+    for (let i = 0; i < activity.length; i += 7) weeks.push(activity.slice(i, i + 7));
 
-    const today = new Date();
-    const start = new Date(today);
-    start.setDate(today.getDate() - 27 * 7);
-    start.setHours(0, 0, 0, 0);
-    start.setDate(start.getDate() - start.getDay());
-
-    const cells: { d: Date; v: number }[] = [];
-    for (let i = 0; i < 28 * 7; i++) {
-      const d = new Date(start);
-      d.setDate(start.getDate() + i);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      cells.push({ d, v: byDate.get(key) ?? 0 });
-    }
-
-    const weeks: { d: Date; v: number }[][] = [];
-    for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
-
-    const max = Math.max(1, ...cells.map((c) => c.v));
+    const values = activity.map((d) => (d.active ? Math.max(d.hours ?? 0, 0.5) : 0));
+    const max = Math.max(1, ...values);
 
     const monthLabels: { index: number; label: string }[] = [];
     let prevMonth = -1;
     weeks.forEach((w, i) => {
-      const m = w[0].d.getMonth();
-      if (m !== prevMonth) {
-        monthLabels.push({ index: i, label: MONTHS[m] });
-        prevMonth = m;
+      const first = w[0]?.date ?? '';
+      const month = first.length >= 7 ? Number(first.slice(5, 7)) - 1 : -1;
+      if (month !== prevMonth && month >= 0) {
+        monthLabels.push({ index: i, label: MONTHS[month] });
+        prevMonth = month;
       }
     });
 
     return { weeks, max, monthLabels };
-  }, [journals]);
+  }, [activity]);
 
   const levels = ['bg-secondary', 'bg-primary/30', 'bg-primary/50', 'bg-primary/75', 'bg-primary'];
 
@@ -375,6 +361,14 @@ function ConsistencyHeatmap({ journals }: { journals: Journal[] }) {
     if (ratio <= 0.5) return 2;
     if (ratio <= 0.75) return 3;
     return 4;
+  };
+
+  const titleFor = (d: ActivityDay) => {
+    const parts: string[] = [];
+    if (d.hours > 0) parts.push(`${d.hours % 1 === 0 ? d.hours : d.hours.toFixed(1)}h logged`);
+    if (d.attempts > 0) parts.push(`${d.attempts} attempt${d.attempts === 1 ? '' : 's'}`);
+    if (d.revisions > 0) parts.push(`${d.revisions} revision${d.revisions === 1 ? '' : 's'}`);
+    return `${formatDayLabel(d.date)}: ${parts.length ? parts.join(' · ') : 'No activity'}`;
   };
 
   const dayLabels = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
@@ -398,13 +392,16 @@ function ConsistencyHeatmap({ journals }: { journals: Journal[] }) {
         </div>
         {grid.weeks.map((w, i) => (
           <div key={i} className="flex flex-col gap-[3px]">
-            {w.map((c, j) => (
-              <div
-                key={j}
-                title={`${c.d.toDateString()}: ${c.v > 0 ? `${c.v % 1 === 0 ? c.v : c.v.toFixed(1)}h logged` : 'no entry'}`}
-                className={`h-3 w-3 rounded-[3px] ${levels[levelFor(c.v)]}`}
-              />
-            ))}
+            {w.map((c, j) => {
+              const v = c.active ? Math.max(c.hours ?? 0, 0.5) : 0;
+              return (
+                <div
+                  key={j}
+                  title={titleFor(c)}
+                  className={`h-3 w-3 rounded-[3px] ${levels[levelFor(v)]}`}
+                />
+              );
+            })}
           </div>
         ))}
       </div>
@@ -426,9 +423,9 @@ export default function AnalyticsPage() {
     queryFn: () => analyticsApi.get().then((res) => res.data.data),
   });
 
-  const { data: journals } = useQuery<Journal[]>({
-    queryKey: ['journals', 'heatmap'],
-    queryFn: () => journalsApi.getAll(0, 500).then((res) => res.data.data.content ?? []),
+  const { data: heatmap } = useQuery<ActivityDay[]>({
+    queryKey: ['analytics', 'heatmap'],
+    queryFn: () => analyticsApi.getHeatmap(28).then((res) => res.data.data),
   });
 
   const { data: weekly } = useQuery<WeeklyProgress>({
@@ -697,15 +694,16 @@ export default function AnalyticsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {(journals?.length ?? 0) > 0 ? (
-              <ConsistencyHeatmap journals={journals ?? []} />
+            {heatmap?.some((d) => d.active) ? (
+              <ConsistencyHeatmap activity={heatmap ?? []} />
             ) : (
               <div className="rounded-xl border border-dashed border-border px-6 py-10 text-center">
                 <Flame className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
                 <p className="text-sm font-medium">Your grid is empty</p>
                 <p className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
-                  Every journal entry lights a cell — intensity follows hours studied. Consistency is the #1 predictor
-                  of interview success, and this heatmap makes your momentum (or its absence) impossible to ignore.
+                  Every practice, revision, or journal entry lights a cell — intensity follows hours studied.
+                  Consistency is the #1 predictor of interview success, and this heatmap makes your momentum
+                  (or its absence) impossible to ignore.
                 </p>
                 <button
                   onClick={() => navigate('/app/journal')}

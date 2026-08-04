@@ -1,6 +1,7 @@
 package com.forge.analytics.service;
 
 import com.forge.analytics.dto.AnalyticsResponse;
+import com.forge.analytics.dto.ActivityDay;
 import com.forge.analytics.dto.LearningCurveResponse;
 import com.forge.analytics.dto.WeeklyProgressResponse;
 import com.forge.analytics.entity.DailyMetric;
@@ -9,6 +10,7 @@ import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.common.util.ReadinessCalculator;
 import com.forge.common.util.SecurityUtils;
+import com.forge.common.util.TimezoneUtil;
 import com.forge.common.util.TopicFilters;
 import com.forge.journal.entity.Journal;
 import com.forge.journal.repository.JournalRepository;
@@ -24,10 +26,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -43,6 +49,15 @@ public class AnalyticsService {
     private final DailyMetricRepository dailyMetricRepository;
     private final ProblemAttemptRepository problemAttemptRepository;
     private final MetricSnapshotService metricSnapshotService;
+
+    private static final Duration SNAPSHOT_TTL = Duration.ofSeconds(120);
+    private final Map<UUID, TodaySnapshot> snapshotCache = new ConcurrentHashMap<>();
+
+    private record TodaySnapshot(LocalDate date, Instant at) {
+        boolean freshFor(LocalDate day) {
+            return date.equals(day) && Duration.between(at, Instant.now()).compareTo(SNAPSHOT_TTL) < 0;
+        }
+    }
 
     public AnalyticsResponse getAnalytics() {
         UUID userId = SecurityUtils.getCurrentUserId();
@@ -84,7 +99,7 @@ public class AnalyticsService {
                 .map(t -> new AnalyticsResponse.TopicSummary(t.getTitle(), t.getConfidence(), t.getMastery(), t.getCategory()))
                 .toList();
 
-        long streak = calculateStreak(userId);
+        long streak = calculateStreak(userId, TimezoneUtil.resolve(userRepository.findById(userId).orElse(null)));
 
         User user = userRepository.findById(userId).orElse(null);
         int targetLevel = user != null && user.getTargetLevel() != null ? user.getTargetLevel() : 5;
@@ -112,17 +127,19 @@ public class AnalyticsService {
     }
 
     public WeeklyProgressResponse getWeeklyProgress(UUID userId) {
-        LocalDate today = LocalDate.now();
+        ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
+        LocalDate today = LocalDate.now(zone);
         LocalDate weekStart = today.minusDays(today.getDayOfWeek().getValue() - 1);
 
         long revisionsCompleted = revisionRepository.countCompletedInRangeByUserId(userId, weekStart, today);
         List<Journal> weekJournals = journalRepository.findByUserIdAndEntryDateBetweenOrderByEntryDateDesc(userId, weekStart, today);
         double hoursThisWeek = weekJournals.stream().mapToDouble(j -> j.getHoursStudied() != null ? j.getHoursStudied() : 0).sum();
 
-        long problemsSolvedThisWeek = problemAttemptRepository.findByUserIdAll(userId).stream()
-                .filter(a -> a.getAttemptedAt() != null && !a.getAttemptedAt().toLocalDate().isBefore(weekStart))
-                .filter(a -> "SOLVED".equals(a.getOutcome()) || "PARTIAL".equals(a.getOutcome()))
-                .count();
+        long problemsSolvedThisWeek =
+                problemAttemptRepository.countByUserIdAndOutcomeAndAttemptedAtBetween(
+                        userId, "SOLVED", weekStart.atStartOfDay(), today.atTime(LocalTime.MAX))
+                + problemAttemptRepository.countByUserIdAndOutcomeAndAttemptedAtBetween(
+                        userId, "PARTIAL", weekStart.atStartOfDay(), today.atTime(LocalTime.MAX));
 
         long topicsReviewedThisWeek = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).getContent().stream()
                 .filter(t -> t.getLastRevision() != null && !t.getLastRevision().toLocalDate().isBefore(weekStart))
@@ -137,11 +154,46 @@ public class AnalyticsService {
         );
     }
 
+    public List<ActivityDay> getActivityHeatmap(int weeks) {
+        UUID userId = SecurityUtils.getCurrentUserId();
+        ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
+        LocalDate today = LocalDate.now(zone);
+        int span = Math.max(1, Math.min(52, weeks)) * 7;
+        LocalDate start = today.minusDays(span - 7L);
+        start = start.minusDays(start.getDayOfWeek().getValue() % 7L);
+        LocalDate end = start.plusDays(span - 1L);
+
+        Map<LocalDate, DayAgg> byDate = new LinkedHashMap<>();
+
+        journalRepository.findByUserIdAndEntryDateBetweenOrderByEntryDateDesc(userId, start, end)
+                .forEach(j -> byDate.computeIfAbsent(j.getEntryDate(), k -> new DayAgg())
+                        .addHours(j.getHoursStudied() != null ? j.getHoursStudied() : 0));
+
+        problemAttemptRepository.findAttemptedAtInRangeByUserId(userId, start.atStartOfDay(), end.atTime(LocalTime.MAX))
+                .forEach(a -> byDate.computeIfAbsent(a.toLocalDate(), k -> new DayAgg()).addAttempt());
+
+        revisionRepository.findCompletedDatesInRangeByUserId(userId, start, end)
+                .forEach(d -> byDate.computeIfAbsent(d, k -> new DayAgg()).addRevision());
+
+        List<ActivityDay> result = new ArrayList<>(span);
+        for (int i = 0; i < span; i++) {
+            LocalDate d = start.plusDays(i);
+            DayAgg agg = byDate.get(d);
+            if (agg == null) {
+                result.add(new ActivityDay(d, false, 0, 0, 0));
+            } else {
+                result.add(new ActivityDay(d, agg.active(), agg.hours(), agg.attempts(), agg.revisions()));
+            }
+        }
+        return result;
+    }
+
     public LearningCurveResponse getLearningCurve(int days) {
         UUID userId = SecurityUtils.getCurrentUserId();
+        ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
         ensureTodaySnapshot(userId);
         int window = Math.max(7, Math.min(90, days));
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(zone);
         LocalDate start = today.minusDays(window - 1L);
 
         List<DailyMetric> metrics = dailyMetricRepository.findByUserIdAndMetricDateBetweenOrderByMetricDateAsc(userId, start, today);
@@ -152,7 +204,8 @@ public class AnalyticsService {
         Map<LocalDate, DailyMetric> byDate = metrics.stream()
                 .collect(Collectors.toMap(DailyMetric::getMetricDate, m -> m, (a, b) -> a));
 
-        List<ProblemAttempt> attempts = problemAttemptRepository.findByUserIdAll(userId);
+        Optional<ProblemAttempt> firstHard = problemAttemptRepository
+                .findFirstByUserIdAndOutcomeAndDifficultyOrderByAttemptedAtAsc(userId, "SOLVED", "HARD");
 
         List<LearningCurveResponse.CurvePoint> points = new ArrayList<>();
         List<LearningCurveResponse.Milestone> milestones = new ArrayList<>();
@@ -221,26 +274,28 @@ public class AnalyticsService {
                     round1(skill), round1(consistency * 100), solved, revisions, dayMilestones));
         }
 
-        detectActivityMilestones(userId, attempts, activeDates, milestones);
+        detectActivityMilestones(userId, firstHard, activeDates, milestones);
 
         return new LearningCurveResponse(points, milestones);
     }
 
     private void ensureTodaySnapshot(UUID userId) {
-        if (dailyMetricRepository.findByUserIdAndMetricDate(userId, LocalDate.now()).isEmpty()) {
-            try {
-                metricSnapshotService.snapshotForUser(userId);
-            } catch (org.springframework.dao.DataIntegrityViolationException e) {
-                log.debug("Daily snapshot for user {} already created concurrently", userId);
-            }
+        ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
+        LocalDate today = LocalDate.now(zone);
+        TodaySnapshot cached = snapshotCache.get(userId);
+        if (cached != null && cached.freshFor(today)) {
+            return;
+        }
+        try {
+            metricSnapshotService.snapshotForUser(userId);
+            snapshotCache.put(userId, new TodaySnapshot(today, Instant.now()));
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.debug("Daily snapshot for user {} already created concurrently", userId);
         }
     }
 
-    private void detectActivityMilestones(UUID userId, List<ProblemAttempt> attempts,
+    private void detectActivityMilestones(UUID userId, Optional<ProblemAttempt> firstHard,
                                           List<LocalDate> activeDates, List<LearningCurveResponse.Milestone> milestones) {
-        Optional<ProblemAttempt> firstHard = attempts.stream()
-                .filter(a -> "HARD".equalsIgnoreCase(a.getDifficulty()) && "SOLVED".equals(a.getOutcome()))
-                .min(Comparator.comparing(ProblemAttempt::getAttemptedAt));
         firstHard.ifPresent(a -> milestones.add(new LearningCurveResponse.Milestone(
                 a.getAttemptedAt().toLocalDate().toString(), "ACHIEVEMENT", "First Hard problem solved — " + a.getProblemTitle())));
 
@@ -269,15 +324,17 @@ public class AnalyticsService {
     }
 
     private List<AnalyticsResponse.Insight> buildInsights(UUID userId, List<Topic> allTopics, LeetCodeSnapshot snapshot) {
+        ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
+        LocalDate today = LocalDate.now(zone);
         List<AnalyticsResponse.Insight> insights = new ArrayList<>();
         List<DailyMetric> metrics = dailyMetricRepository.findByUserIdAndMetricDateBetweenOrderByMetricDateAsc(
-                userId, LocalDate.now().minusDays(30), LocalDate.now());
+                userId, today.minusDays(30), today);
 
         if (!metrics.isEmpty()) {
             DailyMetric latest = metrics.get(metrics.size() - 1);
             double masteryNow = latest.getMastery() != null ? latest.getMastery() : 0;
             DailyMetric sevenAgo = metrics.stream()
-                    .filter(m -> !m.getMetricDate().isBefore(LocalDate.now().minusDays(8)))
+                    .filter(m -> !m.getMetricDate().isBefore(today.minusDays(8)))
                     .findFirst().orElse(metrics.get(0));
             double masterySevenAgo = sevenAgo.getMastery() != null ? sevenAgo.getMastery() : masteryNow;
             double retentionNow = latest.getRetention() != null ? latest.getRetention() : 100;
@@ -296,7 +353,7 @@ public class AnalyticsService {
 
             double skill = latest.getSkillRating() != null ? latest.getSkillRating() : 1000;
             DailyMetric fourteenAgo = metrics.stream()
-                    .filter(m -> !m.getMetricDate().isBefore(LocalDate.now().minusDays(15)))
+                    .filter(m -> !m.getMetricDate().isBefore(today.minusDays(15)))
                     .findFirst().orElse(metrics.get(0));
             double skillDelta = round1(skill - (fourteenAgo.getSkillRating() != null ? fourteenAgo.getSkillRating() : skill));
             String skillMsg;
@@ -322,11 +379,11 @@ public class AnalyticsService {
                     "CONSISTENCY", "Consistency", "No daily data yet. Practice or revise today to start your curve.", null, null));
         }
 
-        List<ProblemAttempt> attempts = problemAttemptRepository.findByUserIdAll(userId);
-        if (!attempts.isEmpty()) {
-            long solved = attempts.stream().filter(a -> "SOLVED".equals(a.getOutcome())).count();
-            long partial = attempts.stream().filter(a -> "PARTIAL".equals(a.getOutcome())).count();
-            double accuracy = (solved + partial * 0.5) / attempts.size() * 100;
+        long solved = problemAttemptRepository.countByUserIdAndOutcome(userId, "SOLVED");
+        long partial = problemAttemptRepository.countByUserIdAndOutcome(userId, "PARTIAL");
+        long totalAttempts = problemAttemptRepository.countByUserId(userId);
+        if (totalAttempts > 0) {
+            double accuracy = (solved + partial * 0.5) / totalAttempts * 100;
             insights.add(new AnalyticsResponse.Insight(
                     "ACCURACY", "Solve Accuracy", Math.round(accuracy) + "% of tracked attempts resolved (incl. partial).",
                     round1(accuracy), null));
@@ -343,9 +400,9 @@ public class AnalyticsService {
         return insights;
     }
 
-    private long calculateStreak(UUID userId) {
+    private long calculateStreak(UUID userId, ZoneId zone) {
         long streak = 0;
-        LocalDate date = LocalDate.now();
+        LocalDate date = LocalDate.now(zone);
         while (true) {
             if (journalRepository.findByUserIdAndEntryDate(userId, date).isPresent()) {
                 streak++;
@@ -359,5 +416,39 @@ public class AnalyticsService {
 
     private double round1(double value) {
         return Math.round(value * 10) / 10.0;
+    }
+
+    private static final class DayAgg {
+        private double hours;
+        private int attempts;
+        private int revisions;
+
+        void addHours(double h) {
+            hours += h;
+        }
+
+        void addAttempt() {
+            attempts++;
+        }
+
+        void addRevision() {
+            revisions++;
+        }
+
+        double hours() {
+            return hours;
+        }
+
+        int attempts() {
+            return attempts;
+        }
+
+        int revisions() {
+            return revisions;
+        }
+
+        boolean active() {
+            return hours > 0 || attempts > 0 || revisions > 0;
+        }
     }
 }

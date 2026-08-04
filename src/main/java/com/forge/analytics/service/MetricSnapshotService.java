@@ -4,6 +4,8 @@ import com.forge.analytics.entity.DailyMetric;
 import com.forge.analytics.repository.DailyMetricRepository;
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
+import com.forge.common.util.TopicFilters;
+import com.forge.common.util.TimezoneUtil;
 import com.forge.intelligence.service.ForgettingCurveService;
 import com.forge.intelligence.service.SkillRatingService;
 import com.forge.journal.entity.Journal;
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -42,7 +45,8 @@ public class MetricSnapshotService {
 
     @Transactional
     public DailyMetric snapshotForUser(UUID userId) {
-        LocalDate today = LocalDate.now();
+        ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
+        LocalDate today = LocalDate.now(zone);
 
         List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).getContent()
                 .stream()
@@ -53,7 +57,7 @@ public class MetricSnapshotService {
         double avgConfidence = topics.isEmpty() ? 0 : topics.stream()
                 .mapToInt(t -> t.getConfidence() != null ? t.getConfidence() : 0).average().orElse(0);
         double avgRetention = topics.isEmpty() ? 100 : topics.stream()
-                .mapToDouble(t -> forgettingCurveService.computeRetention(t, LocalDateTime.now()))
+                .mapToDouble(t -> forgettingCurveService.computeRetention(t, LocalDateTime.now(zone)))
                 .average().orElse(100);
         double skillRating = skillRatingService.userSkillFromTopics(topics);
 
@@ -90,7 +94,8 @@ public class MetricSnapshotService {
     }
 
     public double computeConsistency(UUID userId) {
-        LocalDate today = LocalDate.now();
+        ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
+        LocalDate today = LocalDate.now(zone);
         LocalDate start = today.minusDays(13);
         Set<LocalDate> activeDays = new HashSet<>();
 

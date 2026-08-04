@@ -17,6 +17,7 @@ import java.util.*;
 public class ProblemLoader {
 
     private final Map<String, List<ProblemEntry>> problemsByTag = new HashMap<>();
+    private final Map<String, String> tagBySlug = new HashMap<>();
     private final List<ProblemEntry> allProblems = new ArrayList<>();
 
     @PostConstruct
@@ -36,6 +37,7 @@ public class ProblemLoader {
                 for (Map<String, String> p : entry.getValue()) {
                     ProblemEntry pe = new ProblemEntry(p.get("title"), p.get("titleSlug"), p.get("difficulty"));
                     tagProblems.add(pe);
+                    tagBySlug.putIfAbsent(pe.getTitleSlug(), tagSlug);
                     if (seenSlugs.add(pe.getTitleSlug())) {
                         allProblems.add(pe);
                     }
@@ -66,6 +68,10 @@ public class ProblemLoader {
 
     public Set<String> getAllTagSlugs() {
         return problemsByTag.keySet();
+    }
+
+    public String getTagSlugForProblem(String titleSlug) {
+        return tagBySlug.get(titleSlug);
     }
 
     @Getter

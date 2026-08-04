@@ -2,6 +2,7 @@ package com.forge.scheduler;
 
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
+import com.forge.common.util.TimezoneUtil;
 import com.forge.leetcode.service.LeetCodeFetchService;
 import com.forge.recommendation.service.RecommendationEngine;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +42,7 @@ public class AnalysisScheduler {
             LocalTime preferred = user.getPreferredAnalysisTime();
             if (preferred == null) continue;
 
-            ZoneId zone = resolveZone(user.getTimezone());
+            ZoneId zone = TimezoneUtil.resolve(user);
             LocalTime userNow = LocalTime.now(zone);
             LocalDate userToday = LocalDate.now(zone);
             LocalTime windowStart = userNow.minusMinutes(15);
@@ -78,16 +79,5 @@ public class AnalysisScheduler {
         schedulerStatus.record(Instant.now(), candidates.size(), processed, skippedOutsideWindow, skippedQuota, lastError);
         log.info("AnalysisScheduler: ran at {} UTC | candidates={} processed={} skipped(outside window)={} skipped(quota)={} error={}",
                 serverUtc, candidates.size(), processed, skippedOutsideWindow, skippedQuota, lastError == null ? "none" : lastError);
-    }
-
-    private ZoneId resolveZone(String timezone) {
-        if (timezone != null) {
-            try {
-                return ZoneId.of(timezone);
-            } catch (Exception ignored) {
-                log.warn("AnalysisScheduler: invalid timezone '{}', falling back to UTC", timezone);
-            }
-        }
-        return ZoneId.of("UTC");
     }
 }

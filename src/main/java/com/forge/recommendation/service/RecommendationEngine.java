@@ -91,13 +91,6 @@ public class RecommendationEngine {
         problemSuggestionRepository.findByUserId(userId)
                 .forEach(ps -> existingSlugs.add(ps.getTitleSlug()));
 
-        Map<String, String> slugToTag = new HashMap<>();
-        for (String tag : problemLoader.getAllTagSlugs()) {
-            for (ProblemLoader.ProblemEntry p : problemLoader.getProblemsForTag(tag)) {
-                slugToTag.putIfAbsent(p.getTitleSlug(), tag);
-            }
-        }
-
         List<ProblemSuggestion> toSave = new ArrayList<>();
         for (Recommendation rec : recsWithProblems) {
             if (!existingSlugs.contains(rec.getProblemSlug())) {
@@ -106,7 +99,7 @@ public class RecommendationEngine {
                 suggestion.setTitle(rec.getProblemTitle());
                 suggestion.setTitleSlug(rec.getProblemSlug());
                 suggestion.setDifficulty(rec.getProblemDifficulty());
-                suggestion.setTopicTagSlug(slugToTag.get(rec.getProblemSlug()));
+                suggestion.setTopicTagSlug(problemLoader.getTagSlugForProblem(rec.getProblemSlug()));
                 suggestion.setSource("RECOMMENDATION");
                 toSave.add(suggestion);
                 existingSlugs.add(rec.getProblemSlug());

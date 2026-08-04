@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -18,6 +19,10 @@ public interface ProblemAttemptRepository extends JpaRepository<ProblemAttempt, 
     List<ProblemAttempt> findByUserIdOrderByAttemptedAtDesc(UUID userId, Pageable pageable);
 
     long countByUserIdAndAttemptedAtBetween(UUID userId, LocalDateTime start, LocalDateTime end);
+
+    long countByUserIdAndOutcome(UUID userId, String outcome);
+
+    long countByUserId(UUID userId);
 
     long countByUserIdAndOutcomeAndAttemptedAtBetween(UUID userId, String outcome, LocalDateTime start, LocalDateTime end);
 
@@ -34,4 +39,6 @@ public interface ProblemAttemptRepository extends JpaRepository<ProblemAttempt, 
 
     @Query("SELECT a FROM ProblemAttempt a WHERE a.user.id = :userId AND a.problemSlug = :problemSlug ORDER BY a.attemptedAt DESC")
     List<ProblemAttempt> findByUserIdAndProblemSlug(@Param("userId") UUID userId, @Param("problemSlug") String problemSlug);
+
+    Optional<ProblemAttempt> findFirstByUserIdAndOutcomeAndDifficultyOrderByAttemptedAtAsc(UUID userId, String outcome, String difficulty);
 }
