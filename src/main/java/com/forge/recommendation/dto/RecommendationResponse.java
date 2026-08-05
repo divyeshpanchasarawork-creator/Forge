@@ -1,5 +1,6 @@
 package com.forge.recommendation.dto;
 
+import com.forge.common.util.ProblemScorer;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,4 +29,5 @@ public class RecommendationResponse {
     private String problemTitle;
     private String problemDifficulty;
     private LocalDateTime createdAt;
+    private ProblemScorer.ScoreBreakdown scoreBreakdown;
 }

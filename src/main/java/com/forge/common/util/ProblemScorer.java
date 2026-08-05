@@ -68,7 +68,8 @@ public class ProblemScorer {
                 new Signal("Coverage balance", 0.07, coverageBalance(ctx.attempts(), tagSlug)),
                 new Signal("Goal alignment", 0.06, goalAlignment(candidate.getDifficulty(), ctx.targetLevel())),
                 new Signal("Not suggested", 0.04, notPreviouslySuggested(ctx.suggestedSlugs(), candidate)),
-                new Signal("Diversity", 0.02, 50.0)
+                new Signal("Diversity", 0.02, 50.0),
+                new Signal("UCB exploration", 0.10, ucbExploration(ctx.attempts(), candidate.getTitleSlug()))
         );
 
         double total = 0;
@@ -215,6 +216,13 @@ public class ProblemScorer {
     private double notPreviouslySuggested(List<String> suggestedSlugs, ProblemLoader.ProblemEntry candidate) {
         if (suggestedSlugs.contains(candidate.getTitleSlug())) return 0.0;
         return 100.0;
+    }
+
+    private double ucbExploration(List<ProblemAttempt> attempts, String problemSlug) {
+        if (attempts == null || attempts.isEmpty()) return 50.0;
+        long total = attempts.size();
+        long n = attempts.stream().filter(a -> problemSlug.equals(a.getProblemSlug())).count();
+        return Math.min(100, 50.0 * Math.sqrt(Math.log(total + 1) / (n + 1)));
     }
 
     private boolean matches(String topicTitle, String tagSlug) {

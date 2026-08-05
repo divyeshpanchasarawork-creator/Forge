@@ -51,6 +51,7 @@ export interface Recommendation {
   problemTitle: string | null;
   problemDifficulty: string | null;
   createdAt: string;
+  scoreBreakdown?: { total: number; items: ScoreItem[] } | null;
 }
 
 export interface Journal {

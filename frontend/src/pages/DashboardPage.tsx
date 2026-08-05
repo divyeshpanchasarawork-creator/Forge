@@ -532,6 +532,22 @@ export default function DashboardPage() {
                   )}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{rec.reason}</p>
+                {rec.scoreBreakdown && rec.scoreBreakdown.items && rec.scoreBreakdown.items.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {[...rec.scoreBreakdown.items]
+                      .sort((a, b) => b.contribution - a.contribution)
+                      .slice(0, 3)
+                      .map((s) => (
+                        <span
+                          key={s.name}
+                          title={`${s.name}: ${s.value}/100 × weight ${s.weight}`}
+                          className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground"
+                        >
+                          {s.name} <span className="text-primary">+{s.contribution}</span>
+                        </span>
+                      ))}
+                  </div>
+                )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {rec.problemSlug && (
                     <a

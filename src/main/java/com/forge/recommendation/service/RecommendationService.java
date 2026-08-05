@@ -4,6 +4,8 @@ import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.common.exception.BadRequestException;
 import com.forge.common.exception.ResourceNotFoundException;
+import com.forge.common.util.ProblemLoader;
+import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.SecurityUtils;
 import com.forge.recommendation.dto.GenerateResponse;
 import com.forge.recommendation.dto.RecommendationResponse;
@@ -29,13 +31,12 @@ public class RecommendationService {
     private final RecommendationEngine recommendationEngine;
     private final RecommendationMapper recommendationMapper;
     private final UserRepository userRepository;
+    private final ProblemScorer problemScorer;
+    private final ProblemLoader problemLoader;
 
     public List<RecommendationResponse> getActiveRecommendations() {
         UUID userId = SecurityUtils.getCurrentUserId();
-        return recommendationRepository.findByUserIdAndStatusOrderByPriorityAscCreatedAtDesc(userId, Recommendation.STATUS_ACTIVE)
-                .stream()
-                .map(recommendationMapper::toResponse)
-                .toList();
+        return toResponses(recommendationRepository.findByUserIdAndStatusOrderByPriorityAscCreatedAtDesc(userId, Recommendation.STATUS_ACTIVE));
     }
 
     @Transactional
@@ -59,9 +60,7 @@ public class RecommendationService {
         user.setDailyGenerationsUsed(used + 1);
         userRepository.save(user);
 
-        List<RecommendationResponse> responseRecs = recs.stream()
-                .map(recommendationMapper::toResponse)
-                .toList();
+        List<RecommendationResponse> responseRecs = toResponses(recs);
 
         return new GenerateResponse(responseRecs, DAILY_LIMIT - used - 1, DAILY_LIMIT);
     }
@@ -82,7 +81,7 @@ public class RecommendationService {
         rec.setCompletedAt(LocalDateTime.now());
         rec.setOutcome(normalizeOutcome(outcome));
         rec = recommendationRepository.save(rec);
-        return recommendationMapper.toResponse(rec);
+        return toResponse(rec);
     }
 
     @Transactional
@@ -109,7 +108,7 @@ public class RecommendationService {
         rec.setStatus(Recommendation.STATUS_DISMISSED);
         rec.setDismissed(true);
         rec = recommendationRepository.save(rec);
-        return recommendationMapper.toResponse(rec);
+        return toResponse(rec);
     }
 
     private Recommendation findOwnedRecommendation(UUID id, UUID userId) {
@@ -125,5 +124,27 @@ public class RecommendationService {
         if (outcome == null) return null;
         String normalized = outcome.toUpperCase();
         return List.of("SOLVED", "PARTIAL", "FAILED", "SKIPPED").contains(normalized) ? normalized : null;
+    }
+
+    private List<RecommendationResponse> toResponses(List<Recommendation> recs) {
+        ProblemScorer.ScoringContext ctx = problemScorer.context(SecurityUtils.getCurrentUserId());
+        return recs.stream().map(rec -> toResponse(rec, ctx)).toList();
+    }
+
+    private RecommendationResponse toResponse(Recommendation rec) {
+        return toResponse(rec, problemScorer.context(SecurityUtils.getCurrentUserId()));
+    }
+
+    private RecommendationResponse toResponse(Recommendation rec, ProblemScorer.ScoringContext ctx) {
+        RecommendationResponse resp = recommendationMapper.toResponse(rec);
+        if (rec.getProblemSlug() != null) {
+            String tag = problemLoader.getTagSlugForProblem(rec.getProblemSlug());
+            if (tag != null) {
+                ProblemLoader.ProblemEntry entry = new ProblemLoader.ProblemEntry(
+                        rec.getProblemTitle(), rec.getProblemSlug(), rec.getProblemDifficulty());
+                resp.setScoreBreakdown(problemScorer.breakdown(ctx, entry, tag));
+            }
+        }
+        return resp;
     }
 }

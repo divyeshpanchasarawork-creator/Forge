@@ -22,7 +22,8 @@ public class RecommendationMapper {
                 rec.getProblemSlug(),
                 rec.getProblemTitle(),
                 rec.getProblemDifficulty(),
-                rec.getCreatedAt()
+                rec.getCreatedAt(),
+                null
         );
     }
 }
