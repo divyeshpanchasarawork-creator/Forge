@@ -3,22 +3,56 @@ package com.forge.recommendation.service;
 import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.ProblemScorer;
 import com.forge.leetcode.entity.LeetCodeTagStat;
+import com.forge.leetcode.entity.ProblemSuggestion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 public class CandidatePoolService {
+
+    public static final int MAX_CANDIDATES = 150;
+    private static final List<String> STARTER_TAGS = List.of("array", "hash-table", "two-pointers", "string", "binary-search");
 
     public record Candidate(ProblemLoader.ProblemEntry problem, String tagSlug, int score,
                             ProblemScorer.ScoreBreakdown breakdown) {}
 
     private final ProblemLoader problemLoader;
     private final ProblemScorer problemScorer;
+
+    public List<Candidate> rankForUser(ProblemScorer.ScoringContext ctx, int cap) {
+        List<Candidate> scored = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+
+        for (ProblemSuggestion ps : ctx.suggestions()) {
+            if (!"RECOMMENDATION".equals(ps.getSource())) continue;
+            if (scored.size() >= cap) break;
+            if (seen.add(ps.getTitleSlug())) {
+                ProblemLoader.ProblemEntry entry = new ProblemLoader.ProblemEntry(ps.getTitle(), ps.getTitleSlug(), ps.getDifficulty());
+                ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx, entry, ps.getTopicTagSlug());
+                scored.add(new Candidate(entry, ps.getTopicTagSlug(), breakdown.total(), breakdown));
+            }
+        }
+
+        for (String tagSlug : resolveCandidateTags(ctx)) {
+            if (scored.size() >= cap) break;
+            for (ProblemLoader.ProblemEntry candidate : problemLoader.getProblemsForTag(tagSlug)) {
+                if (scored.size() >= cap) break;
+                if (!seen.add(candidate.getTitleSlug())) continue;
+                ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx, candidate, tagSlug);
+                scored.add(new Candidate(candidate, tagSlug, breakdown.total(), breakdown));
+            }
+        }
+
+        scored.sort((a, b) -> Integer.compare(b.score(), a.score()));
+        return scored.stream().limit(Math.max(0, cap)).toList();
+    }
 
     public Optional<Candidate> bestProblem(ProblemScorer.ScoringContext ctx, String difficulty, String tagSlug) {
         List<String> candidateTags = tagSlug != null
@@ -74,6 +108,20 @@ public class CandidatePoolService {
                 .findFirst()
                 .map(LeetCodeTagStat::getTagSlug)
                 .orElse(null);
+    }
+
+    private List<String> resolveCandidateTags(ProblemScorer.ScoringContext ctx) {
+        List<LeetCodeTagStat> tagStats = ctx.stats();
+        if (tagStats.isEmpty()) return STARTER_TAGS;
+        List<String> weakTags = tagStats.stream()
+                .filter(ts -> ts.getProblemsSolved() == null || ts.getProblemsSolved() < 5)
+                .map(LeetCodeTagStat::getTagSlug)
+                .filter(slug -> !problemLoader.getProblemsForTag(slug).isEmpty())
+                .toList();
+        if (!weakTags.isEmpty()) return weakTags;
+        return tagStats.stream()
+                .map(LeetCodeTagStat::getTagSlug)
+                .toList();
     }
 
     private String slugify(String topicTitle) {

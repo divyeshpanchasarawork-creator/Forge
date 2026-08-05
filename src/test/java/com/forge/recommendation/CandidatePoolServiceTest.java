@@ -3,6 +3,7 @@ package com.forge.recommendation;
 import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.ProblemScorer;
 import com.forge.leetcode.entity.LeetCodeTagStat;
+import com.forge.leetcode.entity.ProblemSuggestion;
 import com.forge.recommendation.service.CandidatePoolService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -33,6 +35,10 @@ class CandidatePoolServiceTest {
 
     private ProblemScorer.ScoringContext ctx(List<LeetCodeTagStat> stats) {
         return new ProblemScorer.ScoringContext(stats, List.of(), List.of(), List.of(), 5);
+    }
+
+    private ProblemScorer.ScoringContext ctx(List<LeetCodeTagStat> stats, List<ProblemSuggestion> suggestions) {
+        return new ProblemScorer.ScoringContext(stats, List.of(), List.of(), suggestions, 5);
     }
 
     @Test
@@ -128,5 +134,76 @@ class CandidatePoolServiceTest {
         service.bestProblem(ctx(List.of()), null, "arrays");
 
         verify(problemScorer, never()).context(any());
+    }
+
+    @Test
+    void rankForUserShouldComposeSuggestionsAndWeakTagsDeduped() {
+        LeetCodeTagStat weak = new LeetCodeTagStat();
+        weak.setTagSlug("dp");
+        weak.setProblemsSolved(2);
+
+        ProblemSuggestion suggestion = new ProblemSuggestion();
+        suggestion.setSource("RECOMMENDATION");
+        suggestion.setTitle("Suggested One");
+        suggestion.setTitleSlug("sug1");
+        suggestion.setDifficulty("Medium");
+        suggestion.setTopicTagSlug("dp");
+
+        ProblemLoader.ProblemEntry dup = new ProblemLoader.ProblemEntry("Suggested One", "sug1", "Medium");
+        ProblemLoader.ProblemEntry other = new ProblemLoader.ProblemEntry("Other", "other", "Easy");
+        when(problemLoader.getProblemsForTag("dp")).thenReturn(List.of(dup, other));
+        when(problemScorer.breakdown(any(), any(), any())).thenReturn(new ProblemScorer.ScoreBreakdown(70, List.of()));
+
+        List<CandidatePoolService.Candidate> ranked = service.rankForUser(ctx(List.of(weak), List.of(suggestion)), 150);
+
+        assertEquals(2, ranked.size());
+        assertEquals(1, ranked.stream().filter(c -> c.problem().getTitleSlug().equals("sug1")).count());
+        assertTrue(ranked.stream().anyMatch(c -> c.problem().getTitleSlug().equals("other")));
+    }
+
+    @Test
+    void rankForUserShouldIgnoreNonRecommendationSuggestions() {
+        ProblemSuggestion weakTagSuggestion = new ProblemSuggestion();
+        weakTagSuggestion.setSource("WEAK_TAG");
+        weakTagSuggestion.setTitleSlug("wts");
+
+        LeetCodeTagStat weak = new LeetCodeTagStat();
+        weak.setTagSlug("dp");
+        weak.setProblemsSolved(2);
+        when(problemLoader.getProblemsForTag("dp")).thenReturn(List.of());
+
+        List<CandidatePoolService.Candidate> ranked = service.rankForUser(ctx(List.of(weak), List.of(weakTagSuggestion)), 150);
+
+        assertTrue(ranked.isEmpty());
+    }
+
+    @Test
+    void rankForUserShouldFallBackToStarterTagsWhenNoStats() {
+        ProblemLoader.ProblemEntry p = new ProblemLoader.ProblemEntry("Two Sum", "two-sum", "Easy");
+        when(problemLoader.getProblemsForTag(anyString())).thenReturn(List.of());
+        when(problemLoader.getProblemsForTag("array")).thenReturn(List.of(p));
+        when(problemScorer.breakdown(any(), any(), any())).thenReturn(new ProblemScorer.ScoreBreakdown(60, List.of()));
+
+        List<CandidatePoolService.Candidate> ranked = service.rankForUser(ctx(List.of()), 150);
+
+        assertEquals(1, ranked.size());
+        assertEquals("two-sum", ranked.getFirst().problem().getTitleSlug());
+        assertEquals("array", ranked.getFirst().tagSlug());
+    }
+
+    @Test
+    void rankForUserShouldCapAtRequestedLimit() {
+        LeetCodeTagStat weak = new LeetCodeTagStat();
+        weak.setTagSlug("dp");
+        weak.setProblemsSolved(2);
+        when(problemLoader.getProblemsForTag("dp")).thenReturn(List.of(
+                new ProblemLoader.ProblemEntry("P1", "p1", "Medium"),
+                new ProblemLoader.ProblemEntry("P2", "p2", "Medium"),
+                new ProblemLoader.ProblemEntry("P3", "p3", "Medium")));
+        when(problemScorer.breakdown(any(), any(), any())).thenReturn(new ProblemScorer.ScoreBreakdown(70, List.of()));
+
+        List<CandidatePoolService.Candidate> ranked = service.rankForUser(ctx(List.of(weak)), 2);
+
+        assertEquals(2, ranked.size());
     }
 }

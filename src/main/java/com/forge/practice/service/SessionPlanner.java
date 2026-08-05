@@ -1,9 +1,9 @@
 package com.forge.practice.service;
 
-import com.forge.common.util.ProblemScorer;
 import com.forge.intelligence.service.ColdStartService;
 import com.forge.intelligence.service.SkillRatingService;
 import com.forge.practice.dto.PracticeProblemResponse;
+import com.forge.recommendation.service.CandidatePoolService;
 import com.forge.topic.entity.Topic;
 import org.springframework.stereotype.Service;
 
@@ -32,7 +32,7 @@ public class SessionPlanner {
 
     public List<PracticeProblemResponse> build(
             UUID userId,
-            List<ProblemScorer.ScoredProblem> scored,
+            List<CandidatePoolService.Candidate> scored,
             Map<String, AttemptCounts> attemptsBySlug,
             List<Topic> revisionTopics,
             ColdStartService.Profile profile,
@@ -52,13 +52,13 @@ public class SessionPlanner {
     }
 
     private void addRevisionSegment(List<PracticeProblemResponse> result, Set<String> used,
-                                    List<ProblemScorer.ScoredProblem> scored, List<Topic> revisionTopics,
+                                    List<CandidatePoolService.Candidate> scored, List<Topic> revisionTopics,
                                     Map<String, AttemptCounts> attemptsBySlug, int cap) {
         if (revisionTopics.isEmpty()) return;
         int added = 0;
         for (Topic topic : revisionTopics) {
             if (result.size() >= cap || added >= 2) break;
-            for (ProblemScorer.ScoredProblem sp : scored) {
+            for (CandidatePoolService.Candidate sp : scored) {
                 if (result.size() >= cap || added >= 2) break;
                 if (!matches(sp.tagSlug(), topic.getTitle())) continue;
                 if (used.add(sp.problem().getTitleSlug())) {
@@ -72,11 +72,11 @@ public class SessionPlanner {
     }
 
     private void addWarmupSegment(List<PracticeProblemResponse> result, Set<String> used,
-                                  List<ProblemScorer.ScoredProblem> byScore,
+                                  List<CandidatePoolService.Candidate> byScore,
                                   Map<String, AttemptCounts> attemptsBySlug, int cap, ColdStartService.Profile profile) {
         int wanted = profile == ColdStartService.Profile.BEGINNER ? 2 : 1;
         int added = 0;
-        for (ProblemScorer.ScoredProblem sp : byScore) {
+        for (CandidatePoolService.Candidate sp : byScore) {
             if (result.size() >= cap || added >= wanted) break;
             if (!"EASY".equalsIgnoreCase(sp.problem().getDifficulty())) continue;
             if (used.add(sp.problem().getTitleSlug())) {
@@ -89,11 +89,11 @@ public class SessionPlanner {
     }
 
     private void addChallengeSegment(List<PracticeProblemResponse> result, Set<String> used,
-                                     List<ProblemScorer.ScoredProblem> byScore,
+                                     List<CandidatePoolService.Candidate> byScore,
                                      Map<String, AttemptCounts> attemptsBySlug, int cap,
                                      ColdStartService.Profile profile, UUID userId) {
         int added = 0;
-        for (ProblemScorer.ScoredProblem sp : byScore) {
+        for (CandidatePoolService.Candidate sp : byScore) {
             if (result.size() >= cap || added >= 1) break;
             boolean hardish = "HARD".equalsIgnoreCase(sp.problem().getDifficulty())
                     || "MEDIUM".equalsIgnoreCase(sp.problem().getDifficulty());
@@ -109,9 +109,9 @@ public class SessionPlanner {
     }
 
     private void addReinforceSegment(List<PracticeProblemResponse> result, Set<String> used,
-                                     List<ProblemScorer.ScoredProblem> byScore,
+                                     List<CandidatePoolService.Candidate> byScore,
                                      Map<String, AttemptCounts> attemptsBySlug, int cap) {
-        for (ProblemScorer.ScoredProblem sp : byScore) {
+        for (CandidatePoolService.Candidate sp : byScore) {
             if (result.size() >= cap) break;
             if (used.add(sp.problem().getTitleSlug())) {
                 result.add(toResponse(sp, SEGMENT_REINFORCE,
@@ -121,7 +121,7 @@ public class SessionPlanner {
         }
     }
 
-    private PracticeProblemResponse toResponse(ProblemScorer.ScoredProblem sp, String segment, String reason,
+    private PracticeProblemResponse toResponse(CandidatePoolService.Candidate sp, String segment, String reason,
                                                AttemptCounts counts) {
         return new PracticeProblemResponse(
                 sp.problem().getTitle(),

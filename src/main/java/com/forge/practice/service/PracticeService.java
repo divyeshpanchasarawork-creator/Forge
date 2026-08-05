@@ -1,7 +1,6 @@
 package com.forge.practice.service;
 
 import com.forge.common.exception.BadRequestException;
-import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.SecurityUtils;
 import com.forge.intelligence.service.ColdStartService;
@@ -9,14 +8,13 @@ import com.forge.intelligence.service.ForgettingCurveService;
 import com.forge.intelligence.service.MasteryService;
 import com.forge.intelligence.service.SkillRatingService;
 import com.forge.knowledge.service.KnowledgeGraphService;
-import com.forge.leetcode.entity.LeetCodeTagStat;
-import com.forge.leetcode.entity.ProblemSuggestion;
 import com.forge.practice.dto.PracticeProblemResponse;
 import com.forge.practice.dto.PracticeQueueResponse;
 import com.forge.practice.dto.ProblemAttemptRequest;
 import com.forge.practice.dto.ProblemAttemptResponse;
 import com.forge.practice.entity.ProblemAttempt;
 import com.forge.practice.repository.ProblemAttemptRepository;
+import com.forge.recommendation.service.CandidatePoolService;
 import com.forge.recommendation.service.RecommendationService;
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
@@ -38,10 +36,7 @@ import java.util.stream.Collectors;
 public class PracticeService {
 
     private static final Set<String> VALID_OUTCOMES = Set.of("SOLVED", "FAILED", "PARTIAL", "SKIPPED");
-    private static final int MAX_CANDIDATES = 150;
-    private static final List<String> STARTER_TAGS = List.of("array", "hash-table", "two-pointers", "string", "binary-search");
 
-    private final ProblemLoader problemLoader;
     private final ProblemScorer problemScorer;
     private final ProblemAttemptRepository problemAttemptRepository;
     private final TopicRepository topicRepository;
@@ -53,6 +48,7 @@ public class PracticeService {
     private final ForgettingCurveService forgettingCurveService;
     private final KnowledgeGraphService knowledgeGraphService;
     private final RecommendationService recommendationService;
+    private final CandidatePoolService candidatePoolService;
 
     public PracticeQueueResponse getPracticeQueue() {
         UUID userId = SecurityUtils.getCurrentUserId();
@@ -63,7 +59,7 @@ public class PracticeService {
         ColdStartService.Profile profile = coldStartService.classify(userId);
 
         ProblemScorer.ScoringContext ctx = problemScorer.context(userId);
-        List<ProblemScorer.ScoredProblem> scored = scoreCandidatePool(ctx);
+        List<CandidatePoolService.Candidate> scored = candidatePoolService.rankForUser(ctx, CandidatePoolService.MAX_CANDIDATES);
         Map<String, SessionPlanner.AttemptCounts> attemptsBySlug = attemptsBySlug(ctx);
 
         List<Topic> revisionTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 500)).getContent().stream()
@@ -135,55 +131,6 @@ public class PracticeService {
     public List<ProblemAttempt> getAttemptHistory(int limit) {
         UUID userId = SecurityUtils.getCurrentUserId();
         return problemAttemptRepository.findByUserIdOrderByAttemptedAtDesc(userId, PageRequest.of(0, Math.min(50, Math.max(1, limit))));
-    }
-
-    private List<ProblemScorer.ScoredProblem> scoreCandidatePool(ProblemScorer.ScoringContext ctx) {
-        List<ProblemScorer.ScoredProblem> scored = new ArrayList<>();
-        Set<String> seen = new HashSet<>();
-
-        List<ProblemSuggestion> recSuggestions = ctx.suggestions().stream()
-                .filter(ps -> "RECOMMENDATION".equals(ps.getSource()))
-                .toList();
-        for (ProblemSuggestion ps : recSuggestions) {
-            String tag = ps.getTopicTagSlug();
-            ProblemLoader.ProblemEntry entry = new ProblemLoader.ProblemEntry(ps.getTitle(), ps.getTitleSlug(), ps.getDifficulty());
-            if (seen.add(ps.getTitleSlug())) {
-                ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx, entry, tag);
-                scored.add(new ProblemScorer.ScoredProblem(entry, tag, breakdown.total(), breakdown));
-            }
-        }
-
-        List<LeetCodeTagStat> tagStats = ctx.stats();
-        List<String> candidateTags;
-        if (tagStats.isEmpty()) {
-            candidateTags = STARTER_TAGS;
-        } else {
-            candidateTags = tagStats.stream()
-                    .filter(ts -> ts.getProblemsSolved() == null || ts.getProblemsSolved() < 5)
-                    .map(LeetCodeTagStat::getTagSlug)
-                    .filter(slug -> problemLoader.getProblemsForTag(slug) != null
-                            && !problemLoader.getProblemsForTag(slug).isEmpty())
-                    .collect(Collectors.toList());
-            if (candidateTags.isEmpty()) {
-                candidateTags = tagStats.stream().map(LeetCodeTagStat::getTagSlug).toList();
-            }
-        }
-
-        for (String tagSlug : candidateTags) {
-            if (scored.size() >= MAX_CANDIDATES) break;
-            String tagName = tagStats.stream()
-                    .filter(ts -> ts.getTagSlug().equals(tagSlug))
-                    .findFirst().map(LeetCodeTagStat::getTagName)
-                    .orElse(tagSlug);
-            for (ProblemLoader.ProblemEntry candidate : problemLoader.getProblemsForTag(tagSlug)) {
-                if (scored.size() >= MAX_CANDIDATES) break;
-                if (!seen.add(candidate.getTitleSlug())) continue;
-                ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx, candidate, tagSlug);
-                scored.add(new ProblemScorer.ScoredProblem(candidate, tagSlug, breakdown.total(), breakdown));
-            }
-        }
-
-        return scored;
     }
 
     private Map<String, SessionPlanner.AttemptCounts> attemptsBySlug(ProblemScorer.ScoringContext ctx) {

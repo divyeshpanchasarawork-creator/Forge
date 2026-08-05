@@ -39,8 +39,6 @@ public class ProblemScorer {
 
     public record ScoreBreakdown(int total, List<ScoreItem> items) {}
 
-    public record ScoredProblem(ProblemLoader.ProblemEntry problem, String tagSlug, int score, ScoreBreakdown breakdown) {}
-
     public record ScoringContext(List<LeetCodeTagStat> stats, List<Topic> topics,
                                  List<ProblemAttempt> attempts, List<ProblemSuggestion> suggestions,
                                  int targetLevel) {

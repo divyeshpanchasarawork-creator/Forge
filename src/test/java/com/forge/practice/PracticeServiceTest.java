@@ -1,6 +1,5 @@
 package com.forge.practice;
 
-import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.SecurityUtils;
 import com.forge.intelligence.service.ColdStartService;
@@ -13,6 +12,7 @@ import com.forge.practice.dto.PracticeQueueResponse;
 import com.forge.practice.repository.ProblemAttemptRepository;
 import com.forge.practice.service.PracticeService;
 import com.forge.practice.service.SessionPlanner;
+import com.forge.recommendation.service.CandidatePoolService;
 import com.forge.recommendation.service.RecommendationService;
 import com.forge.security.UserPrincipal;
 import com.forge.auth.repository.UserRepository;
@@ -34,14 +34,12 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class PracticeServiceTest {
 
-    @Mock private ProblemLoader problemLoader;
     @Mock private ProblemScorer problemScorer;
     @Mock private ProblemAttemptRepository problemAttemptRepository;
     @Mock private TopicRepository topicRepository;
@@ -53,15 +51,16 @@ class PracticeServiceTest {
     @Mock private ForgettingCurveService forgettingCurveService;
     @Mock private KnowledgeGraphService knowledgeGraphService;
     @Mock private RecommendationService recommendationService;
+    @Mock private CandidatePoolService candidatePoolService;
 
     private PracticeService service;
     private UUID userId;
 
     @BeforeEach
     void setUp() {
-        service = new PracticeService(problemLoader, problemScorer, problemAttemptRepository, topicRepository,
+        service = new PracticeService(problemScorer, problemAttemptRepository, topicRepository,
                 userRepository, coldStartService, sessionPlanner, masteryService, skillRatingService,
-                forgettingCurveService, knowledgeGraphService, recommendationService);
+                forgettingCurveService, knowledgeGraphService, recommendationService, candidatePoolService);
         userId = UUID.randomUUID();
         UserPrincipal principal = new UserPrincipal(userId, "testuser", "password");
         Authentication auth = new UsernamePasswordAuthenticationToken(principal, null, List.of());
@@ -80,7 +79,7 @@ class PracticeServiceTest {
         when(coldStartService.planMessage(eq(userId), any())).thenReturn("plan");
         when(problemScorer.context(userId)).thenReturn(
                 new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(), List.of(), 5));
-        when(problemLoader.getProblemsForTag(anyString())).thenReturn(List.of());
+        when(candidatePoolService.rankForUser(any(), anyInt())).thenReturn(List.of());
         when(topicRepository.findByUserId(eq(userId), any())).thenReturn(new PageImpl<>(List.of()));
         when(sessionPlanner.build(any(), any(), any(), any(), any(), anyInt())).thenReturn(List.of());
 
@@ -105,7 +104,7 @@ class PracticeServiceTest {
         when(coldStartService.planMessage(eq(userId), any())).thenReturn("plan");
         when(problemScorer.context(userId)).thenReturn(
                 new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(attempt), List.of(), 5));
-        when(problemLoader.getProblemsForTag(anyString())).thenReturn(List.of());
+        when(candidatePoolService.rankForUser(any(), anyInt())).thenReturn(List.of());
         when(topicRepository.findByUserId(eq(userId), any())).thenReturn(new PageImpl<>(List.of()));
         when(sessionPlanner.build(any(), any(), any(), any(), any(), anyInt())).thenAnswer(inv -> {
             Map<String, SessionPlanner.AttemptCounts> counts = inv.getArgument(2);
