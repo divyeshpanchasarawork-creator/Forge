@@ -4,7 +4,6 @@ import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.common.exception.ResourceNotFoundException;
 import com.forge.common.util.ProblemLoader;
-import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.ReadinessCalculator;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.entity.LeetCodeTagStat;
@@ -37,7 +36,7 @@ public class RecommendationEngine {
     private final LeetCodeTagStatRepository tagStatRepository;
     private final ProblemSuggestionRepository problemSuggestionRepository;
     private final ProblemLoader problemLoader;
-    private final ProblemScorer problemScorer;
+    private final CandidatePoolService candidatePoolService;
 
     public List<Recommendation> generateForUser(UUID userId, boolean persist) {
         User user = userRepository.findById(userId)
@@ -316,35 +315,9 @@ public class RecommendationEngine {
     }
 
     private ProblemLoader.ProblemEntry pickBestProblem(UUID userId, String difficulty, String tagSlug) {
-        List<LeetCodeTagStat> tagStats = tagStatRepository.findByUserId(userId);
-        List<String> candidateTags;
-        if (tagSlug != null) {
-            candidateTags = List.of(tagSlug);
-        } else {
-            candidateTags = tagStats.stream()
-                    .filter(ts -> ts.getProblemsSolved() != null && ts.getProblemsSolved() < 5)
-                    .map(LeetCodeTagStat::getTagSlug)
-                    .toList();
-            if (candidateTags.isEmpty()) {
-                candidateTags = tagStats.stream()
-                        .map(LeetCodeTagStat::getTagSlug)
-                        .toList();
-            }
-        }
-
-        List<ProblemScorer.ScoredProblem> scored = new ArrayList<>();
-        ProblemScorer.ScoringContext ctx = problemScorer.context(userId);
-        for (String ct : candidateTags) {
-            List<ProblemLoader.ProblemEntry> candidates = problemLoader.getProblemsForTag(ct);
-            for (ProblemLoader.ProblemEntry c : candidates) {
-                if (difficulty != null && !c.getDifficulty().equalsIgnoreCase(difficulty)) continue;
-                ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx, c, ct);
-                scored.add(new ProblemScorer.ScoredProblem(c, ct, breakdown.total(), breakdown));
-            }
-        }
-
-        scored.sort((a, b) -> Integer.compare(b.score(), a.score()));
-        return scored.isEmpty() ? null : scored.getFirst().problem();
+        return candidatePoolService.bestProblem(userId, difficulty, tagSlug)
+                .map(CandidatePoolService.Candidate::problem)
+                .orElse(null);
     }
 
     private List<Recommendation> checkLowConfidenceTopics(UUID userId, User user) {
@@ -399,31 +372,9 @@ public class RecommendationEngine {
     }
 
     private ProblemLoader.ProblemEntry pickBestProblemForTopic(UUID userId, String topicTitle) {
-        String topicSlug = topicTitle.toLowerCase().replace(' ', '-').replaceAll("[^a-z0-9-]", "");
-        List<ProblemLoader.ProblemEntry> candidates = problemLoader.getProblemsForTag(topicSlug);
-        if (candidates.isEmpty()) {
-            List<LeetCodeTagStat> tagStats = tagStatRepository.findByUserId(userId);
-            String matchingSlug = tagStats.stream()
-                    .filter(ts -> ts.getTagName().equalsIgnoreCase(topicTitle)
-                            || ts.getTagSlug().equalsIgnoreCase(topicSlug))
-                    .findFirst().map(LeetCodeTagStat::getTagSlug)
-                    .orElse(null);
-            if (matchingSlug != null) {
-                candidates = problemLoader.getProblemsForTag(matchingSlug);
-            }
-        }
-        if (candidates.isEmpty()) return null;
-
-        ProblemScorer.ScoringContext ctx = problemScorer.context(userId);
-        List<ProblemScorer.ScoredProblem> scored = candidates.stream()
-                .map(c -> {
-                    ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx, c, topicSlug);
-                    return new ProblemScorer.ScoredProblem(c, topicSlug, breakdown.total(), breakdown);
-                })
-                .sorted((a, b) -> Integer.compare(b.score(), a.score()))
-                .toList();
-
-        return scored.isEmpty() ? null : scored.getFirst().problem();
+        return candidatePoolService.bestProblemForTopic(userId, topicTitle)
+                .map(CandidatePoolService.Candidate::problem)
+                .orElse(null);
     }
 
     private List<Recommendation> checkOverdueRevisions(UUID userId, User user) {
