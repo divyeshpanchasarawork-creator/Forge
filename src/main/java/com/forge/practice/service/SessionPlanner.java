@@ -41,12 +41,14 @@ public class SessionPlanner {
         List<PracticeProblemResponse> result = new ArrayList<>();
         Set<String> used = new LinkedHashSet<>();
 
-        scored.sort((a, b) -> Integer.compare(b.score(), a.score()));
+        List<CandidatePoolService.Candidate> byScore = scored.stream()
+                .sorted((a, b) -> Integer.compare(b.score(), a.score()))
+                .toList();
 
-        addRevisionSegment(result, used, scored, revisionTopics, attemptsBySlug, cap);
-        addWarmupSegment(result, used, scored, attemptsBySlug, cap, profile);
-        addChallengeSegment(result, used, scored, attemptsBySlug, cap, profile, userId);
-        addReinforceSegment(result, used, scored, attemptsBySlug, cap);
+        addRevisionSegment(result, used, byScore, revisionTopics, attemptsBySlug, cap);
+        addWarmupSegment(result, used, byScore, attemptsBySlug, cap, profile);
+        addChallengeSegment(result, used, byScore, attemptsBySlug, cap, profile, userId);
+        addReinforceSegment(result, used, byScore, attemptsBySlug, cap);
 
         return result;
     }
