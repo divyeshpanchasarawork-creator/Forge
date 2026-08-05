@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { journalsApi } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import ApiErrorState from '@/components/ui/ApiErrorState';
 import { useState } from 'react';
 
 export default function JournalPage() {
@@ -18,7 +19,7 @@ export default function JournalPage() {
 
   const [page, setPage] = useState(0);
 
-  const { data: journalPage } = useQuery({
+  const { data: journalPage, error, refetch } = useQuery({
     queryKey: ['journal', 'all', page],
     queryFn: () => journalsApi.getAll(page, 20).then((res) => res.data.data),
   });
@@ -129,7 +130,9 @@ export default function JournalPage() {
       </Card>
 
       {/* All Entries */}
-      {entries.length > 0 ? (
+      {error ? (
+        <ApiErrorState error={error} onRetry={() => refetch()} />
+      ) : entries.length > 0 ? (
         <Card>
           <CardHeader>
             <CardTitle>All Entries</CardTitle>

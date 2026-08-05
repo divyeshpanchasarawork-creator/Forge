@@ -4,6 +4,7 @@ import { revisionsApi } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import KpiCard from '@/components/ui/KpiCard';
 import { SkeletonList } from '@/components/ui/LoadingSkeleton';
+import ApiErrorState from '@/components/ui/ApiErrorState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import {
@@ -69,7 +70,7 @@ export default function RevisionPage() {
   const targetLevel = user?.targetLevel ?? 5;
   const overdueThreshold = targetLevel >= 7 ? '7 days' : targetLevel >= 4 ? '14 days' : '21 days';
 
-  const { data: todayRevisions, isLoading: loadingToday } = useQuery({
+  const { data: todayRevisions, isLoading: loadingToday, error: todayError, refetch: refetchToday } = useQuery({
     queryKey: ['revisions', 'today'],
     queryFn: () => revisionsApi.getToday().then((res) => res.data.data),
   });
@@ -91,6 +92,10 @@ export default function RevisionPage() {
       }
     },
   });
+
+  if (todayError) {
+    return <ApiErrorState error={todayError} onRetry={() => refetchToday()} />;
+  }
 
   if (loadingToday) {
     return <SkeletonList rows={4} />;

@@ -52,43 +52,52 @@ public class LeetCodeFetchService {
         Object lock = SYNC_LOCKS.computeIfAbsent(userId, k -> new Object());
         synchronized (lock) {
             try {
-                TransactionTemplate txTemplate = new TransactionTemplate(transactionManager);
-                return txTemplate.execute(status -> doSyncUserProfile(userId));
+                User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+
+                String lcUsername = user.getLeetcodeUsername();
+                if (lcUsername == null || lcUsername.isBlank()) {
+                    throw new IllegalStateException("No LeetCode username set. Update your profile first.");
+                }
+
+                LeetCodeGraphQlResponse graphqlResponse = leetCodeClient.fetchUserProfile(lcUsername);
+                if (graphqlResponse == null || graphqlResponse.getData() == null) {
+                    throw new IllegalStateException("Could not fetch LeetCode data for: " + lcUsername);
+                }
+
+                LeetCodeGraphQlResponse.Data data = graphqlResponse.getData();
+                LeetCodeGraphQlResponse.MatchedUser matchedUser = data.getMatchedUser();
+                if (matchedUser == null) {
+                    throw new IllegalStateException("LeetCode user not found: " + lcUsername);
+                }
+
+                LeetCodeStatsResponse response = writeSyncData(userId, lcUsername, data, matchedUser);
+                generateRecommendationsInOwnTransaction(userId);
+                return response;
             } finally {
                 SYNC_LOCKS.remove(userId, lock);
             }
         }
     }
 
-    private LeetCodeStatsResponse doSyncUserProfile(UUID userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+    private LeetCodeStatsResponse writeSyncData(UUID userId, String lcUsername,
+                                                LeetCodeGraphQlResponse.Data data,
+                                                LeetCodeGraphQlResponse.MatchedUser matchedUser) {
+        TransactionTemplate txTemplate = new TransactionTemplate(transactionManager);
+        return txTemplate.execute(status -> {
+            LeetCodeSnapshot snapshot = saveSnapshot(userId, data, matchedUser);
+            saveTagStats(userId, matchedUser);
+            User managedUser = userRepository.getReferenceById(userId);
+            syncTopicsFromTags(managedUser, matchedUser);
+            fetchAndSaveProblemSuggestions(managedUser, matchedUser);
+            log.info("LeetCode sync complete for user: {} (solved: {})", lcUsername, snapshot.getTotalSolved());
+            return toStatsResponse(snapshot, userId);
+        });
+    }
 
-        String lcUsername = user.getLeetcodeUsername();
-        if (lcUsername == null || lcUsername.isBlank()) {
-            throw new IllegalStateException("No LeetCode username set. Update your profile first.");
-        }
-
-        LeetCodeGraphQlResponse graphqlResponse = leetCodeClient.fetchUserProfile(lcUsername);
-        if (graphqlResponse == null || graphqlResponse.getData() == null) {
-            throw new IllegalStateException("Could not fetch LeetCode data for: " + lcUsername);
-        }
-
-        LeetCodeGraphQlResponse.Data data = graphqlResponse.getData();
-        LeetCodeGraphQlResponse.MatchedUser matchedUser = data.getMatchedUser();
-        if (matchedUser == null) {
-            throw new IllegalStateException("LeetCode user not found: " + lcUsername);
-        }
-
-        LeetCodeSnapshot snapshot = saveSnapshot(userId, data, matchedUser);
-        saveTagStats(userId, matchedUser);
-        User managedUser = userRepository.getReferenceById(userId);
-        syncTopicsFromTags(managedUser, matchedUser);
-        fetchAndSaveProblemSuggestions(managedUser, matchedUser);
-
-        recommendationEngine.generateForUser(userId, true);
-        log.info("LeetCode sync complete for user: {} (solved: {})", lcUsername, snapshot.getTotalSolved());
-        return toStatsResponse(snapshot, userId);
+    private void generateRecommendationsInOwnTransaction(UUID userId) {
+        TransactionTemplate txTemplate = new TransactionTemplate(transactionManager);
+        txTemplate.executeWithoutResult(status -> recommendationEngine.generateForUser(userId, true));
     }
 
     public LeetCodeStatsResponse getLatestStats(UUID userId) {

@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/Badge';
 import TeachingEmptyState from '@/components/ui/TeachingEmptyState';
 import { Code, RefreshCw, ExternalLink, CheckCircle2, ChevronDown, ChevronUp, Sparkles, Target, RotateCcw } from 'lucide-react';
 import { SkeletonList } from '@/components/ui/LoadingSkeleton';
+import ApiErrorState from '@/components/ui/ApiErrorState';
 import { parseApiError } from '@/lib/error';
 import type { PracticeProblem, ProblemAttemptRequest } from '@/types';
 
@@ -203,7 +204,7 @@ export default function PracticePage() {
   const [syncError, setSyncError] = useState('');
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['practice', 'queue'],
     queryFn: () => practiceApi.getQueue().then((res) => res.data.data),
     staleTime: 20_000,
@@ -271,7 +272,9 @@ export default function PracticePage() {
         </div>
       )}
 
-      {isLoading ? (
+      {error ? (
+        <ApiErrorState error={error} onRetry={() => refetch()} />
+      ) : isLoading ? (
         <SkeletonList rows={5} />
       ) : queue.length > 0 ? (
         <div className="space-y-8">

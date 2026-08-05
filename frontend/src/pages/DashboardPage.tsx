@@ -4,6 +4,7 @@ import { dashboardApi, recommendationsApi, practiceApi, analyticsApi } from '@/a
 import { parseApiError } from '@/lib/error';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import KpiCard from '@/components/ui/KpiCard';
+import ApiErrorState from '@/components/ui/ApiErrorState';
 import { DashboardSkeleton } from '@/components/ui/LoadingSkeleton';
 import { Badge } from '@/components/ui/Badge';
 import { useAuth } from '@/contexts/AuthContext';
@@ -55,7 +56,7 @@ export default function DashboardPage() {
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [remaining, setRemaining] = useState<number | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => dashboardApi.get().then((res) => res.data.data),
   });
@@ -84,6 +85,10 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return <DashboardSkeleton />;
+  }
+
+  if (error) {
+    return <ApiErrorState error={error} onRetry={() => refetch()} />;
   }
 
   if (!data) return null;

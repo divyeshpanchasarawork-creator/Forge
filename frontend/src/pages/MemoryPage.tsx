@@ -4,6 +4,7 @@ import TeachingEmptyState from '@/components/ui/TeachingEmptyState';
 import { Brain, ExternalLink, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SkeletonList } from '@/components/ui/LoadingSkeleton';
+import ApiErrorState from '@/components/ui/ApiErrorState';
 
 const retentionColor = (r: number | null) => {
   if (r == null) return 'text-muted-foreground';
@@ -20,10 +21,14 @@ const retentionBg = (r: number | null) => {
 };
 
 export default function MemoryPage() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['memory'],
     queryFn: () => memoryApi.get().then((res) => res.data.data),
   });
+
+  if (error) {
+    return <ApiErrorState error={error} onRetry={() => refetch()} />;
+  }
 
   if (isLoading) {
     return <SkeletonList rows={4} />;

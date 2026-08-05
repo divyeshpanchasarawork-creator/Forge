@@ -5,6 +5,7 @@ import TeachingEmptyState from '@/components/ui/TeachingEmptyState';
 import { Brain, Target, ArrowRight, Lightbulb } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SkeletonCard } from '@/components/ui/LoadingSkeleton';
+import ApiErrorState from '@/components/ui/ApiErrorState';
 
 const readinessColor = (score: number) => {
   if (score >= 70) return 'text-green-400';
@@ -22,10 +23,14 @@ export default function RoadmapPage() {
   const { user } = useAuth();
   const targetLevel = user?.targetLevel ?? 5;
 
-  const { data: analysis, isLoading } = useQuery({
+  const { data: analysis, isLoading, error, refetch } = useQuery({
     queryKey: ['roadmap-analysis'],
     queryFn: () => roadmapApi.getAnalysis().then((res) => res.data.data),
   });
+
+  if (error) {
+    return <ApiErrorState error={error} onRetry={() => refetch()} />;
+  }
 
   if (isLoading) {
     return (

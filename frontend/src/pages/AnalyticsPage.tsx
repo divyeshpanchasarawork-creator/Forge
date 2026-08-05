@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { analyticsApi } from '@/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ChartSkeleton, SkeletonCard } from '@/components/ui/LoadingSkeleton';
+import ApiErrorState from '@/components/ui/ApiErrorState';
 import { targetLevels, getTargetLevel } from '@/lib/targetLevels';
 import {
   BarChart, Bar, LineChart, Line, ReferenceDot, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -418,7 +419,7 @@ function ConsistencyHeatmap({ activity }: { activity: ActivityDay[] }) {
 
 export default function AnalyticsPage() {
   const navigate = useNavigate();
-  const { data, isLoading } = useQuery<AnalyticsResponse>({
+  const { data, isLoading, error, refetch } = useQuery<AnalyticsResponse>({
     queryKey: ['analytics'],
     queryFn: () => analyticsApi.get().then((res) => res.data.data),
   });
@@ -509,6 +510,10 @@ export default function AnalyticsPage() {
         </div>
       </div>
     );
+  }
+
+  if (error) {
+    return <ApiErrorState error={error} onRetry={() => refetch()} />;
   }
 
   if (!data || !derived) return null;
