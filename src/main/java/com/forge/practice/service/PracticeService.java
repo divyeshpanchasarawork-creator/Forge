@@ -11,8 +11,6 @@ import com.forge.intelligence.service.SkillRatingService;
 import com.forge.knowledge.service.KnowledgeGraphService;
 import com.forge.leetcode.entity.LeetCodeTagStat;
 import com.forge.leetcode.entity.ProblemSuggestion;
-import com.forge.leetcode.repository.LeetCodeTagStatRepository;
-import com.forge.leetcode.repository.ProblemSuggestionRepository;
 import com.forge.practice.dto.PracticeProblemResponse;
 import com.forge.practice.dto.PracticeQueueResponse;
 import com.forge.practice.dto.ProblemAttemptRequest;
@@ -43,10 +41,8 @@ public class PracticeService {
     private static final int MAX_CANDIDATES = 150;
     private static final List<String> STARTER_TAGS = List.of("array", "hash-table", "two-pointers", "string", "binary-search");
 
-    private final LeetCodeTagStatRepository tagStatRepository;
     private final ProblemLoader problemLoader;
     private final ProblemScorer problemScorer;
-    private final ProblemSuggestionRepository problemSuggestionRepository;
     private final ProblemAttemptRepository problemAttemptRepository;
     private final TopicRepository topicRepository;
     private final UserRepository userRepository;
@@ -66,8 +62,9 @@ public class PracticeService {
         }
         ColdStartService.Profile profile = coldStartService.classify(userId);
 
-        List<ProblemScorer.ScoredProblem> scored = scoreCandidatePool(userId);
-        Map<String, SessionPlanner.AttemptCounts> attemptsBySlug = attemptsBySlug(userId);
+        ProblemScorer.ScoringContext ctx = problemScorer.context(userId);
+        List<ProblemScorer.ScoredProblem> scored = scoreCandidatePool(ctx);
+        Map<String, SessionPlanner.AttemptCounts> attemptsBySlug = attemptsBySlug(ctx);
 
         List<Topic> revisionTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 500)).getContent().stream()
                 .filter(t -> (t.getNextRevision() != null && !t.getNextRevision().isAfter(LocalDateTime.now()))
@@ -140,12 +137,11 @@ public class PracticeService {
         return problemAttemptRepository.findByUserIdOrderByAttemptedAtDesc(userId, PageRequest.of(0, Math.min(50, Math.max(1, limit))));
     }
 
-    private List<ProblemScorer.ScoredProblem> scoreCandidatePool(UUID userId) {
+    private List<ProblemScorer.ScoredProblem> scoreCandidatePool(ProblemScorer.ScoringContext ctx) {
         List<ProblemScorer.ScoredProblem> scored = new ArrayList<>();
         Set<String> seen = new HashSet<>();
-        ProblemScorer.ScoringContext ctx = problemScorer.context(userId);
 
-        List<ProblemSuggestion> recSuggestions = problemSuggestionRepository.findByUserId(userId).stream()
+        List<ProblemSuggestion> recSuggestions = ctx.suggestions().stream()
                 .filter(ps -> "RECOMMENDATION".equals(ps.getSource()))
                 .toList();
         for (ProblemSuggestion ps : recSuggestions) {
@@ -157,7 +153,7 @@ public class PracticeService {
             }
         }
 
-        List<LeetCodeTagStat> tagStats = tagStatRepository.findByUserId(userId);
+        List<LeetCodeTagStat> tagStats = ctx.stats();
         List<String> candidateTags;
         if (tagStats.isEmpty()) {
             candidateTags = STARTER_TAGS;
@@ -187,13 +183,12 @@ public class PracticeService {
             }
         }
 
-        scored.sort((a, b) -> Integer.compare(b.score(), a.score()));
         return scored;
     }
 
-    private Map<String, SessionPlanner.AttemptCounts> attemptsBySlug(UUID userId) {
+    private Map<String, SessionPlanner.AttemptCounts> attemptsBySlug(ProblemScorer.ScoringContext ctx) {
         Map<String, SessionPlanner.AttemptCounts> map = new HashMap<>();
-        for (ProblemAttempt a : problemAttemptRepository.findByUserIdAll(userId)) {
+        for (ProblemAttempt a : ctx.attempts()) {
             SessionPlanner.AttemptCounts counts = map.computeIfAbsent(a.getProblemSlug(),
                     k -> new SessionPlanner.AttemptCounts(0, 0));
             map.put(a.getProblemSlug(), new SessionPlanner.AttemptCounts(counts.attempts() + 1,

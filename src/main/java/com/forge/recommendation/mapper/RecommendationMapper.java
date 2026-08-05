@@ -15,7 +15,6 @@ public class RecommendationMapper {
                 rec.getReason(),
                 rec.getPriority(),
                 rec.getAction(),
-                rec.getDismissed(),
                 rec.getStatus(),
                 rec.getCompletedAt(),
                 rec.getOutcome(),

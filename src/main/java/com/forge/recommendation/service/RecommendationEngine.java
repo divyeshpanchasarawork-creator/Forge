@@ -4,12 +4,12 @@ import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.common.exception.ResourceNotFoundException;
 import com.forge.common.util.ProblemLoader;
+import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.ReadinessCalculator;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.entity.LeetCodeTagStat;
 import com.forge.leetcode.entity.ProblemSuggestion;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
-import com.forge.leetcode.repository.LeetCodeTagStatRepository;
 import com.forge.leetcode.repository.ProblemSuggestionRepository;
 import com.forge.recommendation.entity.Recommendation;
 import com.forge.recommendation.repository.RecommendationRepository;
@@ -33,26 +33,27 @@ public class RecommendationEngine {
     private final RecommendationRepository recommendationRepository;
     private final UserRepository userRepository;
     private final LeetCodeSnapshotRepository snapshotRepository;
-    private final LeetCodeTagStatRepository tagStatRepository;
     private final ProblemSuggestionRepository problemSuggestionRepository;
     private final ProblemLoader problemLoader;
+    private final ProblemScorer problemScorer;
     private final CandidatePoolService candidatePoolService;
 
     public List<Recommendation> generateForUser(UUID userId, boolean persist) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
+        ProblemScorer.ScoringContext ctx = problemScorer.context(userId);
         List<Recommendation> recs = new ArrayList<>();
-        recs.addAll(checkLowConfidenceTopics(userId, user));
-        recs.addAll(checkOverdueRevisions(userId, user));
+        recs.addAll(checkLowConfidenceTopics(userId, user, ctx));
+        recs.addAll(checkOverdueRevisions(userId, user, ctx));
 
         LeetCodeSnapshot snapshot = snapshotRepository.findByUserId(userId).orElse(null);
         int streak = (snapshot != null && snapshot.getStreak() != null) ? snapshot.getStreak() : 0;
 
         if (snapshot != null) {
-            recs.addAll(generateLcRecommendations(userId, snapshot));
+            recs.addAll(generateLcRecommendations(userId, snapshot, ctx));
             recs.addAll(checkNextMilestone(snapshot));
-            recs.addAll(checkDifficultyGap(snapshot, userId, user));
+            recs.addAll(checkDifficultyGap(snapshot, user, ctx));
         } else if (user.getLeetcodeUsername() != null && !user.getLeetcodeUsername().isBlank()) {
             recs.add(createRecommendation(
                     "Connect your LeetCode profile",
@@ -70,25 +71,24 @@ public class RecommendationEngine {
         if (persist) {
             recommendationRepository.deleteByUserIdAndStatus(userId, Recommendation.STATUS_ACTIVE);
             recommendationRepository.saveAll(sorted);
-            syncRecProblemsToSuggestions(userId, user);
+            syncRecProblemsToSuggestions(userId, user, sorted, ctx);
             log.info("Generated and saved {} recommendations for user {}", sorted.size(), userId);
         }
 
         return sorted;
     }
 
-    private void syncRecProblemsToSuggestions(UUID userId, User user) {
-        List<Recommendation> recsWithProblems = recommendationRepository
-                .findByUserIdAndStatusOrderByPriorityAscCreatedAtDesc(userId, Recommendation.STATUS_ACTIVE)
-                .stream()
+    private void syncRecProblemsToSuggestions(UUID userId, User user, List<Recommendation> savedRecs,
+                                              ProblemScorer.ScoringContext ctx) {
+        List<Recommendation> recsWithProblems = savedRecs.stream()
                 .filter(r -> r.getProblemSlug() != null)
                 .toList();
 
         if (recsWithProblems.isEmpty()) return;
 
-        Set<String> existingSlugs = new HashSet<>();
-        problemSuggestionRepository.findByUserId(userId)
-                .forEach(ps -> existingSlugs.add(ps.getTitleSlug()));
+        Set<String> existingSlugs = ctx.suggestions().stream()
+                .map(ProblemSuggestion::getTitleSlug)
+                .collect(Collectors.toSet());
 
         List<ProblemSuggestion> toSave = new ArrayList<>();
         for (Recommendation rec : recsWithProblems) {
@@ -116,7 +116,8 @@ public class RecommendationEngine {
         return basePriority + streakPenalty;
     }
 
-    private List<Recommendation> checkDifficultyGap(LeetCodeSnapshot snapshot, UUID userId, User user) {
+    private List<Recommendation> checkDifficultyGap(LeetCodeSnapshot snapshot, User user,
+                                                    ProblemScorer.ScoringContext ctx) {
         List<Recommendation> recs = new ArrayList<>();
         int target = user.getTargetLevel() != null ? user.getTargetLevel() : 5;
 
@@ -140,7 +141,7 @@ public class RecommendationEngine {
 
         int idealHard = (targetHardPct * targetTotal) / 100;
         if (hard < idealHard / 2) {
-            ProblemLoader.ProblemEntry bestHard = pickBestProblem(userId, "Hard", null);
+            ProblemLoader.ProblemEntry bestHard = pickBestProblem(ctx, "Hard", null);
             if (bestHard != null) {
                 recs.add(createRecommendation(
                         "Try " + bestHard.getTitle() + " (Hard)",
@@ -216,18 +217,19 @@ public class RecommendationEngine {
         return recs;
     }
 
-    private List<Recommendation> generateLcRecommendations(UUID userId, LeetCodeSnapshot snapshot) {
+    private List<Recommendation> generateLcRecommendations(UUID userId, LeetCodeSnapshot snapshot,
+                                                           ProblemScorer.ScoringContext ctx) {
         List<Recommendation> recs = new ArrayList<>();
         User user = userRepository.getReferenceById(userId);
 
-        List<LeetCodeTagStat> weakTags = tagStatRepository.findByUserId(userId).stream()
+        List<LeetCodeTagStat> weakTags = ctx.stats().stream()
                 .filter(ts -> ts.getProblemsSolved() < 5 && ts.getProblemsSolved() > 0)
                 .toList();
 
-        List<ProblemSuggestion> suggestions = problemSuggestionRepository.findByUserId(userId);
+        List<ProblemSuggestion> suggestions = ctx.suggestions();
 
         for (LeetCodeTagStat tag : weakTags) {
-            ProblemLoader.ProblemEntry best = pickBestProblem(userId, null, tag.getTagSlug());
+            ProblemLoader.ProblemEntry best = pickBestProblem(ctx, null, tag.getTagSlug());
             if (best != null) {
                 recs.add(createRecommendation(
                         "Try " + best.getTitle() + " (" + best.getDifficulty() + ")",
@@ -272,7 +274,7 @@ public class RecommendationEngine {
         }
 
         if (snapshot.getHardSolved() == 0 && snapshot.getMediumSolved() >= 10) {
-            ProblemLoader.ProblemEntry bestHard = pickBestProblem(userId, "Hard", null);
+            ProblemLoader.ProblemEntry bestHard = pickBestProblem(ctx, "Hard", null);
             if (bestHard != null) {
                 recs.add(createRecommendation(
                         "Start with " + bestHard.getTitle() + " (Hard)",
@@ -314,20 +316,20 @@ public class RecommendationEngine {
         return recs;
     }
 
-    private ProblemLoader.ProblemEntry pickBestProblem(UUID userId, String difficulty, String tagSlug) {
-        return candidatePoolService.bestProblem(userId, difficulty, tagSlug)
+    private ProblemLoader.ProblemEntry pickBestProblem(ProblemScorer.ScoringContext ctx, String difficulty, String tagSlug) {
+        return candidatePoolService.bestProblem(ctx, difficulty, tagSlug)
                 .map(CandidatePoolService.Candidate::problem)
                 .orElse(null);
     }
 
-    private List<Recommendation> checkLowConfidenceTopics(UUID userId, User user) {
+    private List<Recommendation> checkLowConfidenceTopics(UUID userId, User user, ProblemScorer.ScoringContext ctx) {
         List<Topic> weakTopics = topicRepository.findWeakTopicsByUserId(userId);
         List<Recommendation> recs = new ArrayList<>();
         int target = user.getTargetLevel() != null ? user.getTargetLevel() : 5;
 
         for (Topic topic : weakTopics) {
             int adjustedPriority = target >= 7 ? 1 : (target >= 4 ? 2 : 3);
-            ProblemLoader.ProblemEntry best = pickBestProblemForTopic(userId, topic.getTitle());
+            ProblemLoader.ProblemEntry best = pickBestProblemForTopic(ctx, topic.getTitle());
             if (best != null) {
                 recs.add(createRecommendation(
                         "Review " + topic.getTitle() + " with " + best.getTitle(),
@@ -350,7 +352,7 @@ public class RecommendationEngine {
                     .filter(t -> t.getConfidence() >= 4 && t.getConfidence() < 7)
                     .toList();
             for (Topic topic : midTopics) {
-                ProblemLoader.ProblemEntry best = pickBestProblemForTopic(userId, topic.getTitle());
+                ProblemLoader.ProblemEntry best = pickBestProblemForTopic(ctx, topic.getTitle());
                 if (best != null) {
                     recs.add(createRecommendation(
                             "Deepen " + topic.getTitle() + " with " + best.getTitle(),
@@ -371,13 +373,13 @@ public class RecommendationEngine {
         return recs;
     }
 
-    private ProblemLoader.ProblemEntry pickBestProblemForTopic(UUID userId, String topicTitle) {
-        return candidatePoolService.bestProblemForTopic(userId, topicTitle)
+    private ProblemLoader.ProblemEntry pickBestProblemForTopic(ProblemScorer.ScoringContext ctx, String topicTitle) {
+        return candidatePoolService.bestProblemForTopic(ctx, topicTitle)
                 .map(CandidatePoolService.Candidate::problem)
                 .orElse(null);
     }
 
-    private List<Recommendation> checkOverdueRevisions(UUID userId, User user) {
+    private List<Recommendation> checkOverdueRevisions(UUID userId, User user, ProblemScorer.ScoringContext ctx) {
         List<Topic> overdueTopics = topicRepository.findTopicsNeedingRevisionByUserId(userId);
         List<Recommendation> recs = new ArrayList<>();
         int target = user.getTargetLevel() != null ? user.getTargetLevel() : 5;
@@ -387,7 +389,7 @@ public class RecommendationEngine {
             if (topic.getLastRevision() != null) {
                 long daysSince = Duration.between(topic.getLastRevision(), LocalDateTime.now()).toDays();
                 if (daysSince > overdueThreshold) {
-                    ProblemLoader.ProblemEntry best = pickBestProblemForTopic(userId, topic.getTitle());
+                    ProblemLoader.ProblemEntry best = pickBestProblemForTopic(ctx, topic.getTitle());
                     if (best != null) {
                         recs.add(createRecommendation(
                                 topic.getTitle() + " needs review via " + best.getTitle(),
@@ -416,7 +418,6 @@ public class RecommendationEngine {
         rec.setReason(reason);
         rec.setPriority(priority);
         rec.setAction(action);
-        rec.setDismissed(false);
         rec.setUser(user);
         return rec;
     }

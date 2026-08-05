@@ -5,8 +5,8 @@ import com.forge.auth.repository.UserRepository;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.entity.ProblemSuggestion;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
-import com.forge.leetcode.repository.LeetCodeTagStatRepository;
 import com.forge.common.util.ProblemLoader;
+import com.forge.common.util.ProblemScorer;
 import com.forge.leetcode.repository.ProblemSuggestionRepository;
 import com.forge.recommendation.entity.Recommendation;
 import com.forge.recommendation.repository.RecommendationRepository;
@@ -36,9 +36,9 @@ class RecommendationEngineTest {
     @Mock private RecommendationRepository recommendationRepository;
     @Mock private UserRepository userRepository;
     @Mock private LeetCodeSnapshotRepository snapshotRepository;
-    @Mock private LeetCodeTagStatRepository tagStatRepository;
     @Mock private ProblemSuggestionRepository problemSuggestionRepository;
     @Mock private ProblemLoader problemLoader;
+    @Mock private ProblemScorer problemScorer;
     @Mock private CandidatePoolService candidatePoolService;
 
     private RecommendationEngine engine;
@@ -47,12 +47,16 @@ class RecommendationEngineTest {
 
     @BeforeEach
     void setUp() {
-        engine = new RecommendationEngine(topicRepository, recommendationRepository, userRepository, snapshotRepository, tagStatRepository, problemSuggestionRepository, problemLoader, candidatePoolService);
+        engine = new RecommendationEngine(topicRepository, recommendationRepository, userRepository, snapshotRepository, problemSuggestionRepository, problemLoader, problemScorer, candidatePoolService);
         userId = UUID.randomUUID();
         user = new User();
         user.setId(userId);
         user.setUsername("testuser");
         user.setTargetLevel(5);
+    }
+
+    private ProblemScorer.ScoringContext emptyCtx() {
+        return new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(), List.of(), 5);
     }
 
     @Test
@@ -67,6 +71,7 @@ class RecommendationEngineTest {
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of(weakTopic));
         when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        when(problemScorer.context(userId)).thenReturn(emptyCtx());
 
         List<Recommendation> recs = engine.generateForUser(userId, false);
 
@@ -81,6 +86,7 @@ class RecommendationEngineTest {
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        when(problemScorer.context(userId)).thenReturn(emptyCtx());
 
         List<Recommendation> recs = engine.generateForUser(userId, false);
         assertTrue(recs.isEmpty());
@@ -101,7 +107,7 @@ class RecommendationEngineTest {
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.of(snapshot));
-        when(tagStatRepository.findByUserId(userId)).thenReturn(List.of());
+        when(problemScorer.context(userId)).thenReturn(emptyCtx());
 
         List<Recommendation> recs = engine.generateForUser(userId, false);
 
@@ -119,10 +125,9 @@ class RecommendationEngineTest {
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        when(problemScorer.context(userId)).thenReturn(emptyCtx());
         doNothing().when(recommendationRepository).deleteByUserIdAndStatus(any(), any());
         when(recommendationRepository.saveAll(any())).thenReturn(List.of());
-        when(recommendationRepository.findByUserIdAndStatusOrderByPriorityAscCreatedAtDesc(userId, Recommendation.STATUS_ACTIVE))
-                .thenReturn(List.of());
 
         List<Recommendation> recs = engine.generateForUser(userId, true);
 
@@ -136,11 +141,26 @@ class RecommendationEngineTest {
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        when(problemScorer.context(userId)).thenReturn(emptyCtx());
 
         engine.generateForUser(userId, false);
 
         verify(recommendationRepository, never()).deleteByUserIdAndStatus(any(), any());
         verify(recommendationRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void shouldBuildSingleContextPerGeneration() {
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        when(problemScorer.context(userId)).thenReturn(emptyCtx());
+
+        engine.generateForUser(userId, false);
+
+        verify(problemScorer).context(userId);
+        verify(problemSuggestionRepository, never()).findByUserId(any());
     }
 
     @Test
@@ -159,6 +179,7 @@ class RecommendationEngineTest {
         when(topicRepository.findByUserId(any(), any()))
                 .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(midTopic)));
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        when(problemScorer.context(userId)).thenReturn(emptyCtx());
 
         List<Recommendation> recs = engine.generateForUser(userId, false);
 
@@ -180,6 +201,7 @@ class RecommendationEngineTest {
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        when(problemScorer.context(userId)).thenReturn(emptyCtx());
 
         List<Recommendation> recs = engine.generateForUser(userId, false);
 
@@ -213,7 +235,7 @@ class RecommendationEngineTest {
                 new org.springframework.data.domain.PageImpl<>(List.of(topic))
         );
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.of(snapshot));
-        when(tagStatRepository.findByUserId(userId)).thenReturn(List.of());
+        when(problemScorer.context(userId)).thenReturn(emptyCtx());
 
         List<Recommendation> recs = engine.generateForUser(userId, false);
 

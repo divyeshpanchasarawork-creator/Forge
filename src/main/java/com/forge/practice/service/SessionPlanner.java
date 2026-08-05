@@ -41,13 +41,12 @@ public class SessionPlanner {
         List<PracticeProblemResponse> result = new ArrayList<>();
         Set<String> used = new LinkedHashSet<>();
 
-        List<ProblemScorer.ScoredProblem> byScore = new ArrayList<>(scored);
-        byScore.sort((a, b) -> Integer.compare(b.score(), a.score()));
+        scored.sort((a, b) -> Integer.compare(b.score(), a.score()));
 
         addRevisionSegment(result, used, scored, revisionTopics, attemptsBySlug, cap);
-        addWarmupSegment(result, used, byScore, attemptsBySlug, cap, profile);
-        addChallengeSegment(result, used, byScore, attemptsBySlug, cap, profile, userId);
-        addReinforceSegment(result, used, byScore, attemptsBySlug, cap);
+        addWarmupSegment(result, used, scored, attemptsBySlug, cap, profile);
+        addChallengeSegment(result, used, scored, attemptsBySlug, cap, profile, userId);
+        addReinforceSegment(result, used, scored, attemptsBySlug, cap);
 
         return result;
     }
@@ -56,12 +55,10 @@ public class SessionPlanner {
                                     List<ProblemScorer.ScoredProblem> scored, List<Topic> revisionTopics,
                                     Map<String, AttemptCounts> attemptsBySlug, int cap) {
         if (revisionTopics.isEmpty()) return;
-        List<ProblemScorer.ScoredProblem> sorted = new ArrayList<>(scored);
-        sorted.sort((a, b) -> Integer.compare(b.score(), a.score()));
         int added = 0;
         for (Topic topic : revisionTopics) {
             if (result.size() >= cap || added >= 2) break;
-            for (ProblemScorer.ScoredProblem sp : sorted) {
+            for (ProblemScorer.ScoredProblem sp : scored) {
                 if (result.size() >= cap || added >= 2) break;
                 if (!matches(sp.tagSlug(), topic.getTitle())) continue;
                 if (used.add(sp.problem().getTitleSlug())) {

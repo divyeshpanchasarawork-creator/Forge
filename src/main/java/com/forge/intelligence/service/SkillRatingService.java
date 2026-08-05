@@ -47,12 +47,4 @@ public class SkillRatingService {
                 .mapToInt(t -> t.getAttemptsTotal() != null ? t.getAttemptsTotal() : 0)
                 .sum());
     }
-
-    public int skillToLevel(double rating) {
-        if (rating >= 2200) return 5;
-        if (rating >= 1800) return 4;
-        if (rating >= 1400) return 3;
-        if (rating >= 1100) return 2;
-        return 1;
-    }
 }

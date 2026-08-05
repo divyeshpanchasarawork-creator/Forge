@@ -3,14 +3,12 @@ package com.forge.recommendation.service;
 import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.ProblemScorer;
 import com.forge.leetcode.entity.LeetCodeTagStat;
-import com.forge.leetcode.repository.LeetCodeTagStatRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -21,29 +19,27 @@ public class CandidatePoolService {
 
     private final ProblemLoader problemLoader;
     private final ProblemScorer problemScorer;
-    private final LeetCodeTagStatRepository tagStatRepository;
 
-    public Optional<Candidate> bestProblem(UUID userId, String difficulty, String tagSlug) {
+    public Optional<Candidate> bestProblem(ProblemScorer.ScoringContext ctx, String difficulty, String tagSlug) {
         List<String> candidateTags = tagSlug != null
                 ? List.of(tagSlug)
-                : allTagSlugsFallback(userId);
-        return rank(userId, candidateTags, difficulty, 1).stream().findFirst();
+                : allTagSlugsFallback(ctx);
+        return rank(ctx, candidateTags, difficulty, 1).stream().findFirst();
     }
 
-    public Optional<Candidate> bestProblemForTopic(UUID userId, String topicTitle) {
+    public Optional<Candidate> bestProblemForTopic(ProblemScorer.ScoringContext ctx, String topicTitle) {
         String topicSlug = slugify(topicTitle);
-        List<Candidate> ranked = rank(userId, List.of(topicSlug), null, 1);
+        List<Candidate> ranked = rank(ctx, List.of(topicSlug), null, 1);
         if (ranked.isEmpty()) {
-            String matchingSlug = tagSlugForTopic(userId, topicTitle, topicSlug);
+            String matchingSlug = tagSlugForTopic(ctx, topicTitle, topicSlug);
             if (matchingSlug != null && !matchingSlug.equals(topicSlug)) {
-                ranked = rank(userId, List.of(matchingSlug), null, 1);
+                ranked = rank(ctx, List.of(matchingSlug), null, 1);
             }
         }
         return ranked.stream().findFirst();
     }
 
-    public List<Candidate> rank(UUID userId, List<String> tagSlugs, String difficulty, int limit) {
-        ProblemScorer.ScoringContext ctx = problemScorer.context(userId);
+    public List<Candidate> rank(ProblemScorer.ScoringContext ctx, List<String> tagSlugs, String difficulty, int limit) {
         List<Candidate> scored = new ArrayList<>();
         for (String tag : tagSlugs) {
             for (ProblemLoader.ProblemEntry candidate : problemLoader.getProblemsForTag(tag)) {
@@ -56,23 +52,23 @@ public class CandidatePoolService {
         return scored.stream().limit(Math.max(1, limit)).toList();
     }
 
-    public List<String> weakTagSlugs(UUID userId) {
-        return tagStatRepository.findByUserId(userId).stream()
+    public List<String> weakTagSlugs(ProblemScorer.ScoringContext ctx) {
+        return ctx.stats().stream()
                 .filter(ts -> ts.getProblemsSolved() != null && ts.getProblemsSolved() < 5)
                 .map(LeetCodeTagStat::getTagSlug)
                 .toList();
     }
 
-    public List<String> allTagSlugsFallback(UUID userId) {
-        List<String> weak = weakTagSlugs(userId);
+    public List<String> allTagSlugsFallback(ProblemScorer.ScoringContext ctx) {
+        List<String> weak = weakTagSlugs(ctx);
         if (!weak.isEmpty()) return weak;
-        return tagStatRepository.findByUserId(userId).stream()
+        return ctx.stats().stream()
                 .map(LeetCodeTagStat::getTagSlug)
                 .toList();
     }
 
-    public String tagSlugForTopic(UUID userId, String topicTitle, String topicSlug) {
-        return tagStatRepository.findByUserId(userId).stream()
+    public String tagSlugForTopic(ProblemScorer.ScoringContext ctx, String topicTitle, String topicSlug) {
+        return ctx.stats().stream()
                 .filter(ts -> ts.getTagName().equalsIgnoreCase(topicTitle)
                         || ts.getTagSlug().equalsIgnoreCase(topicSlug))
                 .findFirst()

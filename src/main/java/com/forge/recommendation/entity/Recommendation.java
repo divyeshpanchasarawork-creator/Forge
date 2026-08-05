@@ -39,9 +39,6 @@ public class Recommendation extends BaseEntity {
     @Column(nullable = false, length = 50)
     private String action;
 
-    @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
-    private Boolean dismissed = false;
-
     @Column(nullable = false, length = 20)
     private String status = STATUS_ACTIVE;
 

@@ -54,14 +54,6 @@ public class ProblemLoader {
         return problemsByTag.getOrDefault(tagSlug, List.of());
     }
 
-    public List<ProblemEntry> getProblemsForTags(List<String> tagSlugs) {
-        List<ProblemEntry> result = new ArrayList<>();
-        for (String slug : tagSlugs) {
-            result.addAll(getProblemsForTag(slug));
-        }
-        return result;
-    }
-
     public List<ProblemEntry> getAllProblems() {
         return allProblems;
     }

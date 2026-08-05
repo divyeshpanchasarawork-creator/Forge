@@ -3,6 +3,7 @@ package com.forge.common.util;
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.leetcode.entity.LeetCodeTagStat;
+import com.forge.leetcode.entity.ProblemSuggestion;
 import com.forge.leetcode.repository.LeetCodeTagStatRepository;
 import com.forge.leetcode.repository.ProblemSuggestionRepository;
 import com.forge.practice.entity.ProblemAttempt;
@@ -40,19 +41,22 @@ public class ProblemScorer {
 
     public record ScoredProblem(ProblemLoader.ProblemEntry problem, String tagSlug, int score, ScoreBreakdown breakdown) {}
 
-    public record ScoringContext(User user, List<LeetCodeTagStat> stats, List<Topic> topics,
-                                 List<ProblemAttempt> attempts, List<String> suggestedSlugs, int targetLevel) {}
+    public record ScoringContext(List<LeetCodeTagStat> stats, List<Topic> topics,
+                                 List<ProblemAttempt> attempts, List<ProblemSuggestion> suggestions,
+                                 int targetLevel) {
+        public List<String> suggestedSlugs() {
+            return suggestions.stream().map(ProblemSuggestion::getTitleSlug).toList();
+        }
+    }
 
     public ScoringContext context(UUID userId) {
         User user = userRepository.findById(userId).orElse(null);
         List<LeetCodeTagStat> stats = tagStatRepository.findByUserId(userId);
         List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 100)).getContent();
         List<ProblemAttempt> attempts = problemAttemptRepository.findByUserIdAll(userId);
-        List<String> suggestedSlugs = problemSuggestionRepository.findByUserId(userId).stream()
-                .map(com.forge.leetcode.entity.ProblemSuggestion::getTitleSlug)
-                .toList();
+        List<ProblemSuggestion> suggestions = problemSuggestionRepository.findByUserId(userId);
         int targetLevel = user != null && user.getTargetLevel() != null ? user.getTargetLevel() : 5;
-        return new ScoringContext(user, stats, topics, attempts, suggestedSlugs, targetLevel);
+        return new ScoringContext(stats, topics, attempts, suggestions, targetLevel);
     }
 
     public ScoreBreakdown breakdown(ScoringContext ctx, ProblemLoader.ProblemEntry candidate, String tagSlug) {

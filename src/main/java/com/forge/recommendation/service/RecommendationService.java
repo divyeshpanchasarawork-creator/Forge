@@ -106,7 +106,6 @@ public class RecommendationService {
             throw new BadRequestException("Recommendation already completed");
         }
         rec.setStatus(Recommendation.STATUS_DISMISSED);
-        rec.setDismissed(true);
         rec = recommendationRepository.save(rec);
         return toResponse(rec);
     }
@@ -132,6 +131,9 @@ public class RecommendationService {
     }
 
     private RecommendationResponse toResponse(Recommendation rec) {
+        if (rec.getProblemSlug() == null) {
+            return recommendationMapper.toResponse(rec);
+        }
         return toResponse(rec, problemScorer.context(SecurityUtils.getCurrentUserId()));
     }
 

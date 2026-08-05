@@ -21,7 +21,6 @@ public class RecommendationResponse {
     private String reason;
     private Integer priority;
     private String action;
-    private Boolean dismissed;
     private String status;
     private LocalDateTime completedAt;
     private String outcome;

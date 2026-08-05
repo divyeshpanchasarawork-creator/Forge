@@ -43,7 +43,6 @@ export interface Recommendation {
   reason: string;
   priority: number;
   action: string;
-  dismissed: boolean;
   status: 'ACTIVE' | 'COMPLETED' | 'DISMISSED';
   completedAt: string | null;
   outcome: string | null;
