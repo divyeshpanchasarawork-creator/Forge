@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopHeader from './TopHeader';
@@ -25,6 +25,17 @@ export default function AppLayout() {
   });
   const location = useLocation();
   const navigate = useNavigate();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const pathRef = useRef(location.pathname);
+
+  useEffect(() => {
+    pathRef.current = location.pathname;
+  }, [location.pathname]);
+
+  useEffect(() => {
+    window.focus();
+    rootRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     const pageLabels: Record<string, string> = {
@@ -77,11 +88,11 @@ export default function AppLayout() {
         '8': '/app/profile',
       };
       const to = routeByNum[e.key];
-      if (to && to !== location.pathname) navigate(to);
+      if (to && to !== pathRef.current) navigate(to);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [location.pathname, navigate]);
+  }, [navigate]);
 
   const toggleSidebar = () => {
     setSidebarCollapsed((prev) => {
@@ -97,7 +108,7 @@ export default function AppLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div ref={rootRef} tabIndex={-1} className="min-h-screen bg-background outline-none">
       <TopHeader sidebarCollapsed={sidebarCollapsed} onMenuClick={() => setMobileOpen(true)} onOpenSearch={openPalette} />
       {paletteMounted && (
         <Suspense fallback={null}>
