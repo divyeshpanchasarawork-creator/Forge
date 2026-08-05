@@ -41,7 +41,7 @@ public class ProblemScorer {
 
     public record ScoringContext(List<LeetCodeTagStat> stats, List<Topic> topics,
                                  List<ProblemAttempt> attempts, List<ProblemSuggestion> suggestions,
-                                 int targetLevel) {
+                                 int targetLevel, RewardModel.RewardStats rewards) {
         public List<String> suggestedSlugs() {
             return suggestions.stream().map(ProblemSuggestion::getTitleSlug).toList();
         }
@@ -54,7 +54,7 @@ public class ProblemScorer {
         List<ProblemAttempt> attempts = problemAttemptRepository.findByUserIdAll(userId);
         List<ProblemSuggestion> suggestions = problemSuggestionRepository.findByUserId(userId);
         int targetLevel = user != null && user.getTargetLevel() != null ? user.getTargetLevel() : 5;
-        return new ScoringContext(stats, topics, attempts, suggestions, targetLevel);
+        return new ScoringContext(stats, topics, attempts, suggestions, targetLevel, RewardModel.stats(attempts));
     }
 
     public ScoreBreakdown breakdown(ScoringContext ctx, ProblemLoader.ProblemEntry candidate, String tagSlug) {
@@ -71,7 +71,7 @@ public class ProblemScorer {
                 new Signal("Goal alignment", 0.06, goalAlignment(candidate.getDifficulty(), ctx.targetLevel())),
                 new Signal("Not suggested", 0.04, notPreviouslySuggested(ctx.suggestedSlugs(), candidate)),
                 new Signal("Diversity", 0.02, 50.0),
-                new Signal("UCB exploration", 0.10, ucbExploration(ctx.attempts(), candidate.getTitleSlug()))
+                new Signal("UCB exploration", 0.10, ucbExploration(ctx.rewards(), candidate.getTitleSlug()))
         );
 
         double total = 0;
@@ -220,11 +220,12 @@ public class ProblemScorer {
         return 100.0;
     }
 
-    private double ucbExploration(List<ProblemAttempt> attempts, String problemSlug) {
-        if (attempts == null || attempts.isEmpty()) return 50.0;
-        long total = attempts.size();
-        long n = attempts.stream().filter(a -> problemSlug.equals(a.getProblemSlug())).count();
-        return Math.min(100, 50.0 * Math.sqrt(Math.log(total + 1) / (n + 1)));
+    private double ucbExploration(RewardModel.RewardStats rewards, String problemSlug) {
+        if (rewards == null || rewards.totalCount() == 0) return 50.0;
+        RewardModel.Reward r = rewards.byProblem().get(problemSlug);
+        double exploitation = r != null ? r.mean() * 100.0 : 0.0;
+        double exploration = 25.0 * Math.sqrt(Math.log(rewards.totalCount() + 1) / (r != null ? r.count() + 1 : 1));
+        return Math.min(100, Math.max(0, exploitation + exploration));
     }
 
     private boolean matches(String topicTitle, String tagSlug) {

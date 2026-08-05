@@ -35,12 +35,13 @@ Run: `mvn test`
 - Delete-after-fetch in LeetCode sync: delete runs after successful fetch+save to avoid wiping topics on API failure
 - Recommendations no longer auto-generated on dashboard load; only on explicit sync or manual generate
 - Readiness score logic extracted into shared `ReadinessCalculator` utility (used by `DashboardService`, `AnalyticsService`, `RecommendationEngine`)
+- `RewardModel` utility derives per-problem/per-tag reward from stored attempt quality (reward = quality/5); `ScoringContext.rewards` carries `RewardStats` for reward-aware UCB
 - Memory page surfaces fading concepts, patterns, mistakes, and insights from journal entries
 - KpiCard component simplified (no trend/trendValue props)
 
 ## Key Dependencies
 - Spring Boot 4.0.7, Spring Security 7, Spring Data JPA
-- PostgreSQL (prod), H2 (dev)
+- PostgreSQL (prod), H2 file (dev, `jdbc:h2:file:./data/forge` — persists across restarts)
 - Flyway, Lombok, Springdoc OpenAPI 3.0.2
 - jjwt 0.12.6 for JWT
 

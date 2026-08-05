@@ -38,7 +38,7 @@ class ProblemScorerTest {
     }
 
     private ProblemScorer.ScoringContext ctx(List<ProblemAttempt> attempts) {
-        return new ProblemScorer.ScoringContext(List.of(), List.of(), attempts, List.of(), 5);
+        return new ProblemScorer.ScoringContext(List.of(), List.of(), attempts, List.of(), 5, RewardModel.stats(attempts));
     }
 
     @Test
@@ -69,6 +69,33 @@ class ProblemScorerTest {
                 new ProblemLoader.ProblemEntry("Two Sum", "two-sum", "Medium"), "arrays");
 
         assertEquals(50.0, signal(breakdown, "UCB exploration"));
+    }
+
+    @Test
+    void ucbExplorationShouldExploitHighRewardProblems() {
+        List<ProblemAttempt> attempts = new java.util.ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            ProblemAttempt good = new ProblemAttempt();
+            good.setProblemSlug("two-sum");
+            good.setQuality(5);
+            good.setAttemptedAt(java.time.LocalDateTime.now());
+            attempts.add(good);
+
+            ProblemAttempt bad = new ProblemAttempt();
+            bad.setProblemSlug("single-number");
+            bad.setQuality(0);
+            bad.setAttemptedAt(java.time.LocalDateTime.now());
+            attempts.add(bad);
+        }
+
+        ProblemScorer.ScoreBreakdown good = scorer.breakdown(ctx(attempts),
+                new ProblemLoader.ProblemEntry("Two Sum", "two-sum", "Medium"), "arrays");
+        ProblemScorer.ScoreBreakdown bad = scorer.breakdown(ctx(attempts),
+                new ProblemLoader.ProblemEntry("Single Number", "single-number", "Medium"), "arrays");
+
+        assertTrue(signal(good, "UCB exploration") > signal(bad, "UCB exploration"),
+                "A high-reward problem should beat a low-reward one under reward-aware UCB, got "
+                        + signal(good, "UCB exploration") + " vs " + signal(bad, "UCB exploration"));
     }
 
     @Test
