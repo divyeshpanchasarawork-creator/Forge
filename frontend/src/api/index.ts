@@ -1,5 +1,5 @@
 import api from './client';
-import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Journal, JournalRequest, AnalyticsResponse, WeeklyProgress, LeetCodeStats, MemoryResponse, PracticeQueueResponse, RoadmapAnalysis, PagedResponse, ProblemAttempt, ProblemAttemptRequest, ProblemAttemptResponse, LearningCurveResponse, ActivityDay } from '@/types';
+import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, WeeklyProgress, LeetCodeStats, MemoryResponse, PracticeQueueResponse, RoadmapAnalysis, PagedResponse, ProblemAttempt, ProblemAttemptRequest, ProblemAttemptResponse, LearningCurveResponse, ActivityDay } from '@/types';
 
 export const authApi = {
   login: (username: string, password: string) =>
@@ -28,6 +28,8 @@ export const revisionsApi = {
 
 export const recommendationsApi = {
   generate: () => api.post<ApiResponse<GenerateResponse>>('/recommendations/generate'),
+  complete: (id: string, outcome = 'SOLVED') => api.put<ApiResponse<Recommendation>>(`/recommendations/${id}/complete`, { outcome }),
+  dismiss: (id: string) => api.put<ApiResponse<Recommendation>>(`/recommendations/${id}/dismiss`),
 };
 
 export const journalsApi = {

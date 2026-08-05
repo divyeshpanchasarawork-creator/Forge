@@ -120,14 +120,14 @@ class RecommendationEngineTest {
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
-        doNothing().when(recommendationRepository).deleteByUserIdAndDismissed(any(), anyBoolean());
+        doNothing().when(recommendationRepository).deleteByUserIdAndStatus(any(), any());
         when(recommendationRepository.saveAll(any())).thenReturn(List.of());
-        when(recommendationRepository.findByUserIdAndDismissedOrderByPriorityAscCreatedAtDesc(userId, false))
+        when(recommendationRepository.findByUserIdAndStatusOrderByPriorityAscCreatedAtDesc(userId, Recommendation.STATUS_ACTIVE))
                 .thenReturn(List.of());
 
         List<Recommendation> recs = engine.generateForUser(userId, true);
 
-        verify(recommendationRepository).deleteByUserIdAndDismissed(userId, false);
+        verify(recommendationRepository).deleteByUserIdAndStatus(userId, Recommendation.STATUS_ACTIVE);
         verify(recommendationRepository).saveAll(any());
     }
 
@@ -140,7 +140,7 @@ class RecommendationEngineTest {
 
         engine.generateForUser(userId, false);
 
-        verify(recommendationRepository, never()).deleteByUserIdAndDismissed(any(), anyBoolean());
+        verify(recommendationRepository, never()).deleteByUserIdAndStatus(any(), any());
         verify(recommendationRepository, never()).saveAll(any());
     }
 

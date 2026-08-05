@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import {
   Flame, Target, RefreshCw, BookOpen, Zap,
   Code2, AlertTriangle, Brain, Sparkles, ArrowRight,
-  Clock, CalendarCheck2, NotebookPen, ListChecks,
+  Clock, CalendarCheck2, NotebookPen, ListChecks, CheckCircle2, X,
 } from 'lucide-react';
 import { useState } from 'react';
 import type { PracticeQueueResponse } from '@/types';
@@ -81,6 +81,20 @@ export default function DashboardPage() {
       queryClient.invalidateQueries({ queryKey: ['recommendations'] });
     },
     onError: (err) => setGenerateError(parseApiError(err)),
+  });
+
+  const resolveMutation = useMutation({
+    mutationFn: ({ id, action }: { id: string; action: 'complete' | 'dismiss' }) =>
+      action === 'complete'
+        ? recommendationsApi.complete(id)
+        : recommendationsApi.dismiss(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
+    },
+    onError: (err, _vars) => {
+      setGenerateError(parseApiError(err));
+    },
   });
 
   if (isLoading) {
@@ -513,8 +527,40 @@ export default function DashboardPage() {
                       {rec.priority === 1 ? 'High' : 'Medium'}
                     </span>
                   )}
+                  {resolveMutation.isPending && (
+                    <span className="ml-auto text-xs text-muted-foreground">Updating...</span>
+                  )}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">{rec.reason}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {rec.problemSlug && (
+                    <a
+                      href={`https://leetcode.com/problems/${rec.problemSlug}/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                    >
+                      <Code2 className="h-3 w-3" />
+                      Solve on LeetCode
+                    </a>
+                  )}
+                  <button
+                    onClick={() => resolveMutation.mutate({ id: rec.id, action: 'complete' })}
+                    disabled={resolveMutation.isPending}
+                    className="inline-flex items-center gap-1.5 rounded-md bg-green-500/10 px-2.5 py-1 text-xs font-medium text-green-400 transition-colors hover:bg-green-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <CheckCircle2 className="h-3 w-3" />
+                    Mark Solved
+                  </button>
+                  <button
+                    onClick={() => resolveMutation.mutate({ id: rec.id, action: 'dismiss' })}
+                    disabled={resolveMutation.isPending}
+                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <X className="h-3 w-3" />
+                    Dismiss
+                  </button>
+                </div>
               </div>
             ))}
           </CardContent>

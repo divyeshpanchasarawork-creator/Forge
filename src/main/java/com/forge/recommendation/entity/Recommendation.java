@@ -7,12 +7,18 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @NoArgsConstructor
 @Entity
 @Table(name = "recommendations")
 public class Recommendation extends BaseEntity {
+
+    public static final String STATUS_ACTIVE = "ACTIVE";
+    public static final String STATUS_COMPLETED = "COMPLETED";
+    public static final String STATUS_DISMISSED = "DISMISSED";
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -35,6 +41,15 @@ public class Recommendation extends BaseEntity {
 
     @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean dismissed = false;
+
+    @Column(nullable = false, length = 20)
+    private String status = STATUS_ACTIVE;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    @Column(length = 20)
+    private String outcome;
 
     @Column(name = "problem_slug", length = 255)
     private String problemSlug;

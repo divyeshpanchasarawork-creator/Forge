@@ -11,8 +11,10 @@ import java.util.UUID;
 @Repository
 public interface RecommendationRepository extends JpaRepository<Recommendation, UUID> {
 
-    List<Recommendation> findByUserIdAndDismissedOrderByPriorityAscCreatedAtDesc(UUID userId, Boolean dismissed);
+    List<Recommendation> findByUserIdAndStatusOrderByPriorityAscCreatedAtDesc(UUID userId, String status);
+
+    List<Recommendation> findByUserIdAndStatusAndProblemSlug(UUID userId, String status, String problemSlug);
 
     @Transactional
-    void deleteByUserIdAndDismissed(UUID userId, Boolean dismissed);
+    void deleteByUserIdAndStatus(UUID userId, String status);
 }

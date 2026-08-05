@@ -69,7 +69,7 @@ public class RecommendationEngine {
                 .toList();
 
         if (persist) {
-            recommendationRepository.deleteByUserIdAndDismissed(userId, false);
+            recommendationRepository.deleteByUserIdAndStatus(userId, Recommendation.STATUS_ACTIVE);
             recommendationRepository.saveAll(sorted);
             syncRecProblemsToSuggestions(userId, user);
             log.info("Generated and saved {} recommendations for user {}", sorted.size(), userId);
@@ -80,7 +80,7 @@ public class RecommendationEngine {
 
     private void syncRecProblemsToSuggestions(UUID userId, User user) {
         List<Recommendation> recsWithProblems = recommendationRepository
-                .findByUserIdAndDismissedOrderByPriorityAscCreatedAtDesc(userId, false)
+                .findByUserIdAndStatusOrderByPriorityAscCreatedAtDesc(userId, Recommendation.STATUS_ACTIVE)
                 .stream()
                 .filter(r -> r.getProblemSlug() != null)
                 .toList();

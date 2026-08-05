@@ -19,6 +19,7 @@ import com.forge.practice.dto.ProblemAttemptRequest;
 import com.forge.practice.dto.ProblemAttemptResponse;
 import com.forge.practice.entity.ProblemAttempt;
 import com.forge.practice.repository.ProblemAttemptRepository;
+import com.forge.recommendation.service.RecommendationService;
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.topic.entity.Topic;
@@ -55,6 +56,7 @@ public class PracticeService {
     private final SkillRatingService skillRatingService;
     private final ForgettingCurveService forgettingCurveService;
     private final KnowledgeGraphService knowledgeGraphService;
+    private final RecommendationService recommendationService;
 
     public PracticeQueueResponse getPracticeQueue() {
         UUID userId = SecurityUtils.getCurrentUserId();
@@ -127,6 +129,7 @@ public class PracticeService {
         }
 
         String feedback = buildFeedback(outcome, request.getProblemTitle(), matched);
+        recommendationService.completeRecommendationsForProblem(userId, request.getProblemSlug(), outcome);
         log.info("Attempt submitted: {} {} ({} matching topics) for user {}",
                 outcome, request.getProblemSlug(), matched.size(), userId);
         return new ProblemAttemptResponse(attempt, updatedTitles, feedback);
