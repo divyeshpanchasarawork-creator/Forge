@@ -49,3 +49,7 @@ Thumbs.db
 
 ### Logs ###
 *.log
+
+### Dev database ###
+/data/*
+!/data/.gitkeep
