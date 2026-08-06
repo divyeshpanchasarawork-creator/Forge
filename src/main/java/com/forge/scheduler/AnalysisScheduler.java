@@ -9,7 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -26,9 +27,9 @@ public class AnalysisScheduler {
     private final RecommendationEngine recommendationEngine;
     private final LeetCodeFetchService leetCodeFetchService;
     private final SchedulerStatus schedulerStatus;
+    private final PlatformTransactionManager transactionManager;
 
     @Scheduled(cron = "0 */30 * * * *")
-    @Transactional
     public void runScheduledAnalyses() {
         LocalTime serverUtc = LocalTime.now(ZoneId.of("UTC"));
 
@@ -65,10 +66,13 @@ public class AnalysisScheduler {
             }
 
             try {
-                recommendationEngine.generateForUser(user.getId(), true);
-                leetCodeFetchService.refreshProblemSuggestions(user.getId());
-                user.setDailyGenerationsUsed(user.getDailyGenerationsUsed() + 1);
-                userRepository.save(user);
+                TransactionTemplate txTemplate = new TransactionTemplate(transactionManager);
+                txTemplate.executeWithoutResult(status -> {
+                    recommendationEngine.generateForUser(user.getId(), true);
+                    leetCodeFetchService.refreshProblemSuggestions(user.getId());
+                    user.setDailyGenerationsUsed(user.getDailyGenerationsUsed() + 1);
+                    userRepository.save(user);
+                });
                 processed++;
             } catch (Exception e) {
                 log.error("Scheduled generation failed for user {}: {}", user.getId(), e.getMessage());

@@ -245,4 +245,45 @@ class RecommendationEngineTest {
         boolean hasHardRec = recs.stream().anyMatch(r -> r.getTitle().toLowerCase().contains("hard problem"));
         assertTrue(hasHardRec, "For level 8, should recommend Hard problems when count is low");
     }
+
+    @Test
+    void shouldFullyReplaceRecommendationSourcedSuggestions() {
+        Topic weak = new Topic();
+        weak.setId(UUID.randomUUID());
+        weak.setTitle("Dynamic Programming");
+        weak.setConfidence(2);
+        weak.setMastery(10);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of(weak));
+        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        when(problemScorer.context(userId)).thenReturn(emptyCtx());
+        when(candidatePoolService.bestProblemForTopic(any(), any())).thenReturn(Optional.of(
+                new CandidatePoolService.Candidate(
+                        new ProblemLoader.ProblemEntry("Climbing Stairs", "climbing-stairs", "Easy"),
+                        "dynamic-programming", 60, null)));
+        when(problemLoader.getTagSlugForProblem(any())).thenReturn("dynamic-programming");
+        when(recommendationRepository.saveAll(any())).thenReturn(List.of());
+
+        engine.generateForUser(userId, true);
+
+        verify(problemSuggestionRepository).deleteByUserIdAndSource(userId, "RECOMMENDATION");
+        verify(problemSuggestionRepository).saveAll(any());
+    }
+
+    @Test
+    void shouldNotInsertSuggestionWhenNoProblemBasedRecommendations() {
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        when(problemScorer.context(userId)).thenReturn(emptyCtx());
+        when(recommendationRepository.saveAll(any())).thenReturn(List.of());
+
+        engine.generateForUser(userId, true);
+
+        verify(problemSuggestionRepository).deleteByUserIdAndSource(userId, "RECOMMENDATION");
+        verify(problemSuggestionRepository, never()).saveAll(any());
+    }
 }

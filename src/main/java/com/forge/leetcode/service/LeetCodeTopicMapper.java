@@ -114,6 +114,11 @@ public class LeetCodeTopicMapper {
             result.add(topic);
         }
 
+        if (!existingByTitle.isEmpty()) {
+            topicRepository.deleteAll(existingByTitle.values());
+            log.info("Removed {} stale LeetCode-synced topics for user {}", existingByTitle.size(), user.getId());
+        }
+
         return result;
     }
 

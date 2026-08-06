@@ -1,6 +1,5 @@
 package com.forge.recommendation.service;
 
-import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.common.exception.BadRequestException;
 import com.forge.common.exception.ResourceNotFoundException;
@@ -43,27 +42,26 @@ public class RecommendationService {
     @Transactional
     public GenerateResponse generateRecommendations() {
         UUID userId = SecurityUtils.getCurrentUserId();
-        User user = userRepository.findById(userId)
+        userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
         LocalDate today = LocalDate.now();
-        if (user.getLastGenerationDate() == null || !user.getLastGenerationDate().equals(today)) {
-            user.setDailyGenerationsUsed(0);
-            user.setLastGenerationDate(today);
-        }
-
-        int used = user.getDailyGenerationsUsed() != null ? user.getDailyGenerationsUsed() : 0;
-        if (used >= DAILY_LIMIT) {
+        int reserved = userRepository.reserveDailyGeneration(userId, today, DAILY_LIMIT);
+        if (reserved == 0) {
             throw new BadRequestException("Daily generation limit reached (" + DAILY_LIMIT + "/" + DAILY_LIMIT + "). Try again tomorrow.");
         }
 
-        List<Recommendation> recs = recommendationEngine.generateForUser(userId, true);
-        user.setDailyGenerationsUsed(used + 1);
-        userRepository.save(user);
-
-        List<RecommendationResponse> responseRecs = toResponses(recs);
-
-        return new GenerateResponse(responseRecs, DAILY_LIMIT - used - 1, DAILY_LIMIT);
+        try {
+            List<Recommendation> recs = recommendationEngine.generateForUser(userId, true);
+            int used = userRepository.findById(userId)
+                    .map(u -> u.getDailyGenerationsUsed() != null ? u.getDailyGenerationsUsed() : 0)
+                    .orElse(0);
+            List<RecommendationResponse> responseRecs = toResponses(recs);
+            return new GenerateResponse(responseRecs, Math.max(0, DAILY_LIMIT - used), DAILY_LIMIT);
+        } catch (RuntimeException e) {
+            userRepository.releaseDailyGeneration(userId, today);
+            throw e;
+        }
     }
 
     @Transactional

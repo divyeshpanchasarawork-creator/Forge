@@ -18,6 +18,7 @@ import com.forge.topic.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -38,6 +39,7 @@ public class RecommendationEngine {
     private final ProblemScorer problemScorer;
     private final CandidatePoolService candidatePoolService;
 
+    @Transactional
     public List<Recommendation> generateForUser(UUID userId, boolean persist) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
@@ -84,6 +86,7 @@ public class RecommendationEngine {
                 .filter(r -> r.getProblemSlug() != null)
                 .toList();
 
+        problemSuggestionRepository.deleteByUserIdAndSource(userId, "RECOMMENDATION");
         if (recsWithProblems.isEmpty()) return;
 
         Set<String> existingSlugs = ctx.suggestions().stream()

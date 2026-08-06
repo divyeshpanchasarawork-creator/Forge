@@ -206,6 +206,8 @@ public class LeetCodeFetchService {
                 .map(LeetCodeGraphQlResponse.TagCount::getTagSlug)
                 .toList();
 
+        problemSuggestionRepository.deleteByUserIdAndSource(userId, "WEAK_TAG");
+
         if (weakTagSlugs.isEmpty()) {
             log.debug("No weak tags to generate problem suggestions for user {}", userId);
             return;
@@ -239,7 +241,6 @@ public class LeetCodeFetchService {
         }
 
         if (!suggestions.isEmpty()) {
-            problemSuggestionRepository.deleteByUserIdAndSource(userId, "WEAK_TAG");
             problemSuggestionRepository.flush();
             problemSuggestionRepository.saveAll(suggestions);
             log.info("Saved {} problem suggestions for {} weak tags (user {})", suggestions.size(), weakTagSlugs.size(), userId);
@@ -257,6 +258,8 @@ public class LeetCodeFetchService {
                 .filter(ts -> ts.getProblemsSolved() < 5 && ts.getProblemsSolved() > 0)
                 .map(LeetCodeTagStat::getTagSlug)
                 .toList();
+
+        problemSuggestionRepository.deleteByUserIdAndSource(userId, "WEAK_TAG");
 
         if (weakTagSlugs.isEmpty()) {
             log.debug("No weak tags to refresh problem suggestions for user {}", userId);
@@ -291,7 +294,6 @@ public class LeetCodeFetchService {
         }
 
         if (!suggestions.isEmpty()) {
-            problemSuggestionRepository.deleteByUserIdAndSource(userId, "WEAK_TAG");
             problemSuggestionRepository.flush();
             problemSuggestionRepository.saveAll(suggestions);
             log.info("Refreshed {} problem suggestions for {} weak tags (user {})", suggestions.size(), weakTagSlugs.size(), userId);
