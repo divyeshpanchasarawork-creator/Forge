@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -127,7 +128,16 @@ public class RecommendationService {
 
     private List<RecommendationResponse> toResponses(List<Recommendation> recs) {
         ProblemScorer.ScoringContext ctx = problemScorer.context(SecurityUtils.getCurrentUserId());
-        return recs.stream().map(rec -> toResponse(rec, ctx)).toList();
+        return recs.stream()
+                .map(rec -> toResponse(rec, ctx))
+                .sorted(Comparator
+                        .comparing(RecommendationResponse::getScore,
+                                Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(RecommendationResponse::getPriority,
+                                Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(RecommendationResponse::getCreatedAt,
+                                Comparator.nullsLast(Comparator.reverseOrder())))
+                .toList();
     }
 
     private RecommendationResponse toResponse(Recommendation rec) {
@@ -145,6 +155,7 @@ public class RecommendationService {
                 ProblemLoader.ProblemEntry entry = new ProblemLoader.ProblemEntry(
                         rec.getProblemTitle(), rec.getProblemSlug(), rec.getProblemDifficulty());
                 resp.setScoreBreakdown(problemScorer.breakdown(ctx, entry, tag));
+                resp.setScore(resp.getScoreBreakdown() != null ? resp.getScoreBreakdown().total() : null);
             }
         }
         return resp;

@@ -28,5 +28,6 @@ public class RecommendationResponse {
     private String problemTitle;
     private String problemDifficulty;
     private LocalDateTime createdAt;
+    private Integer score;
     private ProblemScorer.ScoreBreakdown scoreBreakdown;
 }

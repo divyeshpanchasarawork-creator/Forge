@@ -42,6 +42,8 @@ Run: `mvn test`
 - `ScorerWeightsService` caches the active weight vector; `CalibrationJob` (nightly) least-squares fits weights against stored attempt snapshots and swaps only when MSE improves by >= max(1.0, 5%) on >= 30 samples
 - `RecEngineEvaluator` is the shared pure-metric utility (MSE / binary log-loss / rank-AUC, reward = quality/5) used by calibration and the engine report
 - Attempt snapshots for calibration: `PracticeService.submitAttempt` stores `signals_json` (the `ScoreItem` list) + `predicted_score` (breakdown total) before mastery updates
+- `RecommendationResponse.score` mirrors `scoreBreakdown.total`; recommendation lists sort by score desc, then priority asc, then createdAt desc
+- `SessionPlanner` uses marginal-gain selection: repeatedly pick the highest-score unused candidate that fits a remaining segment slot (REVISION > WARMUP > CHALLENGE > REINFORCE) instead of fixed sequential passes
 - Manual calibration trigger + engine report are Phase E; never generate them automatically on request paths
 
 ## Key Dependencies

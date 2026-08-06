@@ -8,7 +8,8 @@ import com.forge.topic.entity.Topic;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +31,8 @@ public class SessionPlanner {
 
     public record AttemptCounts(int attempts, int solved) {}
 
+    private record Pick(CandidatePoolService.Candidate candidate, String segment, String reason) {}
+
     public List<PracticeProblemResponse> build(
             UUID userId,
             List<CandidatePoolService.Candidate> scored,
@@ -38,89 +41,79 @@ public class SessionPlanner {
             ColdStartService.Profile profile,
             int cap) {
 
-        List<PracticeProblemResponse> result = new ArrayList<>();
-        Set<String> used = new LinkedHashSet<>();
-
         List<CandidatePoolService.Candidate> byScore = scored.stream()
                 .sorted((a, b) -> Integer.compare(b.score(), a.score()))
                 .toList();
 
-        addRevisionSegment(result, used, byScore, revisionTopics, attemptsBySlug, cap);
-        addWarmupSegment(result, used, byScore, attemptsBySlug, cap, profile);
-        addChallengeSegment(result, used, byScore, attemptsBySlug, cap, profile, userId);
-        addReinforceSegment(result, used, byScore, attemptsBySlug, cap);
+        Map<String, String> revisionReasonBySlug = revisionReasonsBySlug(byScore, revisionTopics);
+        int revisionSlots = Math.min(2, revisionReasonBySlug.size());
+        int warmupSlots = profile == ColdStartService.Profile.BEGINNER ? 2 : 1;
+        int challengeSlots = 1;
+
+        List<PracticeProblemResponse> result = new ArrayList<>();
+        Set<String> used = new HashSet<>();
+
+        while (result.size() < cap) {
+            Pick pick = nextBest(byScore, used, revisionSlots, revisionReasonBySlug, warmupSlots, challengeSlots, profile);
+            if (pick == null) break;
+            used.add(pick.candidate().problem().getTitleSlug());
+            switch (pick.segment()) {
+                case SEGMENT_REVISION -> revisionSlots--;
+                case SEGMENT_WARMUP -> warmupSlots--;
+                case SEGMENT_CHALLENGE -> challengeSlots--;
+                default -> { }
+            }
+            AttemptCounts counts = attemptsBySlug.getOrDefault(
+                    pick.candidate().problem().getTitleSlug(), new AttemptCounts(0, 0));
+            result.add(toResponse(pick.candidate(), pick.segment(), pick.reason(), counts));
+        }
 
         return result;
     }
 
-    private void addRevisionSegment(List<PracticeProblemResponse> result, Set<String> used,
-                                    List<CandidatePoolService.Candidate> scored, List<Topic> revisionTopics,
-                                    Map<String, AttemptCounts> attemptsBySlug, int cap) {
-        if (revisionTopics.isEmpty()) return;
-        int added = 0;
+    /**
+     * Marginal-gain selection: each step picks the highest-score unused candidate that fits a
+     * remaining segment slot, instead of locking segment passes in a fixed order.
+     */
+    private Pick nextBest(List<CandidatePoolService.Candidate> byScore, Set<String> used,
+                          int revisionSlots, Map<String, String> revisionReasonBySlug,
+                          int warmupSlots, int challengeSlots, ColdStartService.Profile profile) {
+        for (CandidatePoolService.Candidate candidate : byScore) {
+            if (used.contains(candidate.problem().getTitleSlug())) continue;
+            String slug = candidate.problem().getTitleSlug();
+            if (revisionSlots > 0 && revisionReasonBySlug.containsKey(slug)) {
+                return new Pick(candidate, SEGMENT_REVISION, revisionReasonBySlug.get(slug));
+            }
+            if (warmupSlots > 0 && "EASY".equalsIgnoreCase(candidate.problem().getDifficulty())) {
+                return new Pick(candidate, SEGMENT_WARMUP, "Warm-up: build confidence before the heavy lifts.");
+            }
+            if (challengeSlots > 0 && challengeEligible(candidate, profile)) {
+                return new Pick(candidate, SEGMENT_CHALLENGE, "Stretch: one problem past your comfort zone to grow.");
+            }
+            return new Pick(candidate, SEGMENT_REINFORCE, "Targeted practice on your weakest signals.");
+        }
+        return null;
+    }
+
+    private boolean challengeEligible(CandidatePoolService.Candidate candidate, ColdStartService.Profile profile) {
+        String difficulty = candidate.problem().getDifficulty();
+        boolean hardish = "HARD".equalsIgnoreCase(difficulty) || "MEDIUM".equalsIgnoreCase(difficulty);
+        if (!hardish) return false;
+        return !(profile == ColdStartService.Profile.BEGINNER && "HARD".equalsIgnoreCase(difficulty));
+    }
+
+    private Map<String, String> revisionReasonsBySlug(List<CandidatePoolService.Candidate> scored,
+                                                      List<Topic> revisionTopics) {
+        Map<String, String> reasons = new LinkedHashMap<>();
         for (Topic topic : revisionTopics) {
-            if (result.size() >= cap || added >= 2) break;
-            for (CandidatePoolService.Candidate sp : scored) {
-                if (result.size() >= cap || added >= 2) break;
-                if (!matches(sp.tagSlug(), topic.getTitle())) continue;
-                if (used.add(sp.problem().getTitleSlug())) {
-                    result.add(toResponse(sp, SEGMENT_REVISION,
-                            topic.getTitle() + " needs reinforcement — retention is " + round(topic.getEstimatedRetention()) + "%.",
-                            attemptsBySlug.getOrDefault(sp.problem().getTitleSlug(), new AttemptCounts(0, 0))));
-                    added++;
-                }
+            for (CandidatePoolService.Candidate candidate : scored) {
+                if (reasons.containsKey(candidate.problem().getTitleSlug())) continue;
+                if (!matches(candidate.tagSlug(), topic.getTitle())) continue;
+                reasons.put(candidate.problem().getTitleSlug(),
+                        topic.getTitle() + " needs reinforcement — retention is " + round(topic.getEstimatedRetention()) + "%.");
             }
         }
-    }
-
-    private void addWarmupSegment(List<PracticeProblemResponse> result, Set<String> used,
-                                  List<CandidatePoolService.Candidate> byScore,
-                                  Map<String, AttemptCounts> attemptsBySlug, int cap, ColdStartService.Profile profile) {
-        int wanted = profile == ColdStartService.Profile.BEGINNER ? 2 : 1;
-        int added = 0;
-        for (CandidatePoolService.Candidate sp : byScore) {
-            if (result.size() >= cap || added >= wanted) break;
-            if (!"EASY".equalsIgnoreCase(sp.problem().getDifficulty())) continue;
-            if (used.add(sp.problem().getTitleSlug())) {
-                result.add(toResponse(sp, SEGMENT_WARMUP,
-                        "Warm-up: build confidence before the heavy lifts.",
-                        attemptsBySlug.getOrDefault(sp.problem().getTitleSlug(), new AttemptCounts(0, 0))));
-                added++;
-            }
-        }
-    }
-
-    private void addChallengeSegment(List<PracticeProblemResponse> result, Set<String> used,
-                                     List<CandidatePoolService.Candidate> byScore,
-                                     Map<String, AttemptCounts> attemptsBySlug, int cap,
-                                     ColdStartService.Profile profile, UUID userId) {
-        int added = 0;
-        for (CandidatePoolService.Candidate sp : byScore) {
-            if (result.size() >= cap || added >= 1) break;
-            boolean hardish = "HARD".equalsIgnoreCase(sp.problem().getDifficulty())
-                    || "MEDIUM".equalsIgnoreCase(sp.problem().getDifficulty());
-            if (!hardish) continue;
-            if (profile == ColdStartService.Profile.BEGINNER && "HARD".equalsIgnoreCase(sp.problem().getDifficulty())) continue;
-            if (used.add(sp.problem().getTitleSlug())) {
-                result.add(toResponse(sp, SEGMENT_CHALLENGE,
-                        "Stretch: one problem past your comfort zone to grow.",
-                        attemptsBySlug.getOrDefault(sp.problem().getTitleSlug(), new AttemptCounts(0, 0))));
-                added++;
-            }
-        }
-    }
-
-    private void addReinforceSegment(List<PracticeProblemResponse> result, Set<String> used,
-                                     List<CandidatePoolService.Candidate> byScore,
-                                     Map<String, AttemptCounts> attemptsBySlug, int cap) {
-        for (CandidatePoolService.Candidate sp : byScore) {
-            if (result.size() >= cap) break;
-            if (used.add(sp.problem().getTitleSlug())) {
-                result.add(toResponse(sp, SEGMENT_REINFORCE,
-                        "Targeted practice on your weakest signals.",
-                        attemptsBySlug.getOrDefault(sp.problem().getTitleSlug(), new AttemptCounts(0, 0))));
-            }
-        }
+        return reasons;
     }
 
     private PracticeProblemResponse toResponse(CandidatePoolService.Candidate sp, String segment, String reason,

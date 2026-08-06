@@ -50,6 +50,7 @@ export interface Recommendation {
   problemTitle: string | null;
   problemDifficulty: string | null;
   createdAt: string;
+  score?: number | null;
   scoreBreakdown?: { total: number; items: ScoreItem[] } | null;
 }
 
