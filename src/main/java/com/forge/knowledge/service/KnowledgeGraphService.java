@@ -103,7 +103,8 @@ public class KnowledgeGraphService implements ApplicationRunner {
         }
         String normalized = topicTitle.toLowerCase().trim();
         for (String slug : CURATED_GRAPH.keySet()) {
-            if (normalized.contains(slug) || slug.contains(normalized)) {
+            String searchName = slug.replace("-", " ");
+            if (normalized.contains(searchName) || searchName.contains(normalized)) {
                 return slug;
             }
         }

@@ -74,7 +74,7 @@ public class ProblemScorer {
                 new Signal(SignalWeights.SIGNAL_NAMES.get(8), w[8], coverageBalance(ctx.attempts(), tagSlug)),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(9), w[9], goalAlignment(candidate.getDifficulty(), ctx.targetLevel())),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(10), w[10], notPreviouslySuggested(ctx.suggestedSlugs(), candidate)),
-                new Signal(SignalWeights.SIGNAL_NAMES.get(11), w[11], 50.0),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(11), w[11], diversity(ctx.attempts(), tagSlug)),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(12), w[12], ucbExploration(ctx.rewards(), candidate.getTitleSlug()))
         );
 
@@ -222,6 +222,18 @@ public class ProblemScorer {
     private double notPreviouslySuggested(List<String> suggestedSlugs, ProblemLoader.ProblemEntry candidate) {
         if (suggestedSlugs.contains(candidate.getTitleSlug())) return 0.0;
         return 100.0;
+    }
+
+    private double diversity(List<ProblemAttempt> attempts, String tagSlug) {
+        if (tagSlug == null) return 50.0;
+        List<ProblemAttempt> recent = attempts.stream()
+                .filter(a -> a.getAttemptedAt() != null)
+                .sorted((a, b) -> b.getAttemptedAt().compareTo(a.getAttemptedAt()))
+                .limit(30)
+                .toList();
+        if (recent.isEmpty()) return 100.0;
+        long sameTag = recent.stream().filter(a -> tagSlug.equals(a.getTopicTagSlug())).count();
+        return 100.0 * (1.0 - sameTag / (double) recent.size());
     }
 
     private double ucbExploration(RewardModel.RewardStats rewards, String problemSlug) {

@@ -109,6 +109,40 @@ class ProblemScorerTest {
         assertTrue(breakdown.total() <= 100);
     }
 
+    @Test
+    void diversityShouldVaryWithRecentTagCoverage() {
+        List<ProblemAttempt> attempts = new java.util.ArrayList<>();
+        for (int i = 0; i < 30; i++) {
+            ProblemAttempt a = new ProblemAttempt();
+            a.setProblemSlug("two-sum-" + i);
+            a.setTopicTagSlug("arrays");
+            a.setAttemptedAt(java.time.LocalDateTime.now().minusMinutes(i));
+            attempts.add(a);
+        }
+
+        ProblemScorer.ScoreBreakdown overCovered = scorer.breakdown(ctx(attempts),
+                new ProblemLoader.ProblemEntry("Two Sum", "two-sum", "Medium"), "arrays");
+        ProblemScorer.ScoreBreakdown fresh = scorer.breakdown(ctx(attempts),
+                new ProblemLoader.ProblemEntry("Two Sum", "two-sum", "Medium"), "strings");
+
+        double arraysDiversity = signal(overCovered, "Diversity");
+        double stringsDiversity = signal(fresh, "Diversity");
+
+        assertTrue(stringsDiversity > arraysDiversity,
+                "A tag absent from recent practice should score higher diversity than an over-covered one, got "
+                        + stringsDiversity + " vs " + arraysDiversity);
+        assertEquals(0.0, arraysDiversity);
+        assertEquals(100.0, stringsDiversity);
+    }
+
+    @Test
+    void diversityShouldBeMaximalWhenNoAttemptHistory() {
+        ProblemScorer.ScoreBreakdown breakdown = scorer.breakdown(ctx(List.of()),
+                new ProblemLoader.ProblemEntry("Two Sum", "two-sum", "Medium"), "arrays");
+
+        assertEquals(100.0, signal(breakdown, "Diversity"));
+    }
+
     private double signal(ProblemScorer.ScoreBreakdown breakdown, String name) {
         return breakdown.items().stream()
                 .filter(i -> i.name().equals(name))

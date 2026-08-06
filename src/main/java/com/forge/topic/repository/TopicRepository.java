@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -32,6 +33,9 @@ public interface TopicRepository extends JpaRepository<Topic, UUID> {
 
     @Query("SELECT t FROM Topic t WHERE t.user.id = :userId AND t.nextRevision IS NOT NULL AND t.nextRevision <= CURRENT_TIMESTAMP ORDER BY t.nextRevision ASC")
     List<Topic> findTopicsNeedingRevisionByUserId(@Param("userId") UUID userId);
+
+    @Query("SELECT t FROM Topic t WHERE t.nextRevision IS NOT NULL AND t.nextRevision <= :now ORDER BY t.nextRevision ASC")
+    List<Topic> findTopicsNeedingRevision(@Param("now") LocalDateTime now);
 
     long countByUserId(UUID userId);
 
