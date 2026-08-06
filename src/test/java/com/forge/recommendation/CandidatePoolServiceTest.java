@@ -141,6 +141,26 @@ class CandidatePoolServiceTest {
     }
 
     @Test
+    void sameContextScoresEachTagOnlyOnceAcrossPicks() {
+        LeetCodeTagStat tag = new LeetCodeTagStat();
+        tag.setTagSlug("dp");
+        tag.setProblemsSolved(2);
+
+        ProblemLoader.ProblemEntry p1 = new ProblemLoader.ProblemEntry("Coin Change", "coin-change", "Medium");
+        ProblemLoader.ProblemEntry p2 = new ProblemLoader.ProblemEntry("House Robber", "house-robber", "Medium");
+        when(problemLoader.getProblemsForTag("dp")).thenReturn(List.of(p1, p2));
+        when(problemScorer.breakdown(any(), any(), any())).thenReturn(new ProblemScorer.ScoreBreakdown(70, List.of()));
+
+        ProblemScorer.ScoringContext ctx = ctx(List.of(tag));
+
+        service.bestProblem(ctx, null, "dp");
+        service.bestProblem(ctx, null, "dp");
+        service.bestProblemForTopic(ctx, "DP");
+
+        verify(problemScorer, times(2)).breakdown(any(), any(), eq("dp"));
+    }
+
+    @Test
     void rankForUserShouldComposeSuggestionsAndWeakTagsDeduped() {
         LeetCodeTagStat weak = new LeetCodeTagStat();
         weak.setTagSlug("dp");

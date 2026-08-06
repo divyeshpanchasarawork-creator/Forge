@@ -8,10 +8,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.WeakHashMap;
 
 @Component
 @RequiredArgsConstructor
@@ -25,6 +28,15 @@ public class CandidatePoolService {
 
     private final ProblemLoader problemLoader;
     private final ProblemScorer problemScorer;
+
+    /**
+     * Per-generation scored-tag cache. {@link ProblemScorer.ScoringContext} is immutable for the
+     * lifetime of one generation/queue build, so the breakdown of every (problem, tag) is
+     * deterministic; each tag is scored at most once per context instead of once per pick call.
+     * Keyed by identity (==) so two equal-but-distinct contexts never share stale rankings, and
+     * held weakly so entries are reclaimed once the request drops the context.
+     */
+    private final Map<CtxKey, Map<String, List<Candidate>>> ctxTagCache = new WeakHashMap<>();
 
     public List<Candidate> rankForUser(ProblemScorer.ScoringContext ctx, int cap) {
         List<Candidate> scored = new ArrayList<>();
@@ -41,12 +53,10 @@ public class CandidatePoolService {
         }
 
         for (String tagSlug : resolveCandidateTags(ctx)) {
-            if (scored.size() >= cap) break;
-            for (ProblemLoader.ProblemEntry candidate : problemLoader.getProblemsForTag(tagSlug)) {
+            for (Candidate candidate : scoredForTag(ctx, tagSlug)) {
                 if (scored.size() >= cap) break;
-                if (!seen.add(candidate.getTitleSlug())) continue;
-                ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx, candidate, tagSlug);
-                scored.add(new Candidate(candidate, tagSlug, breakdown.total(), breakdown));
+                if (!seen.add(candidate.problem().getTitleSlug())) continue;
+                scored.add(candidate);
             }
         }
 
@@ -76,14 +86,28 @@ public class CandidatePoolService {
     public List<Candidate> rank(ProblemScorer.ScoringContext ctx, List<String> tagSlugs, String difficulty, int limit) {
         List<Candidate> scored = new ArrayList<>();
         for (String tag : tagSlugs) {
-            for (ProblemLoader.ProblemEntry candidate : problemLoader.getProblemsForTag(tag)) {
-                if (difficulty != null && !candidate.getDifficulty().equalsIgnoreCase(difficulty)) continue;
-                ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx, candidate, tag);
-                scored.add(new Candidate(candidate, tag, breakdown.total(), breakdown));
+            for (Candidate candidate : scoredForTag(ctx, tag)) {
+                if (difficulty != null && !candidate.problem().getDifficulty().equalsIgnoreCase(difficulty)) continue;
+                scored.add(candidate);
             }
         }
         scored.sort((a, b) -> Integer.compare(b.score(), a.score()));
         return scored.stream().limit(Math.max(1, limit)).toList();
+    }
+
+    private synchronized List<Candidate> scoredForTag(ProblemScorer.ScoringContext ctx, String tagSlug) {
+        Map<String, List<Candidate>> perTag = ctxTagCache.computeIfAbsent(new CtxKey(ctx), k -> new HashMap<>());
+        return perTag.computeIfAbsent(tagSlug, slug -> scoreTag(ctx, slug));
+    }
+
+    private List<Candidate> scoreTag(ProblemScorer.ScoringContext ctx, String tagSlug) {
+        List<Candidate> scored = new ArrayList<>();
+        for (ProblemLoader.ProblemEntry candidate : problemLoader.getProblemsForTag(tagSlug)) {
+            ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx, candidate, tagSlug);
+            scored.add(new Candidate(candidate, tagSlug, breakdown.total(), breakdown));
+        }
+        scored.sort((a, b) -> Integer.compare(b.score(), a.score()));
+        return scored;
     }
 
     public List<String> weakTagSlugs(ProblemScorer.ScoringContext ctx) {
@@ -126,5 +150,23 @@ public class CandidatePoolService {
 
     private String slugify(String topicTitle) {
         return topicTitle.toLowerCase().replace(' ', '-').replaceAll("[^a-z0-9-]", "");
+    }
+
+    private static final class CtxKey {
+        private final ProblemScorer.ScoringContext ctx;
+
+        private CtxKey(ProblemScorer.ScoringContext ctx) {
+            this.ctx = ctx;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return o instanceof CtxKey key && key.ctx == ctx;
+        }
+
+        @Override
+        public int hashCode() {
+            return System.identityHashCode(ctx);
+        }
     }
 }
