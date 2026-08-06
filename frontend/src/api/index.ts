@@ -1,5 +1,5 @@
 import api from './client';
-import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, WeeklyProgress, LeetCodeStats, MemoryResponse, PracticeQueueResponse, RoadmapAnalysis, PagedResponse, ProblemAttempt, ProblemAttemptRequest, ProblemAttemptResponse, LearningCurveResponse, ActivityDay } from '@/types';
+import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, WeeklyProgress, LeetCodeStats, MemoryResponse, PracticeQueueResponse, RoadmapAnalysis, PagedResponse, ProblemAttempt, ProblemAttemptRequest, ProblemAttemptResponse, LearningCurveResponse, ActivityDay, EngineReport } from '@/types';
 
 export const authApi = {
   login: (username: string, password: string) =>
@@ -62,6 +62,11 @@ export const roadmapApi = {
 export const leetcodeApi = {
   sync: () => api.post<ApiResponse<LeetCodeStats>>('/leetcode/sync'),
   getStats: () => api.get<ApiResponse<LeetCodeStats>>('/leetcode/stats'),
+};
+
+export const calibrationApi = {
+  getReport: () => api.get<ApiResponse<EngineReport>>('/internal/engine-report'),
+  runCalibration: () => api.post<ApiResponse<EngineReport>>('/internal/calibration/run'),
 };
 
 export interface SearchProblem {

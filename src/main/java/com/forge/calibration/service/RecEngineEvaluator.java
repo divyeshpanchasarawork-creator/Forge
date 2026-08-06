@@ -16,6 +16,15 @@ public class RecEngineEvaluator {
 
     public static final double SUCCESS_REWARD = 0.6;
 
+    /** Predicted total score (0-100) from a weight vector and per-signal values (0-100). */
+    public static int predict(double[] weights, double[] signals) {
+        double sum = 0;
+        for (int j = 0; j < weights.length; j++) {
+            sum += weights[j] * signals[j];
+        }
+        return (int) Math.round(Math.min(100, sum));
+    }
+
     /** Mean squared error between predicted (0-100) and actual reward scaled to 0-100. */
     public static double mse(List<Double> predicted, List<Double> actual) {
         if (predicted.isEmpty()) return Double.NaN;

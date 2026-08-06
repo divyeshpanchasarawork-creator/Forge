@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { User, Code2, Save, RefreshCw, Trophy, Flame, TrendingUp, Target } from 'lucide-react';
-import { authApi, leetcodeApi } from '@/api';
+import { User, Code2, Save, RefreshCw, Trophy, Flame, TrendingUp, Target, Sparkles, Activity, Gauge, TrendingDown } from 'lucide-react';
+import { authApi, leetcodeApi, calibrationApi } from '@/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTargetLevel } from '@/lib/targetLevels';
+import KpiCard from '@/components/ui/KpiCard';
+
+const fmt = (v?: number | null) =>
+  v != null && Number.isFinite(v) ? v.toFixed(2) : '—';
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
@@ -50,6 +54,18 @@ export default function ProfilePage() {
   });
 
   const lcStats = lcData;
+
+  const { data: engineReport } = useQuery({
+    queryKey: ['engine-report'],
+    queryFn: () => calibrationApi.getReport().then((res) => res.data.data),
+  });
+
+  const calibrateMutation = useMutation({
+    mutationFn: () => calibrationApi.runCalibration(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['engine-report'] });
+    },
+  });
 
   return (
     <div className="space-y-6">
@@ -283,6 +299,62 @@ export default function ProfilePage() {
                 </p>
               )}
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Recommendation Engine
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <KpiCard
+              icon={<Activity className="h-5 w-5 text-primary" />}
+              value={engineReport?.sampleCount ?? 0}
+              label="Scored Samples"
+              tooltip="Attempts with a stored signal snapshot used to evaluate the scorer."
+            />
+            <KpiCard
+              icon={<Target className="h-5 w-5 text-primary" />}
+              value={fmt(engineReport?.liveAuc)}
+              label="Live Rank-AUC"
+              tooltip="Rank correlation between the active scorer and actual outcomes. 1.0 is a perfect ranking, 0.5 is random."
+            />
+            <KpiCard
+              icon={<Gauge className="h-5 w-5 text-primary" />}
+              value={fmt(engineReport?.liveMse)}
+              label="Live MSE"
+              tooltip="Mean squared error between the predicted score and reward (quality/5, scaled to 0-100)."
+            />
+            <KpiCard
+              icon={<TrendingDown className="h-5 w-5 text-primary" />}
+              value={fmt(engineReport?.liveLogLoss)}
+              label="Live Log-Loss"
+              tooltip="Binary log-loss of the active scorer treating reward >= 0.6 as success."
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-3 rounded-lg bg-secondary/50 px-4 py-3">
+            <div className="text-xs text-muted-foreground">
+              {engineReport?.version != null
+                ? `Weights v${engineReport.version}${engineReport.lastCalibratedAt ? ` · calibrated ${new Date(engineReport.lastCalibratedAt).toLocaleString()}` : ''}`
+                : 'No calibration applied yet — the scorer is using initial default weights.'}
+            </div>
+            <button
+              onClick={() => calibrateMutation.mutate()}
+              disabled={calibrateMutation.isPending}
+              className="flex shrink-0 items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20 disabled:opacity-50"
+            >
+              <Sparkles className={`h-4 w-4 ${calibrateMutation.isPending ? 'animate-pulse' : ''}`} />
+              {calibrateMutation.isPending ? 'Calibrating...' : 'Run Calibration'}
+            </button>
+          </div>
+          {calibrateMutation.isError && (
+            <p className="text-sm text-red-400">Calibration failed. Try again later.</p>
           )}
         </CardContent>
       </Card>

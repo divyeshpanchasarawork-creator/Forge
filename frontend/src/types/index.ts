@@ -54,6 +54,21 @@ export interface Recommendation {
   scoreBreakdown?: { total: number; items: ScoreItem[] } | null;
 }
 
+export interface EngineReport {
+  sampleCount: number;
+  storedMse: number;
+  storedLogLoss: number;
+  storedAuc: number;
+  liveMse: number;
+  liveLogLoss: number;
+  liveAuc: number;
+  weights: Record<string, number>;
+  version: number | null;
+  lastMetricBefore: number | null;
+  lastMetricAfter: number | null;
+  lastCalibratedAt: string | null;
+}
+
 export interface Journal {
   id: string;
   entryDate: string;

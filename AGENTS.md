@@ -44,7 +44,7 @@ Run: `mvn test`
 - Attempt snapshots for calibration: `PracticeService.submitAttempt` stores `signals_json` (the `ScoreItem` list) + `predicted_score` (breakdown total) before mastery updates
 - `RecommendationResponse.score` mirrors `scoreBreakdown.total`; recommendation lists sort by score desc, then priority asc, then createdAt desc
 - `SessionPlanner` uses marginal-gain selection: repeatedly pick the highest-score unused candidate that fits a remaining segment slot (REVISION > WARMUP > CHALLENGE > REINFORCE) instead of fixed sequential passes
-- Manual calibration trigger + engine report are Phase E; never generate them automatically on request paths
+- Engine health is surfaced via `GET /api/internal/engine-report` (stored-vs-live MSE/log-loss/rank-AUC over snapshots) and re-fit on demand via `POST /api/internal/calibration/run`; ProfilePage renders a KpiCard health card. Never run calibration automatically on request paths
 
 ## Key Dependencies
 - Spring Boot 4.0.7, Spring Security 7, Spring Data JPA

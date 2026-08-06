@@ -65,10 +65,40 @@ public class CalibrationJob {
 
     private double evaluate(SignalWeights weights, List<SignalSample> samples) {
         List<Double> predicted = samples.stream()
-                .map(s -> (double) predict(weights.toArray(), s.signals()))
+                .map(s -> (double) RecEngineEvaluator.predict(weights.toArray(), s.signals()))
                 .toList();
         List<Double> actual = samples.stream().map(SignalSample::reward).toList();
         return RecEngineEvaluator.mse(predicted, actual);
+    }
+
+    /**
+     * Parses the stored signal snapshot (the {@code ScoreItem} list) back into per-signal
+     * values aligned with {@link SignalWeights#SIGNAL_NAMES}; returns null when unparseable.
+     */
+    public static double[] parseSignals(String signalsJson) {
+        try {
+            List<ProblemScorer.ScoreItem> items = OBJECT_MAPPER.readValue(
+                    signalsJson, new TypeReference<List<ProblemScorer.ScoreItem>>() {});
+            double[] signals = new double[SignalWeights.SIGNAL_NAMES.size()];
+            for (ProblemScorer.ScoreItem item : items) {
+                int idx = SignalWeights.SIGNAL_NAMES.indexOf(item.name());
+                if (idx >= 0) {
+                    signals[idx] = item.value();
+                }
+            }
+            return signals;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private SignalSample parseSample(ProblemAttempt attempt) {
+        double[] signals = parseSignals(attempt.getSignalsJson());
+        if (signals == null) {
+            log.warn("Skipping attempt {} with unparseable signal snapshot", attempt.getId());
+            return null;
+        }
+        return new SignalSample(signals, attempt.getQuality() / 5.0);
     }
 
     private SignalWeights fit(List<SignalSample> samples) {
@@ -97,32 +127,6 @@ public class CalibrationJob {
             w[i] = Math.max(0, Math.min(0.5, w[i]));
         }
         return SignalWeights.from(w);
-    }
-
-    private int predict(double[] weights, double[] signals) {
-        double sum = 0;
-        for (int j = 0; j < weights.length; j++) {
-            sum += weights[j] * signals[j];
-        }
-        return (int) Math.round(Math.min(100, sum));
-    }
-
-    private SignalSample parseSample(ProblemAttempt attempt) {
-        try {
-            List<ProblemScorer.ScoreItem> items = OBJECT_MAPPER.readValue(
-                    attempt.getSignalsJson(), new TypeReference<List<ProblemScorer.ScoreItem>>() {});
-            double[] signals = new double[SignalWeights.SIGNAL_NAMES.size()];
-            for (ProblemScorer.ScoreItem item : items) {
-                int idx = SignalWeights.SIGNAL_NAMES.indexOf(item.name());
-                if (idx >= 0) {
-                    signals[idx] = item.value();
-                }
-            }
-            return new SignalSample(signals, attempt.getQuality() / 5.0);
-        } catch (Exception e) {
-            log.warn("Skipping attempt {} with unparseable signal snapshot", attempt.getId(), e);
-            return null;
-        }
     }
 
     /** Solves a*x = b via Gaussian elimination with partial pivoting. */
