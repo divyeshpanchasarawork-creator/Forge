@@ -3,6 +3,7 @@ package com.forge.practice;
 import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.RewardModel;
 import com.forge.common.util.SecurityUtils;
+import com.forge.common.util.SignalWeights;
 import com.forge.intelligence.service.ColdStartService;
 import com.forge.intelligence.service.ForgettingCurveService;
 import com.forge.intelligence.service.MasteryService;
@@ -79,7 +80,8 @@ class PracticeServiceTest {
         when(coldStartService.classify(userId)).thenReturn(ColdStartService.Profile.BEGINNER);
         when(coldStartService.planMessage(eq(userId), any())).thenReturn("plan");
         when(problemScorer.context(userId)).thenReturn(
-                new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(), List.of(), 5, RewardModel.stats(List.of())));
+                new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(), List.of(), 5,
+                        RewardModel.stats(List.of()), SignalWeights.DEFAULT));
         when(candidatePoolService.rankForUser(any(), anyInt())).thenReturn(List.of());
         when(topicRepository.findByUserId(eq(userId), any())).thenReturn(new PageImpl<>(List.of()));
         when(sessionPlanner.build(any(), any(), any(), any(), any(), anyInt())).thenReturn(List.of());
@@ -104,7 +106,8 @@ class PracticeServiceTest {
         when(coldStartService.classify(userId)).thenReturn(ColdStartService.Profile.BEGINNER);
         when(coldStartService.planMessage(eq(userId), any())).thenReturn("plan");
         when(problemScorer.context(userId)).thenReturn(
-                new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(attempt), List.of(), 5, RewardModel.stats(List.of(attempt))));
+                new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(attempt), List.of(), 5,
+                        RewardModel.stats(List.of(attempt)), SignalWeights.DEFAULT));
         when(candidatePoolService.rankForUser(any(), anyInt())).thenReturn(List.of());
         when(topicRepository.findByUserId(eq(userId), any())).thenReturn(new PageImpl<>(List.of()));
         when(sessionPlanner.build(any(), any(), any(), any(), any(), anyInt())).thenAnswer(inv -> {

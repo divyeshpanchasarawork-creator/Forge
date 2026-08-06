@@ -8,6 +8,7 @@ import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.RewardModel;
+import com.forge.common.util.SignalWeights;
 import com.forge.leetcode.repository.ProblemSuggestionRepository;
 import com.forge.recommendation.entity.Recommendation;
 import com.forge.recommendation.repository.RecommendationRepository;
@@ -57,7 +58,8 @@ class RecommendationEngineTest {
     }
 
     private ProblemScorer.ScoringContext emptyCtx() {
-        return new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(), List.of(), 5, RewardModel.stats(List.of()));
+        return new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(), List.of(), 5,
+                RewardModel.stats(List.of()), SignalWeights.DEFAULT);
     }
 
     @Test

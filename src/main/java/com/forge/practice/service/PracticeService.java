@@ -1,6 +1,8 @@
 package com.forge.practice.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.forge.common.exception.BadRequestException;
+import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.SecurityUtils;
 import com.forge.intelligence.service.ColdStartService;
@@ -36,6 +38,8 @@ import java.util.stream.Collectors;
 public class PracticeService {
 
     private static final Set<String> VALID_OUTCOMES = Set.of("SOLVED", "FAILED", "PARTIAL", "SKIPPED");
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final ProblemScorer problemScorer;
     private final ProblemAttemptRepository problemAttemptRepository;
@@ -103,6 +107,7 @@ public class PracticeService {
         attempt.setTimeTakenSeconds(request.getTimeTakenSeconds());
         attempt.setQuality(masteryService.qualityFrom(outcome, attempt.getHintsUsed(), attempt.getTimeTakenSeconds()));
         attempt.setAttemptedAt(LocalDateTime.now());
+        snapshotSignals(attempt, request, userId);
         attempt = problemAttemptRepository.save(attempt);
 
         List<Topic> matched = matchTopics(userId, request.getTopicTagSlug(), request.getTopicTagName(), request.getProblemTitle());
@@ -131,6 +136,23 @@ public class PracticeService {
     public List<ProblemAttempt> getAttemptHistory(int limit) {
         UUID userId = SecurityUtils.getCurrentUserId();
         return problemAttemptRepository.findByUserIdOrderByAttemptedAtDesc(userId, PageRequest.of(0, Math.min(50, Math.max(1, limit))));
+    }
+
+    private void snapshotSignals(ProblemAttempt attempt, ProblemAttemptRequest request, UUID userId) {
+        if (request.getTopicTagSlug() == null || request.getTopicTagSlug().isBlank()) {
+            return;
+        }
+        try {
+            ProblemScorer.ScoringContext ctx = problemScorer.context(userId);
+            ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx,
+                    new ProblemLoader.ProblemEntry(request.getProblemTitle(), request.getProblemSlug(),
+                            attempt.getDifficulty()),
+                    request.getTopicTagSlug());
+            attempt.setPredictedScore(breakdown.total());
+            attempt.setSignalsJson(OBJECT_MAPPER.writeValueAsString(breakdown.items()));
+        } catch (Exception e) {
+            log.warn("Signal snapshot failed for {}: {}", request.getProblemSlug(), e.getMessage());
+        }
     }
 
     private Map<String, SessionPlanner.AttemptCounts> attemptsBySlug(ProblemScorer.ScoringContext ctx) {

@@ -4,7 +4,7 @@
 Personal engineering companion. Single user. Java 21 + Spring Boot 4.0.7 backend, React 19 + TypeScript frontend.
 
 ## Architecture
-Layered monolith. Packages by feature (auth, topic, problem, revision, recommendation, journal, analytics, dashboard, scheduler, common, config, security).
+Layered monolith. Packages by feature (auth, topic, problem, revision, recommendation, calibration, journal, analytics, dashboard, scheduler, common, config, security).
 
 ## Conventions
 - Constructor injection only (`@RequiredArgsConstructor`)
@@ -17,7 +17,7 @@ Layered monolith. Packages by feature (auth, topic, problem, revision, recommend
 - Audit fields: createdAt, updatedAt
 - Flyway for all migrations, never ddl-auto=create
 - Spring Security 7 lambda DSL (no `.and()` chaining)
-- Jackson 3 (ships with Boot 4)
+- Boot 4 wires Jackson 3 (`tools.jackson`); there is NO auto-configured `com.fasterxml.jackson.databind.ObjectMapper` bean — construct `new ObjectMapper()` directly (ProblemLoader pattern)
 - JWT in httpOnly cookie (`forge_token`) + Authorization header fallback
 - Refresh token in separate httpOnly cookie (`forge_refresh`)
 - Rate limiting on `/api/auth/**` (5 req/min/IP)
@@ -38,6 +38,11 @@ Run: `mvn test`
 - `RewardModel` utility derives per-problem/per-tag reward from stored attempt quality (reward = quality/5); `ScoringContext.rewards` carries `RewardStats` for reward-aware UCB
 - Memory page surfaces fading concepts, patterns, mistakes, and insights from journal entries
 - KpiCard component simplified (no trend/trendValue props)
+- Scoring self-containment: the 13 signal weights live in `SignalWeights` (order = `SIGNAL_NAMES`, same as the breakdown emits); `ScoringContext.weights` carries them per request; calibration is a single global `scorer_weights` row (single-user app, no per-user scope)
+- `ScorerWeightsService` caches the active weight vector; `CalibrationJob` (nightly) least-squares fits weights against stored attempt snapshots and swaps only when MSE improves by >= max(1.0, 5%) on >= 30 samples
+- `RecEngineEvaluator` is the shared pure-metric utility (MSE / binary log-loss / rank-AUC, reward = quality/5) used by calibration and the engine report
+- Attempt snapshots for calibration: `PracticeService.submitAttempt` stores `signals_json` (the `ScoreItem` list) + `predicted_score` (breakdown total) before mastery updates
+- Manual calibration trigger + engine report are Phase E; never generate them automatically on request paths
 
 ## Key Dependencies
 - Spring Boot 4.0.7, Spring Security 7, Spring Data JPA

@@ -2,6 +2,7 @@ package com.forge.common.util;
 
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
+import com.forge.calibration.service.ScorerWeightsService;
 import com.forge.leetcode.entity.LeetCodeTagStat;
 import com.forge.leetcode.entity.ProblemSuggestion;
 import com.forge.leetcode.repository.LeetCodeTagStatRepository;
@@ -32,6 +33,7 @@ public class ProblemScorer {
     private final ProblemAttemptRepository problemAttemptRepository;
     private final UserRepository userRepository;
     private final SkillRatingService skillRatingService;
+    private final ScorerWeightsService scorerWeightsService;
 
     private record Signal(String name, double weight, double value) {}
 
@@ -41,7 +43,7 @@ public class ProblemScorer {
 
     public record ScoringContext(List<LeetCodeTagStat> stats, List<Topic> topics,
                                  List<ProblemAttempt> attempts, List<ProblemSuggestion> suggestions,
-                                 int targetLevel, RewardModel.RewardStats rewards) {
+                                 int targetLevel, RewardModel.RewardStats rewards, SignalWeights weights) {
         public List<String> suggestedSlugs() {
             return suggestions.stream().map(ProblemSuggestion::getTitleSlug).toList();
         }
@@ -54,24 +56,26 @@ public class ProblemScorer {
         List<ProblemAttempt> attempts = problemAttemptRepository.findByUserIdAll(userId);
         List<ProblemSuggestion> suggestions = problemSuggestionRepository.findByUserId(userId);
         int targetLevel = user != null && user.getTargetLevel() != null ? user.getTargetLevel() : 5;
-        return new ScoringContext(stats, topics, attempts, suggestions, targetLevel, RewardModel.stats(attempts));
+        return new ScoringContext(stats, topics, attempts, suggestions, targetLevel,
+                RewardModel.stats(attempts), scorerWeightsService.currentWeights());
     }
 
     public ScoreBreakdown breakdown(ScoringContext ctx, ProblemLoader.ProblemEntry candidate, String tagSlug) {
+        double[] w = ctx.weights().toArray();
         List<Signal> signals = List.of(
-                new Signal("Weak tag", 0.15, weakTagMatch(ctx.stats(), tagSlug)),
-                new Signal("Mastery gap", 0.12, topicMasteryGap(ctx.topics(), tagSlug)),
-                new Signal("Difficulty fit", 0.10, difficultyFit(ctx.stats(), candidate.getDifficulty())),
-                new Signal("Learning gain", 0.10, expectedLearningGain(ctx.topics(), tagSlug)),
-                new Signal("Revision urgency", 0.10, revisionUrgency(ctx.topics(), tagSlug)),
-                new Signal("Confidence decay", 0.08, confidenceDecay(ctx.topics(), tagSlug)),
-                new Signal("Readiness", 0.08, readiness(ctx.topics(), candidate.getDifficulty())),
-                new Signal("Time since practice", 0.08, timeSinceLastPractice(ctx.attempts(), candidate.getTitleSlug(), tagSlug)),
-                new Signal("Coverage balance", 0.07, coverageBalance(ctx.attempts(), tagSlug)),
-                new Signal("Goal alignment", 0.06, goalAlignment(candidate.getDifficulty(), ctx.targetLevel())),
-                new Signal("Not suggested", 0.04, notPreviouslySuggested(ctx.suggestedSlugs(), candidate)),
-                new Signal("Diversity", 0.02, 50.0),
-                new Signal("UCB exploration", 0.10, ucbExploration(ctx.rewards(), candidate.getTitleSlug()))
+                new Signal(SignalWeights.SIGNAL_NAMES.get(0), w[0], weakTagMatch(ctx.stats(), tagSlug)),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(1), w[1], topicMasteryGap(ctx.topics(), tagSlug)),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(2), w[2], difficultyFit(ctx.stats(), candidate.getDifficulty())),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(3), w[3], expectedLearningGain(ctx.topics(), tagSlug)),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(4), w[4], revisionUrgency(ctx.topics(), tagSlug)),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(5), w[5], confidenceDecay(ctx.topics(), tagSlug)),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(6), w[6], readiness(ctx.topics(), candidate.getDifficulty())),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(7), w[7], timeSinceLastPractice(ctx.attempts(), candidate.getTitleSlug(), tagSlug)),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(8), w[8], coverageBalance(ctx.attempts(), tagSlug)),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(9), w[9], goalAlignment(candidate.getDifficulty(), ctx.targetLevel())),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(10), w[10], notPreviouslySuggested(ctx.suggestedSlugs(), candidate)),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(11), w[11], 50.0),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(12), w[12], ucbExploration(ctx.rewards(), candidate.getTitleSlug()))
         );
 
         double total = 0;

@@ -3,6 +3,7 @@ package com.forge.recommendation;
 import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.RewardModel;
+import com.forge.common.util.SignalWeights;
 import com.forge.leetcode.entity.LeetCodeTagStat;
 import com.forge.leetcode.entity.ProblemSuggestion;
 import com.forge.recommendation.service.CandidatePoolService;
@@ -35,11 +36,13 @@ class CandidatePoolServiceTest {
     }
 
     private ProblemScorer.ScoringContext ctx(List<LeetCodeTagStat> stats) {
-        return new ProblemScorer.ScoringContext(stats, List.of(), List.of(), List.of(), 5, RewardModel.stats(List.of()));
+        return new ProblemScorer.ScoringContext(stats, List.of(), List.of(), List.of(), 5,
+                RewardModel.stats(List.of()), SignalWeights.DEFAULT);
     }
 
     private ProblemScorer.ScoringContext ctx(List<LeetCodeTagStat> stats, List<ProblemSuggestion> suggestions) {
-        return new ProblemScorer.ScoringContext(stats, List.of(), List.of(), suggestions, 5, RewardModel.stats(List.of()));
+        return new ProblemScorer.ScoringContext(stats, List.of(), List.of(), suggestions, 5,
+                RewardModel.stats(List.of()), SignalWeights.DEFAULT);
     }
 
     @Test

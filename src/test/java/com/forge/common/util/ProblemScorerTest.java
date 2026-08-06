@@ -1,5 +1,6 @@
 package com.forge.common.util;
 
+import com.forge.calibration.service.ScorerWeightsService;
 import com.forge.leetcode.repository.LeetCodeTagStatRepository;
 import com.forge.leetcode.repository.ProblemSuggestionRepository;
 import com.forge.practice.entity.ProblemAttempt;
@@ -28,17 +29,19 @@ class ProblemScorerTest {
     @Mock private ProblemAttemptRepository problemAttemptRepository;
     @Mock private UserRepository userRepository;
     @Mock private SkillRatingService skillRatingService;
+    @Mock private ScorerWeightsService scorerWeightsService;
 
     private ProblemScorer scorer;
 
     @BeforeEach
     void setUp() {
         scorer = new ProblemScorer(tagStatRepository, topicRepository, problemSuggestionRepository,
-                problemAttemptRepository, userRepository, skillRatingService);
+                problemAttemptRepository, userRepository, skillRatingService, scorerWeightsService);
     }
 
     private ProblemScorer.ScoringContext ctx(List<ProblemAttempt> attempts) {
-        return new ProblemScorer.ScoringContext(List.of(), List.of(), attempts, List.of(), 5, RewardModel.stats(attempts));
+        return new ProblemScorer.ScoringContext(List.of(), List.of(), attempts, List.of(), 5,
+                RewardModel.stats(attempts), SignalWeights.DEFAULT);
     }
 
     @Test
