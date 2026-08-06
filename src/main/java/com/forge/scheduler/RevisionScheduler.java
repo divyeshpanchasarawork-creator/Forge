@@ -2,6 +2,7 @@ package com.forge.scheduler;
 
 import com.forge.revision.entity.Revision;
 import com.forge.revision.repository.RevisionRepository;
+import com.forge.common.util.TimezoneUtil;
 import com.forge.topic.entity.Topic;
 import com.forge.topic.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +43,7 @@ public class RevisionScheduler {
             Revision revision = new Revision();
             revision.setUser(topic.getUser());
             revision.setTopic(topic);
-            revision.setScheduledDate(LocalDate.now());
+            revision.setScheduledDate(LocalDate.now(TimezoneUtil.resolve(topic.getUser())));
             revision.setPriority(1);
             revision.setReason("scheduled");
             revision.setCompleted(false);

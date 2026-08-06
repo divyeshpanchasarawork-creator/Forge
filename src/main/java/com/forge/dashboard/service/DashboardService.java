@@ -6,6 +6,7 @@ import com.forge.common.exception.ResourceNotFoundException;
 import com.forge.common.util.GreetingUtil;
 import com.forge.common.util.ReadinessCalculator;
 import com.forge.common.util.SecurityUtils;
+import com.forge.common.util.TimezoneUtil;
 import com.forge.dashboard.dto.DashboardResponse;
 import com.forge.journal.repository.JournalRepository;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
@@ -66,10 +67,12 @@ public class DashboardService {
         long notStartedCount = allTopics.stream().filter(t -> t.getStatus() == null || "NOT_STARTED".equals(t.getStatus())).count();
         long overdueCount = topicRepository.findTopicsNeedingRevisionByUserId(userId).size();
 
-        var todayJournal = journalRepository.findByUserIdAndEntryDate(userId, LocalDate.now()).orElse(null);
-        String journalSummary = todayJournal != null ?
-                "Energy: " + todayJournal.getEnergy() + "/5, Mood: " + todayJournal.getMood() + "/5" :
-                "No journal entry today yet.";
+        var todayJournal = journalRepository.findByUserIdAndEntryDate(
+                userId, LocalDate.now(TimezoneUtil.resolve(user))).orElse(null);
+        String journalSummary = todayJournal != null
+                ? "Energy: " + (todayJournal.getEnergy() != null ? todayJournal.getEnergy() + "/5" : "n/a")
+                + ", Mood: " + (todayJournal.getMood() != null ? todayJournal.getMood() + "/5" : "n/a")
+                : "No journal entry today yet.";
 
         DashboardResponse.LeetCodeStats lcStats = null;
         LeetCodeSnapshot snapshot = snapshotRepository.findByUserId(userId).orElse(null);

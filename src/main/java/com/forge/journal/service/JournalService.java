@@ -5,6 +5,7 @@ import com.forge.auth.repository.UserRepository;
 import com.forge.common.dto.PagedResponse;
 import com.forge.common.exception.ResourceNotFoundException;
 import com.forge.common.util.SecurityUtils;
+import com.forge.common.util.TimezoneUtil;
 import com.forge.journal.dto.JournalRequest;
 import com.forge.journal.dto.JournalResponse;
 import com.forge.journal.entity.Journal;
@@ -44,14 +45,16 @@ public class JournalService {
 
     public JournalResponse getTodayJournal() {
         UUID userId = SecurityUtils.getCurrentUserId();
-        return journalRepository.findByUserIdAndEntryDate(userId, LocalDate.now())
+        java.time.ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
+        return journalRepository.findByUserIdAndEntryDate(userId, LocalDate.now(zone))
                 .map(journalMapper::toResponse)
                 .orElse(null);
     }
 
     public List<JournalResponse> getRecentJournals() {
         UUID userId = SecurityUtils.getCurrentUserId();
-        LocalDate end = LocalDate.now();
+        java.time.ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
+        LocalDate end = LocalDate.now(zone);
         LocalDate start = end.minusDays(7);
         return journalRepository.findByUserIdAndEntryDateBetweenOrderByEntryDateDesc(userId, start, end).stream()
                 .map(journalMapper::toResponse)
@@ -63,11 +66,25 @@ public class JournalService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        LocalDate entryDate = request.getEntryDate() != null ? request.getEntryDate() : LocalDate.now();
+        LocalDate entryDate = request.getEntryDate() != null
+                ? request.getEntryDate()
+                : LocalDate.now(TimezoneUtil.resolve(user));
 
-        Journal journal = journalRepository.findByUserIdAndEntryDate(userId, entryDate)
-                .orElse(new Journal());
+        Journal journal = findOrCreate(userId, entryDate);
+        apply(journal, user, entryDate, request);
 
+        try {
+            journal = journalRepository.save(journal);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            journal = findOrCreate(userId, entryDate);
+            apply(journal, user, entryDate, request);
+            journal = journalRepository.save(journal);
+        }
+        log.info("Journal saved for date: {} by user: {}", entryDate, userId);
+        return journalMapper.toResponse(journal);
+    }
+
+    private void apply(Journal journal, User user, LocalDate entryDate, JournalRequest request) {
         journal.setUser(user);
         journal.setEntryDate(entryDate);
         journal.setMorningGoal(request.getMorningGoal());
@@ -78,9 +95,10 @@ public class JournalService {
         journal.setAchievements(request.getAchievements());
         journal.setChallenges(request.getChallenges());
         journal.setLessons(request.getLessons());
+    }
 
-        journal = journalRepository.save(journal);
-        log.info("Journal saved for date: {} by user: {}", entryDate, userId);
-        return journalMapper.toResponse(journal);
+    private Journal findOrCreate(UUID userId, LocalDate entryDate) {
+        return journalRepository.findByUserIdAndEntryDate(userId, entryDate)
+                .orElseGet(Journal::new);
     }
 }

@@ -1,11 +1,13 @@
 package com.forge.recommendation.service;
 
+import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.common.exception.BadRequestException;
 import com.forge.common.exception.ResourceNotFoundException;
 import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.SecurityUtils;
+import com.forge.common.util.TimezoneUtil;
 import com.forge.recommendation.dto.GenerateResponse;
 import com.forge.recommendation.dto.RecommendationResponse;
 import com.forge.recommendation.entity.Recommendation;
@@ -42,10 +44,10 @@ public class RecommendationService {
     @Transactional
     public GenerateResponse generateRecommendations() {
         UUID userId = SecurityUtils.getCurrentUserId();
-        userRepository.findById(userId)
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(TimezoneUtil.resolve(user));
         int reserved = userRepository.reserveDailyGeneration(userId, today, DAILY_LIMIT);
         if (reserved == 0) {
             throw new BadRequestException("Daily generation limit reached (" + DAILY_LIMIT + "/" + DAILY_LIMIT + "). Try again tomorrow.");

@@ -214,6 +214,7 @@ public class AnalyticsService {
         double lastMastery = 0, lastConfidence = 0, lastRetention = 100, lastSkill = 1000, lastConsistency = 0;
         boolean started = false;
         boolean crossed50 = false, crossed80 = false;
+        boolean crossedSkill1100 = false, crossedSkill1400 = false;
 
         for (int i = 0; i < window; i++) {
             LocalDate d = start.plusDays(i);
@@ -260,11 +261,13 @@ public class AnalyticsService {
                 dayMilestones.add("Average mastery crossed 80%");
                 milestones.add(new LearningCurveResponse.Milestone(d.toString(), "MASTERY", "Average mastery crossed 80%"));
             }
-            if (skill >= 1100 && skill - 100 < 1100) {
+            if (!crossedSkill1100 && skill >= 1100) {
+                crossedSkill1100 = true;
                 dayMilestones.add("Skill rating crossed 1100");
                 milestones.add(new LearningCurveResponse.Milestone(d.toString(), "SKILL", "Skill rating crossed 1100"));
             }
-            if (skill >= 1400 && skill - 100 < 1400) {
+            if (!crossedSkill1400 && skill >= 1400) {
+                crossedSkill1400 = true;
                 dayMilestones.add("Skill rating crossed 1400");
                 milestones.add(new LearningCurveResponse.Milestone(d.toString(), "SKILL", "Skill rating crossed 1400"));
             }

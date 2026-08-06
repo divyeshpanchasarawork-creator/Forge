@@ -5,6 +5,7 @@ import com.forge.auth.repository.UserRepository;
 import com.forge.common.exception.BadRequestException;
 import com.forge.common.exception.ResourceNotFoundException;
 import com.forge.common.util.SecurityUtils;
+import com.forge.common.util.TimezoneUtil;
 import com.forge.revision.dto.RevisionResponse;
 import com.forge.revision.entity.Revision;
 import com.forge.revision.mapper.RevisionMapper;
@@ -34,13 +35,15 @@ public class RevisionService {
 
     public List<RevisionResponse> getTodayRevisions() {
         UUID userId = SecurityUtils.getCurrentUserId();
-        List<Revision> revisions = revisionRepository.findByUserIdAndScheduledDateAndCompleted(userId, LocalDate.now(), false);
+        java.time.ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
+        List<Revision> revisions = revisionRepository.findByUserIdAndScheduledDateAndCompleted(userId, LocalDate.now(zone), false);
         return revisions.stream().map(revisionMapper::toResponse).toList();
     }
 
     public List<RevisionResponse> getPendingRevisions() {
         UUID userId = SecurityUtils.getCurrentUserId();
-        List<Revision> revisions = revisionRepository.findPendingRevisionsByUserId(userId, LocalDate.now());
+        java.time.ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
+        List<Revision> revisions = revisionRepository.findPendingRevisionsByUserId(userId, LocalDate.now(zone));
         return revisions.stream().map(revisionMapper::toResponse).toList();
     }
 

@@ -75,12 +75,12 @@ public class TopicService {
     public TopicResponse updateTopic(UUID id, TopicRequest request) {
         Topic topic = findOwnedTopic(id);
 
-        topic.setTitle(request.getTitle());
-        topic.setDescription(request.getDescription());
-        topic.setCategory(request.getCategory());
+        if (request.getTitle() != null) topic.setTitle(request.getTitle());
+        if (request.getDescription() != null) topic.setDescription(request.getDescription());
+        if (request.getCategory() != null) topic.setCategory(request.getCategory());
         if (request.getConfidence() != null) topic.setConfidence(request.getConfidence());
         if (request.getMastery() != null) topic.setMastery(request.getMastery());
-        topic.setNotes(request.getNotes());
+        if (request.getNotes() != null) topic.setNotes(request.getNotes());
 
         topic = topicRepository.save(topic);
         log.info("Topic updated: {}", topic.getTitle());

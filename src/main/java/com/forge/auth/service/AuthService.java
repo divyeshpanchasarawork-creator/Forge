@@ -63,7 +63,8 @@ public class AuthService {
     }
 
     public void register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        String email = request.getEmail().trim().toLowerCase();
+        if (userRepository.existsByEmail(email)) {
             throw new BadRequestException("Email is already registered");
         }
 
@@ -75,7 +76,7 @@ public class AuthService {
         User user = new User();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setEmail(request.getEmail());
+        user.setEmail(email);
         user.setDisplayName(username);
 
         userRepository.save(user);
@@ -95,7 +96,14 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
         if (request.getDisplayName() != null) user.setDisplayName(request.getDisplayName());
-        if (request.getEmail() != null) user.setEmail(request.getEmail());
+        if (request.getEmail() != null) {
+            String email = request.getEmail().trim().toLowerCase();
+            if (!email.equalsIgnoreCase(user.getEmail())
+                    && userRepository.existsByEmail(email)) {
+                throw new BadRequestException("Email is already registered");
+            }
+            user.setEmail(email);
+        }
         if (request.getLeetcodeUsername() != null) user.setLeetcodeUsername(request.getLeetcodeUsername());
         if (request.getAvatarUrl() != null) user.setAvatarUrl(request.getAvatarUrl());
         if (request.getTargetLevel() != null) user.setTargetLevel(request.getTargetLevel());
