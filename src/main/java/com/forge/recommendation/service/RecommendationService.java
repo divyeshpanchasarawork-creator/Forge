@@ -36,6 +36,7 @@ public class RecommendationService {
     private final ProblemScorer problemScorer;
     private final ProblemLoader problemLoader;
 
+    @Transactional(readOnly = true)
     public List<RecommendationResponse> getActiveRecommendations() {
         UUID userId = SecurityUtils.getCurrentUserId();
         return toResponses(recommendationRepository.findByUserIdAndStatusOrderByPriorityAscCreatedAtDesc(userId, Recommendation.STATUS_ACTIVE));

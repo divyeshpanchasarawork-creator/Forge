@@ -9,6 +9,7 @@ import com.forge.topic.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -24,6 +25,7 @@ public class MemoryService {
     private final LeetCodeTagStatRepository tagStatRepository;
     private final ProblemLoader problemLoader;
 
+    @Transactional(readOnly = true)
     public MemoryResponse getMemory() {
         UUID userId = SecurityUtils.getCurrentUserId();
         List<Topic> allTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).getContent();

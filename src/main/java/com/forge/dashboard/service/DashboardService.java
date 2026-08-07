@@ -22,6 +22,7 @@ import com.forge.topic.service.TopicService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -39,6 +40,7 @@ public class DashboardService {
     private final TopicRepository topicRepository;
     private final LeetCodeSnapshotRepository snapshotRepository;
 
+    @Transactional(readOnly = true)
     public DashboardResponse getDashboard() {
         UUID userId = SecurityUtils.getCurrentUserId();
         User user = userRepository.findById(userId)

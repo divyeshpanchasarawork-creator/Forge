@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -122,6 +123,7 @@ public class AnalyticsService {
         );
     }
 
+    @Transactional(readOnly = true)
     public WeeklyProgressResponse getWeeklyProgress() {
         return getWeeklyProgress(SecurityUtils.getCurrentUserId());
     }
@@ -154,6 +156,7 @@ public class AnalyticsService {
         );
     }
 
+    @Transactional(readOnly = true)
     public List<ActivityDay> getActivityHeatmap(int weeks) {
         UUID userId = SecurityUtils.getCurrentUserId();
         ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
@@ -404,15 +407,14 @@ public class AnalyticsService {
     }
 
     private long calculateStreak(UUID userId, ZoneId zone) {
+        LocalDate today = LocalDate.now(zone);
+        Set<LocalDate> journalDays = new HashSet<>(journalRepository
+                .findEntryDatesByUserIdBetween(userId, today.minusDays(365), today));
         long streak = 0;
-        LocalDate date = LocalDate.now(zone);
-        while (true) {
-            if (journalRepository.findByUserIdAndEntryDate(userId, date).isPresent()) {
-                streak++;
-                date = date.minusDays(1);
-            } else {
-                break;
-            }
+        LocalDate date = today;
+        while (journalDays.contains(date)) {
+            streak++;
+            date = date.minusDays(1);
         }
         return streak;
     }
