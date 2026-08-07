@@ -113,12 +113,8 @@ public class RecommendationService {
     }
 
     private Recommendation findOwnedRecommendation(UUID id, UUID userId) {
-        Recommendation rec = recommendationRepository.findById(id)
+        return recommendationRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Recommendation", "id", id));
-        if (!rec.getUser().getId().equals(userId)) {
-            throw new ResourceNotFoundException("Recommendation", "id", id);
-        }
-        return rec;
     }
 
     private String normalizeOutcome(String outcome) {

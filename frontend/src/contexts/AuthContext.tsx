@@ -74,6 +74,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setToken(null);
               await tryRefreshToken();
             } else {
+              clearTokens();
+              setToken(null);
               setUser(null);
             }
           }

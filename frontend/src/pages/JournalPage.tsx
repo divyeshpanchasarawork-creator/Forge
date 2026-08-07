@@ -30,7 +30,6 @@ export default function JournalPage() {
     mutationFn: journalsApi.save,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['journal'] });
-      queryClient.invalidateQueries({ queryKey: ['journals'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });

@@ -218,7 +218,6 @@ export default function PracticePage() {
       queryClient.invalidateQueries({ queryKey: ['practice', 'queue'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
       queryClient.invalidateQueries({ queryKey: ['memory'] });
       queryClient.invalidateQueries({ queryKey: ['roadmap-analysis'] });
       queryClient.invalidateQueries({ queryKey: ['leetcode-stats'] });

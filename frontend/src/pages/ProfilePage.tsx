@@ -31,7 +31,6 @@ export default function ProfilePage() {
   const profileMutation = useMutation({
     mutationFn: () => authApi.updateProfile({ displayName, email, leetcodeUsername, targetLevel, preferredAnalysisTime: preferredAnalysisTime || undefined, timezone: browserTimezone }),
     onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
       setUser?.(res.data.data);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);

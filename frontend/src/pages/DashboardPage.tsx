@@ -78,7 +78,6 @@ export default function DashboardPage() {
       setRemaining(res.remainingGenerations);
       setGenerateError(null);
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
     },
     onError: (err) => setGenerateError(parseApiError(err)),
   });
@@ -90,7 +89,6 @@ export default function DashboardPage() {
         : recommendationsApi.dismiss(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['recommendations'] });
     },
     onError: (err, _vars) => {
       setGenerateError(parseApiError(err));
