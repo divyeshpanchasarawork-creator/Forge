@@ -13,7 +13,7 @@ Forge is a personalized engineering companion that learns alongside you. It answ
 | Backend | Java 21, Spring Boot 4.0.7, Spring Security 7, Spring Data JPA |
 | Frontend | React 19, TypeScript, Vite, TailwindCSS, shadcn/ui |
 | Database | PostgreSQL (prod), H2 (dev) |
-| Auth | JWT (jjwt 0.12.6) |
+| Auth | Bearer JWT (jjwt 0.12.6) + server-side refresh token rotation/revocation |
 | Deployment | Backend: Render, Frontend: Vercel |
 
 ## Architecture
@@ -69,10 +69,25 @@ App: http://localhost:5173
 
 ## Database
 
-Uses Flyway for migrations:
-- `V1__init.sql` — Schema (all tables)
-- `V2__seed_default_user.sql` — Default user (forge/forge123)
-- `V3__sample_data.sql` — Sample data (40 topics, 20 problems, etc.)
+Uses Flyway for migrations (`src/main/resources/db/migration/`, V1–V24). Notable migrations:
+- `V1__init.sql` — schema; `V2__seed_default_user.sql` — default user (forge/forge123)
+- `V21__email_unique_and_optimistic_lock.sql` — unique email + optimistic locking
+- `V22__query_indexes.sql` — hot-path indexes (attempts, revisions, recommendations, topics)
+- `V23__refresh_token_revocation.sql` — hashed server-side refresh tokens
+- `V24__user_role.sql` — user roles (`ROLE_ADMIN` / `ROLE_USER`)
+
+## Testing
+
+```bash
+# Backend — 115 tests (auth + refresh revocation, security gating, revision/SM-2, analytics streak, journals, ...)
+./mvnw test
+
+# Frontend — typecheck + production build, then lint
+cd frontend
+npx tsc -b
+npm run build
+npm run lint
+```
 
 ## Deployment
 

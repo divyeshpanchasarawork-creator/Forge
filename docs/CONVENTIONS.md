@@ -4,7 +4,7 @@
 
 | Task | Command |
 |---|---|
-| Backend tests | `./mvnw test` (expect 20 tests, `BUILD SUCCESS`) |
+| Backend tests | `./mvnw test` (expect 115 tests, `BUILD SUCCESS`) |
 | Frontend typecheck + build | `npx tsc -b` then `npm run build` (in `frontend/`) |
 | Frontend lint | `npm run lint` (oxlint) |
 | Dev backend | `./mvnw spring-boot:run` (port 8080) |
@@ -22,9 +22,10 @@
   - `JOIN FETCH` on all revision repository queries for `topic`.
   - `@EntityGraph(attributePaths = {"topics"})` on problem repository queries.
   - Prefer projection/count queries over loading full collections (`findByUserIdAll`) — see LEDGER `PERF-2`.
+  - `@Transactional(readOnly = true)` on read-only service paths; JDBC batching on (`batch_size=20`, `order_inserts`/`order_updates`).
   - Never iterate lazy collections outside a transaction (OSIV is off).
 - **Time**: all "today"/date-window logic must use the **user's timezone** via `com.forge.common.util.TimezoneUtil.resolve(user)` (fallback `UTC`). Server `LocalDate.now()` is forbidden for user-facing day boundaries.
-- **Security**: Spring Security 7 lambda DSL. JWT in httpOnly `forge_token` + `Authorization` fallback; refresh in `forge_refresh`. Rate limit on `/api/auth/**` (5 req/min/IP).
+- **Security**: Spring Security 7 lambda DSL. **Bearer-only**: JWT access token in `Authorization: Bearer` header only (no cookies). Refresh tokens are server-side revocable — SHA-256 hashed in `refresh_tokens`; login/logout revoke prior tokens, refresh rotates the pair. Rate limit on `/api/auth/**` (5 req/min/IP). `/api/auth/register` exists only in the `dev` profile. `/api/internal/**` requires `ROLE_ADMIN`; unauthenticated → 401, authenticated-but-forbidden → 403 (explicit entry points).
 - **No comments unless asked**; keep code self-explanatory. Match existing style (Lombok, `@Slf4j`, streams).
 - Never log secrets (JWT secret, passwords, tokens).
 

@@ -6,7 +6,7 @@ Layered monolith, packages by feature. Constructor injection only. DTO pattern f
 
 | Package | Responsibility | Key files |
 |---|---|---|
-| `auth` | Register/login/refresh, JWT, user profile, scheduling fields, timezone | `User`, `AuthController`, `AuthService`, `JwtService` |
+| `auth` | Register/login/refresh, JWT, user profile, scheduling fields, timezone | `User`, `AuthController`, `RegistrationController`, `AuthService`, `RefreshToken`, `RefreshTokenRepository` |
 | `topic` | Topic CRUD, weak/strong queries, SM-2 fields, mastery inputs | `TopicRepository` |
 | `problem` / `practice` | Problem attempts, practice queue, submission tracking | `ProblemAttempt`, `ProblemAttemptRepository` |
 | `revision` | Revision scheduling, today's due list, complete flow | `Revision`, `RevisionRepository` (JOIN FETCH topic everywhere) |
@@ -23,7 +23,7 @@ Layered monolith, packages by feature. Constructor injection only. DTO pattern f
 | `scheduler` | Scheduled jobs + status | `AnalysisScheduler`, `EveningScheduler`, `WeeklyScheduler`, `SchedulerStatus` |
 | `common` | DTOs (`ApiResponse`), exceptions, utils | `ReadinessCalculator`, `SecurityUtils`, `ProblemLoader`, `TimezoneUtil`, `TopicFilters`, `GreetingUtil` |
 | `config` | Security, CORS, JPA auditing, scheduling, dev seed | `SecurityConfig`, `CorsConfig`, `JpaConfig`, `SchedulerConfig`, `DevSeedInitializer` |
-| `security` | Security utilities/filter plumbing | `SecurityUtils` |
+| `security` | JWT plumbing + rate limiting | `JwtTokenProvider`, `JwtAuthenticationFilter`, `RateLimitingFilter`, `UserPrincipal` |
 
 ## Core entities & ownership
 
@@ -38,7 +38,7 @@ Layered monolith, packages by feature. Constructor injection only. DTO pattern f
 ## Key services & flows
 
 ### Auth
-- `POST /api/auth/register|login|refresh|logout`. JWT (jjwt 0.12.6) in httpOnly `forge_token` cookie, refresh in `forge_refresh`. Rate-limited 5 req/min/IP. SecurityConfig uses Spring Security 7 lambda DSL (no `.and()`).
+- `POST /api/auth/register|login|refresh|logout`. **Bearer-only**: JWT (jjwt 0.12.6) in the `Authorization: Bearer` header (no cookies). Refresh tokens are SHA-256 hashed and stored in `refresh_tokens`; login/logout revoke prior tokens, refresh rotates the pair. `/api/auth/register` exists only in the `dev` profile. Rate-limited 5 req/min/IP. `/api/internal/**` requires `ROLE_ADMIN`; unauthenticated → 401, authenticated-but-forbidden → 403. SecurityConfig uses Spring Security 7 lambda DSL (no `.and()`).
 
 ### Analytics (the most reworked area)
 - `MetricSnapshotService.snapshotForUser(userId)` — computes and upserts today's `DailyMetric` (topics → mastery/confidence/retention/skill, attempts/revisions/journals → solvedDelta/revisionsDone/journalHours/consistency). Timezone-aware via `TimezoneUtil`.
@@ -68,7 +68,7 @@ Layered monolith, packages by feature. Constructor injection only. DTO pattern f
 | Area | Files |
 |---|---|
 | Entry | `main.tsx`, `App.tsx` (routes, lazy pages, QueryClient, AuthProvider) |
-| API | `api/client.ts` (axios), `api/index.ts` (typed endpoint objects: `authApi`, `topicsApi`, `analyticsApi`, `journalsApi`, ...) |
+| API | `api/client.ts` (axios), `api/index.ts` (typed endpoint objects: `authApi`, `dashboardApi`, `analyticsApi`, `journalsApi`, `revisionsApi`, ...) |
 | Types | `types/index.ts` (mirrors backend DTOs) |
 | Contexts | `AuthContext.tsx`, `ThemeContext.tsx` |
 | Layout | `AppLayout.tsx` (always-mounted → Cmd+K listener), `Sidebar`, `TopHeader`, `CommandPalette` (lazy), `ColdStartGate` |

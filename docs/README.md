@@ -17,7 +17,7 @@ These docs exist to keep future sessions consistent with decisions, constraints,
 
 - Backend deploys to Render (`forge-api-a4uy.onrender.com`), frontend to Vercel, DB to Render Postgres. Push to `main` auto-deploys both.
 - Flyway is the ONLY schema management — never `ddl-auto=create`.
-- JWT in `forge_token` httpOnly cookie + `Authorization` header fallback; refresh in `forge_refresh` cookie.
+- Bearer-only auth: JWT in `Authorization: Bearer` header (no cookies); refresh tokens SHA-256 hashed in DB, rotated on refresh, revoked on login/logout.
 - API base: `VITE_API_URL` (frontend). Backend listens on 8080; Render passes `PORT`.
 - The app sleeps after 15 min idle on free tier; a GitHub Actions keep-warm cron pings it.
 

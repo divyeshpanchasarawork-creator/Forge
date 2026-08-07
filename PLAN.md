@@ -4,9 +4,11 @@
 
 ---
 
-## Status: MVP COMPLETE ✅
+## Status: MVP COMPLETE ✅ + backend audit remediation (9 chunks) done
 
-Backend compiles. Frontend builds. Ready for testing.
+Backend compiles. Frontend builds. **115 tests green.** Ready for testing.
+
+> Note: the "Files Created" tree below is historical (original MVP). Current layout has evolved — e.g. `TopicController` CRUD removed, auth is bearer-only with DB-hashed refresh tokens, migrations are now V1–V24.
 
 ---
 
@@ -65,8 +67,8 @@ Backend compiles. Frontend builds. Ready for testing.
 ### Phase 8: Sample Data ✅
 - [x] 8.1 Flyway V3__sample_data.sql (40 topics, 20 problems, 10 revisions, 10 journals, 10 recs)
 
-### Phase 9: Testing
-- [ ] 9.1 Unit tests (pending)
+### Phase 9: Testing ✅
+- [x] 9.1 Unit tests (115 green: auth + refresh revocation, security gating, revision + SM-2, analytics streak, journals, ...)
 
 ### Phase 10: Deployment ✅
 - [x] 10.1 render.yaml (backend + PostgreSQL)
