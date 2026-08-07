@@ -44,7 +44,7 @@ class TopicServiceTest {
         service = new TopicService(topicRepository, userRepository, new TopicMapper());
         userId = UUID.randomUUID();
         topicId = UUID.randomUUID();
-        UserPrincipal principal = new UserPrincipal(userId, "testuser", "password");
+        UserPrincipal principal = new UserPrincipal(userId, "testuser", "password", "USER");
         Authentication auth = new UsernamePasswordAuthenticationToken(principal, null, List.of());
         SecurityContextHolder.getContext().setAuthentication(auth);
     }

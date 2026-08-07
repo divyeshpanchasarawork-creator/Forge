@@ -44,7 +44,7 @@ class JournalServiceTest {
     void setUp() {
         service = new JournalService(journalRepository, userRepository, new JournalMapper());
         userId = UUID.randomUUID();
-        UserPrincipal principal = new UserPrincipal(userId, "testuser", "password");
+        UserPrincipal principal = new UserPrincipal(userId, "testuser", "password", "USER");
         Authentication auth = new UsernamePasswordAuthenticationToken(principal, null, List.of());
         SecurityContextHolder.getContext().setAuthentication(auth);
     }

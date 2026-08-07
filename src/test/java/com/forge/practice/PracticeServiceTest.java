@@ -64,7 +64,7 @@ class PracticeServiceTest {
                 userRepository, coldStartService, sessionPlanner, masteryService, skillRatingService,
                 forgettingCurveService, knowledgeGraphService, recommendationService, candidatePoolService);
         userId = UUID.randomUUID();
-        UserPrincipal principal = new UserPrincipal(userId, "testuser", "password");
+        UserPrincipal principal = new UserPrincipal(userId, "testuser", "password", "USER");
         Authentication auth = new UsernamePasswordAuthenticationToken(principal, null, List.of());
         SecurityContextHolder.getContext().setAuthentication(auth);
     }

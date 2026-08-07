@@ -4,7 +4,6 @@ import com.forge.auth.dto.LoginRequest;
 import com.forge.auth.dto.LoginResponse;
 import com.forge.auth.dto.ProfileRequest;
 import com.forge.auth.dto.RefreshRequest;
-import com.forge.auth.dto.RegisterRequest;
 import com.forge.auth.service.AuthService;
 import com.forge.common.dto.ApiResponse;
 import jakarta.validation.Valid;
@@ -25,12 +24,6 @@ public class AuthController {
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse loginResponse = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success("Login successful", loginResponse));
-    }
-
-    @PostMapping("/register")
-    public ResponseEntity<ApiResponse<String>> register(@Valid @RequestBody RegisterRequest request) {
-        authService.register(request);
-        return ResponseEntity.ok(ApiResponse.success("Registration successful. Please sign in."));
     }
 
     @PostMapping("/refresh")

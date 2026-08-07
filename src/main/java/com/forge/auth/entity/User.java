@@ -45,4 +45,7 @@ public class User extends BaseEntity {
 
     @Column(name = "last_generation_date")
     private java.time.LocalDate lastGenerationDate;
+
+    @Column(length = 50)
+    private String role = "USER";
 }

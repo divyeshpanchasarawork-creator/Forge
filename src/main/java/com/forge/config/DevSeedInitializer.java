@@ -38,6 +38,7 @@ public class DevSeedInitializer implements ApplicationRunner {
             user.setUsername(SEED_USERNAME);
             user.setEmail(SEED_EMAIL);
             user.setDisplayName(SEED_USERNAME);
+            user.setRole("ADMIN");
             user.setPassword(passwordEncoder.encode(SEED_PASSWORD));
             userRepository.save(user);
             log.info("Dev seed user created: {} / {}", SEED_USERNAME, SEED_PASSWORD);

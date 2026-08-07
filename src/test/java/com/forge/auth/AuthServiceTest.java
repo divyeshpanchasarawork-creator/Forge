@@ -48,7 +48,7 @@ class AuthServiceTest {
         service = new AuthService(authenticationManager, userRepository, passwordEncoder,
                 jwtTokenProvider, refreshTokenRepository);
         userId = UUID.randomUUID();
-        UserPrincipal principal = new UserPrincipal(userId, "testuser", "password");
+        UserPrincipal principal = new UserPrincipal(userId, "testuser", "password", "USER");
         Authentication auth = new UsernamePasswordAuthenticationToken(principal, null, List.of());
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
@@ -112,7 +112,7 @@ class AuthServiceTest {
 
     @Test
     void loginStoresHashedRefreshToken() {
-        UserPrincipal principal = new UserPrincipal(userId, "testuser", "password");
+        UserPrincipal principal = new UserPrincipal(userId, "testuser", "password", "USER");
         Authentication auth = new UsernamePasswordAuthenticationToken(principal, null, List.of());
         when(authenticationManager.authenticate(any())).thenReturn(auth);
         when(jwtTokenProvider.generateToken(principal)).thenReturn("access-token");

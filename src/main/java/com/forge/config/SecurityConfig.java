@@ -2,6 +2,7 @@ package com.forge.config;
 
 import com.forge.auth.service.CustomUserDetailsService;
 import com.forge.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,6 +37,7 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/refresh"
                         ).permitAll()
+                        .requestMatchers("/api/internal/**").hasRole("ADMIN")
                         .requestMatchers(
                                 "/api/health",
                                 "/swagger-ui/**",
@@ -47,6 +49,11 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .headers(headers -> headers.frameOptions(fo -> fo.sameOrigin()))
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint((request, response, authException) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
+                        .accessDeniedHandler((request, response, accessDeniedException) ->
+                                response.sendError(HttpServletResponse.SC_FORBIDDEN)))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

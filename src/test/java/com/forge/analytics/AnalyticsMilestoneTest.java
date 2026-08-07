@@ -62,7 +62,7 @@ class AnalyticsMilestoneTest {
         user.setTimezone("UTC");
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(metricSnapshotService.snapshotForUser(userId)).thenReturn(new DailyMetric());
-        UserPrincipal principal = new UserPrincipal(userId, "testuser", "password");
+        UserPrincipal principal = new UserPrincipal(userId, "testuser", "password", "USER");
         Authentication auth = new UsernamePasswordAuthenticationToken(principal, null, List.of());
         SecurityContextHolder.getContext().setAuthentication(auth);
     }

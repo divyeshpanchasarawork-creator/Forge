@@ -23,12 +23,12 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByEmail(login)
                 .or(() -> userRepository.findByUsername(login))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + login));
-        return new UserPrincipal(user.getId(), user.getUsername(), user.getPassword());
+        return new UserPrincipal(user.getId(), user.getUsername(), user.getPassword(), user.getRole());
     }
 
     public UserPrincipal loadUserById(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
-        return new UserPrincipal(user.getId(), user.getUsername(), user.getPassword());
+        return new UserPrincipal(user.getId(), user.getUsername(), user.getPassword(), user.getRole());
     }
 }

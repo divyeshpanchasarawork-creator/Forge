@@ -73,7 +73,7 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        UserPrincipal principal = new UserPrincipal(user.getId(), user.getUsername(), user.getPassword());
+        UserPrincipal principal = new UserPrincipal(user.getId(), user.getUsername(), user.getPassword(), user.getRole());
         String token = jwtTokenProvider.generateToken(principal);
         String refreshToken = jwtTokenProvider.generateRefreshToken(principal);
 

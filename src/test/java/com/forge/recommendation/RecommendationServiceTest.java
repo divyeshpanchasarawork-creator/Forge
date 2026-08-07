@@ -58,7 +58,7 @@ class RecommendationServiceTest {
         user = new User();
         user.setId(userId);
         user.setDailyGenerationsUsed(0);
-        UserPrincipal principal = new UserPrincipal(userId, "testuser", "password");
+        UserPrincipal principal = new UserPrincipal(userId, "testuser", "password", "USER");
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(principal, null, List.of()));
     }
