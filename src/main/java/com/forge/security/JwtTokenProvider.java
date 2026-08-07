@@ -55,30 +55,25 @@ public class JwtTokenProvider {
         return UUID.fromString(claims.getSubject());
     }
 
-    public boolean validateToken(String token) {
-        try {
-            Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token);
-            return true;
-        } catch (JwtException | IllegalArgumentException e) {
-            log.warn("Invalid JWT token: {}", e.getMessage());
-            return false;
-        }
-    }
-
-    public boolean isAccessToken(String token) {
+    /**
+     * Single parse: returns the subject id only when the token is a valid access
+     * token, {@code null} otherwise. Avoids the validate + isAccessToken + parse
+     * triple parse on the request path.
+     */
+    public UUID getAccessTokenUserId(String token) {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith(getSigningKey())
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-            return "access".equals(claims.get("type", String.class));
+            if (!"access".equals(claims.get("type", String.class))) {
+                return null;
+            }
+            return UUID.fromString(claims.getSubject());
         } catch (JwtException | IllegalArgumentException e) {
             log.warn("Invalid JWT token: {}", e.getMessage());
-            return false;
+            return null;
         }
     }
 

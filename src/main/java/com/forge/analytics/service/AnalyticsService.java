@@ -62,7 +62,9 @@ public class AnalyticsService {
 
     public AnalyticsResponse getAnalytics() {
         UUID userId = SecurityUtils.getCurrentUserId();
-        ensureTodaySnapshot(userId);
+        User user = userRepository.findById(userId).orElse(null);
+        ZoneId zone = TimezoneUtil.resolve(user);
+        ensureTodaySnapshot(userId, zone);
 
         List<Topic> allTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).getContent();
         List<Topic> weakTopics = topicRepository.findWeakTopicsByUserId(userId);
@@ -100,13 +102,12 @@ public class AnalyticsService {
                 .map(t -> new AnalyticsResponse.TopicSummary(t.getTitle(), t.getConfidence(), t.getMastery(), t.getCategory()))
                 .toList();
 
-        long streak = calculateStreak(userId, TimezoneUtil.resolve(userRepository.findById(userId).orElse(null)));
+        long streak = calculateStreak(userId, zone);
 
-        User user = userRepository.findById(userId).orElse(null);
         int targetLevel = user != null && user.getTargetLevel() != null ? user.getTargetLevel() : 5;
 
         int readinessScore = ReadinessCalculator.computeReadinessScore(targetLevel, allTopics, lcSnapshot);
-        List<AnalyticsResponse.Insight> insights = buildInsights(userId, allTopics, lcSnapshot);
+        List<AnalyticsResponse.Insight> insights = buildInsights(userId, allTopics, lcSnapshot, zone);
 
         return new AnalyticsResponse(
                 totalProblems,
@@ -286,7 +287,10 @@ public class AnalyticsService {
     }
 
     private void ensureTodaySnapshot(UUID userId) {
-        ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
+        ensureTodaySnapshot(userId, TimezoneUtil.resolve(userRepository.findById(userId).orElse(null)));
+    }
+
+    private void ensureTodaySnapshot(UUID userId, ZoneId zone) {
         LocalDate today = LocalDate.now(zone);
         TodaySnapshot cached = snapshotCache.get(userId);
         if (cached != null && cached.freshFor(today)) {
@@ -329,8 +333,7 @@ public class AnalyticsService {
         }
     }
 
-    private List<AnalyticsResponse.Insight> buildInsights(UUID userId, List<Topic> allTopics, LeetCodeSnapshot snapshot) {
-        ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
+    private List<AnalyticsResponse.Insight> buildInsights(UUID userId, List<Topic> allTopics, LeetCodeSnapshot snapshot, ZoneId zone) {
         LocalDate today = LocalDate.now(zone);
         List<AnalyticsResponse.Insight> insights = new ArrayList<>();
         List<DailyMetric> metrics = dailyMetricRepository.findByUserIdAndMetricDateBetweenOrderByMetricDateAsc(

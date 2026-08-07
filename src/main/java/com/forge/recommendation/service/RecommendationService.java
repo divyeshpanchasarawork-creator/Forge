@@ -83,7 +83,7 @@ public class RecommendationService {
         rec.setCompletedAt(LocalDateTime.now());
         rec.setOutcome(normalizeOutcome(outcome));
         rec = recommendationRepository.save(rec);
-        return toResponse(rec);
+        return toResponse(rec, problemScorer.context(userId));
     }
 
     @Transactional
@@ -109,7 +109,7 @@ public class RecommendationService {
         }
         rec.setStatus(Recommendation.STATUS_DISMISSED);
         rec = recommendationRepository.save(rec);
-        return toResponse(rec);
+        return toResponse(rec, problemScorer.context(userId));
     }
 
     private Recommendation findOwnedRecommendation(UUID id, UUID userId) {
@@ -139,13 +139,6 @@ public class RecommendationService {
                         .thenComparing(RecommendationResponse::getCreatedAt,
                                 Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
-    }
-
-    private RecommendationResponse toResponse(Recommendation rec) {
-        if (rec.getProblemSlug() == null) {
-            return recommendationMapper.toResponse(rec);
-        }
-        return toResponse(rec, problemScorer.context(SecurityUtils.getCurrentUserId()));
     }
 
     private RecommendationResponse toResponse(Recommendation rec, ProblemScorer.ScoringContext ctx) {
