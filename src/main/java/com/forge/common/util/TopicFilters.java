@@ -7,7 +7,7 @@ public final class TopicFilters {
     private TopicFilters() {
     }
 
-    public static boolean isUnengagedColdStart(Topic topic) {
+    private static boolean isUnengagedColdStart(Topic topic) {
         return "COLD_START".equals(topic.getSource())
                 && (topic.getAttemptsTotal() == null || topic.getAttemptsTotal() == 0);
     }

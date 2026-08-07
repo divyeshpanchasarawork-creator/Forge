@@ -10,8 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/journals")
 @RequiredArgsConstructor
@@ -24,16 +22,6 @@ public class JournalController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(ApiResponse.success(journalService.getJournals(page, size)));
-    }
-
-    @GetMapping("/today")
-    public ResponseEntity<ApiResponse<JournalResponse>> getTodayJournal() {
-        return ResponseEntity.ok(ApiResponse.success(journalService.getTodayJournal()));
-    }
-
-    @GetMapping("/recent")
-    public ResponseEntity<ApiResponse<List<JournalResponse>>> getRecentJournals() {
-        return ResponseEntity.ok(ApiResponse.success(journalService.getRecentJournals()));
     }
 
     @PostMapping

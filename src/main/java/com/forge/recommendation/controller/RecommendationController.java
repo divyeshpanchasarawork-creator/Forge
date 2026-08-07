@@ -17,11 +17,6 @@ public class RecommendationController {
 
     private final RecommendationService recommendationService;
 
-    @GetMapping
-    public ResponseEntity<ApiResponse<?>> getRecommendations() {
-        return ResponseEntity.ok(ApiResponse.success(recommendationService.getActiveRecommendations()));
-    }
-
     @PostMapping("/generate")
     public ResponseEntity<ApiResponse<GenerateResponse>> generateRecommendations() {
         GenerateResponse response = recommendationService.generateRecommendations();

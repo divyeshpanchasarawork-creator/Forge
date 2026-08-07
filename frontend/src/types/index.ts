@@ -15,15 +15,6 @@ export interface Topic {
   updatedAt: string;
 }
 
-export interface TopicRequest {
-  title: string;
-  description: string;
-  category: string;
-  confidence?: number;
-  mastery?: number;
-  notes?: string;
-}
-
 export interface Revision {
   id: string;
   topicId: string;

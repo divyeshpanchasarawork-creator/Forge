@@ -37,9 +37,6 @@ public interface ProblemAttemptRepository extends JpaRepository<ProblemAttempt, 
                                                        @Param("start") LocalDateTime start,
                                                        @Param("end") LocalDateTime end);
 
-    @Query("SELECT a FROM ProblemAttempt a WHERE a.user.id = :userId AND a.problemSlug = :problemSlug ORDER BY a.attemptedAt DESC")
-    List<ProblemAttempt> findByUserIdAndProblemSlug(@Param("userId") UUID userId, @Param("problemSlug") String problemSlug);
-
     Optional<ProblemAttempt> findFirstByUserIdAndOutcomeAndDifficultyOrderByAttemptedAtAsc(UUID userId, String outcome, String difficulty);
 
     @Query("SELECT a FROM ProblemAttempt a WHERE a.predictedScore IS NOT NULL AND a.signalsJson IS NOT NULL ORDER BY a.attemptedAt DESC")

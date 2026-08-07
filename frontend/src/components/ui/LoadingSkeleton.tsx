@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils';
-import type { ReactNode } from 'react';
 
 interface SkeletonProps {
   className?: string;
@@ -58,8 +57,4 @@ export function ChartSkeleton({ className }: { className?: string }) {
       <Skeleton className="h-[250px] rounded-xl" />
     </div>
   );
-}
-
-export function withSkeleton(loading: boolean, fallback: ReactNode, children: ReactNode): ReactNode {
-  return loading ? fallback : children;
 }

@@ -21,7 +21,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -81,19 +80,5 @@ class JournalServiceTest {
 
         verify(journalRepository, times(2)).save(any());
         assertEquals("Finish DP practice", response.getMorningGoal());
-    }
-
-    @Test
-    void getTodayJournalQueriesWithUserTimezone() {
-        User user = new User();
-        user.setId(userId);
-        user.setTimezone("America/New_York");
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(journalRepository.findByUserIdAndEntryDate(eq(userId), any()))
-                .thenReturn(Optional.empty());
-
-        service.getTodayJournal();
-
-        verify(journalRepository).findByUserIdAndEntryDate(userId, LocalDate.now(ZoneId.of("America/New_York")));
     }
 }

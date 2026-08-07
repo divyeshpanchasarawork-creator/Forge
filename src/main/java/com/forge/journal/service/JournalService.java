@@ -43,24 +43,6 @@ public class JournalService {
         return new PagedResponse<>(content, page, size, journalPage.getTotalElements(), journalPage.getTotalPages(), journalPage.isLast());
     }
 
-    public JournalResponse getTodayJournal() {
-        UUID userId = SecurityUtils.getCurrentUserId();
-        java.time.ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
-        return journalRepository.findByUserIdAndEntryDate(userId, LocalDate.now(zone))
-                .map(journalMapper::toResponse)
-                .orElse(null);
-    }
-
-    public List<JournalResponse> getRecentJournals() {
-        UUID userId = SecurityUtils.getCurrentUserId();
-        java.time.ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
-        LocalDate end = LocalDate.now(zone);
-        LocalDate start = end.minusDays(7);
-        return journalRepository.findByUserIdAndEntryDateBetweenOrderByEntryDateDesc(userId, start, end).stream()
-                .map(journalMapper::toResponse)
-                .toList();
-    }
-
     public JournalResponse createOrUpdateJournal(JournalRequest request) {
         UUID userId = SecurityUtils.getCurrentUserId();
         User user = userRepository.findById(userId)

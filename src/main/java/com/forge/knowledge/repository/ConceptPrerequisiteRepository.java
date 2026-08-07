@@ -14,7 +14,5 @@ public interface ConceptPrerequisiteRepository extends JpaRepository<ConceptPrer
 
     List<ConceptPrerequisite> findByPrerequisiteSlug(String prerequisiteSlug);
 
-    boolean existsByConceptSlugAndPrerequisiteSlug(String conceptSlug, String prerequisiteSlug);
-
     long count();
 }

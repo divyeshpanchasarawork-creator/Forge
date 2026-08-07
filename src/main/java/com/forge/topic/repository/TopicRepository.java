@@ -17,10 +17,6 @@ public interface TopicRepository extends JpaRepository<Topic, UUID> {
 
     Page<Topic> findByUserId(UUID userId, Pageable pageable);
 
-    Page<Topic> findByUserIdAndCategory(UUID userId, String category, Pageable pageable);
-
-    Page<Topic> findByUserIdAndStatus(UUID userId, String status, Pageable pageable);
-
     @Query("SELECT t FROM Topic t WHERE t.user.id = :userId AND t.confidence < 4 " +
             "AND NOT (t.source = 'COLD_START' AND (t.attemptsTotal IS NULL OR t.attemptsTotal = 0)) " +
             "ORDER BY t.confidence ASC")

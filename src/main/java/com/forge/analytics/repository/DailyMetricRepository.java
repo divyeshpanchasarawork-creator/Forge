@@ -15,6 +15,4 @@ public interface DailyMetricRepository extends JpaRepository<DailyMetric, UUID> 
     Optional<DailyMetric> findByUserIdAndMetricDate(UUID userId, LocalDate metricDate);
 
     List<DailyMetric> findByUserIdAndMetricDateBetweenOrderByMetricDateAsc(UUID userId, LocalDate start, LocalDate end);
-
-    long countByUserIdAndMetricDateBetween(UUID userId, LocalDate start, LocalDate end);
 }
