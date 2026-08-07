@@ -91,7 +91,6 @@ class PracticeServiceTest {
         assertNotNull(response);
         assertEquals("beginner", response.getProfile());
         verify(problemScorer).context(userId);
-        verify(problemAttemptRepository, never()).findByUserIdAll(any());
         verify(problemAttemptRepository, never()).findByUserIdOrderByAttemptedAtDesc(any(), any());
     }
 
@@ -120,6 +119,6 @@ class PracticeServiceTest {
 
         service.getPracticeQueue();
 
-        verify(problemAttemptRepository, never()).findByUserIdAll(any());
+        verify(problemAttemptRepository, never()).findByUserIdOrderByAttemptedAtDesc(any(), any());
     }
 }

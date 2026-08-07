@@ -39,6 +39,10 @@ public class SkillRatingService {
     }
 
     public double userSkillFromTopics(java.util.List<Topic> topics) {
+        return skillFromTopics(topics);
+    }
+
+    public static double skillFromTopics(java.util.List<Topic> topics) {
         if (topics == null || topics.isEmpty()) return INITIAL_RATING;
         return topics.stream()
                 .filter(t -> t.getSkillRating() != null)

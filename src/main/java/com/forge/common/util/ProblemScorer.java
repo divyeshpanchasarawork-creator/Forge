@@ -20,7 +20,10 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Component
@@ -43,7 +46,24 @@ public class ProblemScorer {
 
     public record ScoringContext(List<LeetCodeTagStat> stats, List<Topic> topics,
                                  List<ProblemAttempt> attempts, List<ProblemSuggestion> suggestions,
-                                 int targetLevel, RewardModel.RewardStats rewards, SignalWeights weights) {
+                                 int targetLevel, RewardModel.RewardStats rewards, SignalWeights weights,
+                                 double userSkill, int totalSolved,
+                                 Map<String, LocalDateTime> lastAttemptBySlug,
+                                 Map<String, Long> recentWeekTagCounts,
+                                 Map<String, Long> recentTagCounts, int recentSize) {
+
+        public ScoringContext(List<LeetCodeTagStat> stats, List<Topic> topics,
+                              List<ProblemAttempt> attempts, List<ProblemSuggestion> suggestions,
+                              int targetLevel, RewardModel.RewardStats rewards, SignalWeights weights) {
+            this(stats, topics, attempts, suggestions, targetLevel, rewards, weights,
+                    SkillRatingService.skillFromTopics(topics),
+                    ProblemScorer.totalSolved(stats),
+                    ProblemScorer.lastAttemptBySlug(attempts),
+                    ProblemScorer.recentWeekTagCounts(attempts),
+                    ProblemScorer.recentTagCounts(attempts),
+                    ProblemScorer.recentSize(attempts));
+        }
+
         public List<String> suggestedSlugs() {
             return suggestions.stream().map(ProblemSuggestion::getTitleSlug).toList();
         }
@@ -53,7 +73,8 @@ public class ProblemScorer {
         User user = userRepository.findById(userId).orElse(null);
         List<LeetCodeTagStat> stats = tagStatRepository.findByUserId(userId);
         List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 100)).getContent();
-        List<ProblemAttempt> attempts = problemAttemptRepository.findByUserIdAll(userId);
+        List<ProblemAttempt> attempts = problemAttemptRepository
+                .findByUserIdOrderByAttemptedAtDesc(userId, PageRequest.of(0, 500));
         List<ProblemSuggestion> suggestions = problemSuggestionRepository.findByUserId(userId);
         int targetLevel = user != null && user.getTargetLevel() != null ? user.getTargetLevel() : 5;
         return new ScoringContext(stats, topics, attempts, suggestions, targetLevel,
@@ -65,16 +86,16 @@ public class ProblemScorer {
         List<Signal> signals = List.of(
                 new Signal(SignalWeights.SIGNAL_NAMES.get(0), w[0], weakTagMatch(ctx.stats(), tagSlug)),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(1), w[1], topicMasteryGap(ctx.topics(), tagSlug)),
-                new Signal(SignalWeights.SIGNAL_NAMES.get(2), w[2], difficultyFit(ctx.stats(), candidate.getDifficulty())),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(2), w[2], difficultyFit(ctx, candidate.getDifficulty())),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(3), w[3], expectedLearningGain(ctx.topics(), tagSlug)),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(4), w[4], revisionUrgency(ctx.topics(), tagSlug)),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(5), w[5], confidenceDecay(ctx.topics(), tagSlug)),
-                new Signal(SignalWeights.SIGNAL_NAMES.get(6), w[6], readiness(ctx.topics(), candidate.getDifficulty())),
-                new Signal(SignalWeights.SIGNAL_NAMES.get(7), w[7], timeSinceLastPractice(ctx.attempts(), candidate.getTitleSlug(), tagSlug)),
-                new Signal(SignalWeights.SIGNAL_NAMES.get(8), w[8], coverageBalance(ctx.attempts(), tagSlug)),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(6), w[6], readiness(ctx, candidate.getDifficulty())),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(7), w[7], timeSinceLastPractice(ctx, candidate.getTitleSlug())),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(8), w[8], coverageBalance(ctx, tagSlug)),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(9), w[9], goalAlignment(candidate.getDifficulty(), ctx.targetLevel())),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(10), w[10], notPreviouslySuggested(ctx.suggestedSlugs(), candidate)),
-                new Signal(SignalWeights.SIGNAL_NAMES.get(11), w[11], diversity(ctx.attempts(), tagSlug)),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(11), w[11], diversity(ctx, tagSlug)),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(12), w[12], ucbExploration(ctx.rewards(), candidate.getTitleSlug()))
         );
 
@@ -116,11 +137,9 @@ public class ProblemScorer {
                 .orElse(50.0);
     }
 
-    private double difficultyFit(List<LeetCodeTagStat> stats, String difficulty) {
-        if (stats.isEmpty()) return 50.0;
-        int totalSolved = stats.stream()
-                .mapToInt(ts -> ts.getProblemsSolved() != null ? ts.getProblemsSolved() : 0)
-                .sum();
+    private double difficultyFit(ScoringContext ctx, String difficulty) {
+        if (ctx.stats().isEmpty()) return 50.0;
+        int totalSolved = ctx.totalSolved();
         if (totalSolved == 0) return 60.0;
         int easy = totalSolved / 3;
         int hard = totalSolved / 10;
@@ -176,19 +195,15 @@ public class ProblemScorer {
                 .orElse(30.0);
     }
 
-    private double readiness(List<Topic> topics, String difficulty) {
-        double skill = skillRatingService.userSkillFromTopics(topics);
+    private double readiness(ScoringContext ctx, String difficulty) {
+        double skill = ctx.userSkill();
         double difficultyRating = skillRatingService.difficultyRating(difficulty);
         double diff = Math.abs(skill - difficultyRating);
         return Math.max(0, 100 - diff / 8);
     }
 
-    private double timeSinceLastPractice(List<ProblemAttempt> attempts, String problemSlug, String tagSlug) {
-        LocalDateTime last = attempts.stream()
-                .filter(a -> a.getProblemSlug().equals(problemSlug))
-                .map(ProblemAttempt::getAttemptedAt)
-                .max(LocalDateTime::compareTo)
-                .orElse(null);
+    private double timeSinceLastPractice(ScoringContext ctx, String problemSlug) {
+        LocalDateTime last = ctx.lastAttemptBySlug().get(problemSlug);
         if (last == null) return 100.0;
         long days = Duration.between(last, LocalDateTime.now()).toDays();
         if (days >= 7) return 100.0;
@@ -197,13 +212,9 @@ public class ProblemScorer {
         return 10.0;
     }
 
-    private double coverageBalance(List<ProblemAttempt> attempts, String tagSlug) {
+    private double coverageBalance(ScoringContext ctx, String tagSlug) {
         if (tagSlug == null) return 50.0;
-        LocalDate weekAgo = LocalDate.now().minusDays(7);
-        long recent = attempts.stream()
-                .filter(a -> tagSlug.equals(a.getTopicTagSlug()))
-                .filter(a -> a.getAttemptedAt() != null && !a.getAttemptedAt().toLocalDate().isBefore(weekAgo))
-                .count();
+        long recent = ctx.recentWeekTagCounts().getOrDefault(tagSlug, 0L);
         if (recent == 0) return 100.0;
         if (recent == 1) return 60.0;
         if (recent == 2) return 30.0;
@@ -224,16 +235,11 @@ public class ProblemScorer {
         return 100.0;
     }
 
-    private double diversity(List<ProblemAttempt> attempts, String tagSlug) {
+    private double diversity(ScoringContext ctx, String tagSlug) {
         if (tagSlug == null) return 50.0;
-        List<ProblemAttempt> recent = attempts.stream()
-                .filter(a -> a.getAttemptedAt() != null)
-                .sorted((a, b) -> b.getAttemptedAt().compareTo(a.getAttemptedAt()))
-                .limit(30)
-                .toList();
-        if (recent.isEmpty()) return 100.0;
-        long sameTag = recent.stream().filter(a -> tagSlug.equals(a.getTopicTagSlug())).count();
-        return 100.0 * (1.0 - sameTag / (double) recent.size());
+        if (ctx.recentSize() == 0) return 100.0;
+        long sameTag = ctx.recentTagCounts().getOrDefault(tagSlug, 0L);
+        return 100.0 * (1.0 - sameTag / (double) ctx.recentSize());
     }
 
     private double ucbExploration(RewardModel.RewardStats rewards, String problemSlug) {
@@ -249,5 +255,53 @@ public class ProblemScorer {
         String searchName = tagSlug.replace("-", " ").toLowerCase();
         String title = topicTitle.toLowerCase();
         return title.contains(searchName) || searchName.contains(title);
+    }
+
+    private static int totalSolved(List<LeetCodeTagStat> stats) {
+        return stats.stream()
+                .mapToInt(ts -> ts.getProblemsSolved() != null ? ts.getProblemsSolved() : 0)
+                .sum();
+    }
+
+    private static Map<String, LocalDateTime> lastAttemptBySlug(List<ProblemAttempt> attempts) {
+        Map<String, LocalDateTime> last = new HashMap<>();
+        for (ProblemAttempt a : attempts) {
+            if (a.getAttemptedAt() == null) continue;
+            LocalDateTime existing = last.get(a.getProblemSlug());
+            if (existing == null || a.getAttemptedAt().isAfter(existing)) {
+                last.put(a.getProblemSlug(), a.getAttemptedAt());
+            }
+        }
+        return last;
+    }
+
+    private static Map<String, Long> recentWeekTagCounts(List<ProblemAttempt> attempts) {
+        LocalDate weekAgo = LocalDate.now().minusDays(7);
+        Map<String, Long> counts = new HashMap<>();
+        for (ProblemAttempt a : attempts) {
+            if (a.getAttemptedAt() == null || a.getTopicTagSlug() == null) continue;
+            if (a.getAttemptedAt().toLocalDate().isBefore(weekAgo)) continue;
+            counts.merge(a.getTopicTagSlug(), 1L, Long::sum);
+        }
+        return counts;
+    }
+
+    private static Map<String, Long> recentTagCounts(List<ProblemAttempt> attempts) {
+        List<ProblemAttempt> recent = attempts.stream()
+                .filter(a -> a.getAttemptedAt() != null)
+                .sorted(Comparator.comparing(ProblemAttempt::getAttemptedAt).reversed())
+                .limit(30)
+                .toList();
+        Map<String, Long> counts = new HashMap<>();
+        for (ProblemAttempt a : recent) {
+            if (a.getTopicTagSlug() != null) {
+                counts.merge(a.getTopicTagSlug(), 1L, Long::sum);
+            }
+        }
+        return counts;
+    }
+
+    private static int recentSize(List<ProblemAttempt> attempts) {
+        return Math.min(30, (int) attempts.stream().filter(a -> a.getAttemptedAt() != null).count());
     }
 }
