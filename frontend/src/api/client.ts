@@ -2,7 +2,6 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
-  withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
@@ -80,23 +79,29 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
+        const refreshToken = sessionStorage.getItem('forge_refresh');
+        if (!refreshToken) {
+          throw new Error('No refresh token');
+        }
         const { data } = await axios.post(
           `${import.meta.env.VITE_API_URL || '/api'}/auth/refresh`,
-          {},
-          { withCredentials: true }
+          { refreshToken }
         );
         const newToken = data.data.token;
+        const newRefreshToken = data.data.refreshToken;
         if (isLoggedOut) {
           processQueue(error, null);
           return Promise.reject(error);
         }
         sessionStorage.setItem('forge_token', newToken);
+        sessionStorage.setItem('forge_refresh', newRefreshToken);
         processQueue(null, newToken);
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
       } catch {
         processQueue(error, null);
         sessionStorage.removeItem('forge_token');
+        sessionStorage.removeItem('forge_refresh');
         redirectToLogin();
         return Promise.reject(error);
       } finally {
@@ -107,6 +112,7 @@ api.interceptors.response.use(
     if (status === 401) {
       if (!isAuthEndpoint(originalRequest.url)) {
         sessionStorage.removeItem('forge_token');
+        sessionStorage.removeItem('forge_refresh');
         redirectToLogin();
       }
     }

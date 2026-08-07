@@ -31,6 +31,19 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const TOKEN_KEY = 'forge_token';
+const REFRESH_TOKEN_KEY = 'forge_refresh';
+
+function persistTokens(data: { token: string; refreshToken: string }) {
+  sessionStorage.setItem(TOKEN_KEY, data.token);
+  sessionStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+}
+
+function clearTokens() {
+  sessionStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -45,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoggedOut(false);
       setSkipAuthRedirect(true);
       try {
-        const storedToken = sessionStorage.getItem('forge_token');
+        const storedToken = sessionStorage.getItem(TOKEN_KEY);
 
         if (storedToken) {
           setToken(storedToken);
@@ -57,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (cancelled) return;
             const status = (error as AxiosError).response?.status;
             if (status === 401) {
-              sessionStorage.removeItem('forge_token');
+              clearTokens();
               setToken(null);
               await tryRefreshToken();
             } else {
@@ -77,10 +90,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     async function tryRefreshToken() {
       try {
-        const res = await authApi.refresh();
+        const refreshToken = sessionStorage.getItem(REFRESH_TOKEN_KEY);
+        if (!refreshToken) {
+          if (cancelled) return;
+          setToken(null);
+          setUser(null);
+          return;
+        }
+        const res = await authApi.refresh(refreshToken);
         if (cancelled) return;
         const data = res.data.data;
-        sessionStorage.setItem('forge_token', data.token);
+        persistTokens(data);
         setToken(data.token);
         setUser(data.user);
       } catch {
@@ -101,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSkipAuthRedirect(false);
     const response = await authApi.login(username, password);
     const data = response.data.data;
-    sessionStorage.setItem('forge_token', data.token);
+    persistTokens(data);
     setToken(data.token);
     setUser(data.user);
   };
@@ -113,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await authApi.register(data);
     const response = await authApi.login(data.email, data.password);
     const loginData = response.data.data;
-    sessionStorage.setItem('forge_token', loginData.token);
+    persistTokens(loginData);
     setToken(loginData.token);
     setUser(loginData.user);
   };
@@ -124,9 +144,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSkipAuthRedirect(true);
     setToken(null);
     setUser(null);
-    sessionStorage.removeItem('forge_token');
+    const refreshToken = sessionStorage.getItem(REFRESH_TOKEN_KEY);
+    clearTokens();
     queryClient.clear();
-    authApi.logout().catch(() => {});
+    if (refreshToken) {
+      authApi.logout(refreshToken).catch(() => {});
+    }
     setTimeout(() => setLoggingOut(false), 500);
   };
 

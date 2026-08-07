@@ -4,7 +4,9 @@ import com.forge.auth.dto.LoginRequest;
 import com.forge.auth.dto.LoginResponse;
 import com.forge.auth.dto.ProfileRequest;
 import com.forge.auth.dto.RegisterRequest;
+import com.forge.auth.entity.RefreshToken;
 import com.forge.auth.entity.User;
+import com.forge.auth.repository.RefreshTokenRepository;
 import com.forge.auth.repository.UserRepository;
 import com.forge.common.exception.BadRequestException;
 import com.forge.common.exception.ResourceNotFoundException;
@@ -18,7 +20,13 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.util.HexFormat;
 import java.util.UUID;
 
 @Slf4j
@@ -30,7 +38,9 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenRepository refreshTokenRepository;
 
+    @Transactional
     public LoginResponse login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
@@ -43,11 +53,19 @@ public class AuthService {
         User user = userRepository.findById(principal.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", principal.getId()));
 
+        storeRefreshToken(user.getId(), refreshToken);
+
         return new LoginResponse(token, refreshToken, "Bearer", toUserInfo(user));
     }
 
+    @Transactional
     public LoginResponse refresh(String refreshTokenValue) {
         if (!jwtTokenProvider.validateRefreshToken(refreshTokenValue)) {
+            throw new BadRequestException("Invalid or expired refresh token");
+        }
+
+        String tokenHash = hash(refreshTokenValue);
+        if (refreshTokenRepository.findByTokenHash(tokenHash).isEmpty()) {
             throw new BadRequestException("Invalid or expired refresh token");
         }
 
@@ -59,7 +77,18 @@ public class AuthService {
         String token = jwtTokenProvider.generateToken(principal);
         String refreshToken = jwtTokenProvider.generateRefreshToken(principal);
 
+        storeRefreshToken(user.getId(), refreshToken);
+
         return new LoginResponse(token, refreshToken, "Bearer", toUserInfo(user));
+    }
+
+    @Transactional
+    public void logout(String refreshTokenValue) {
+        if (refreshTokenValue == null || refreshTokenValue.isBlank()) {
+            return;
+        }
+        refreshTokenRepository.findByTokenHash(hash(refreshTokenValue))
+                .ifPresent(refreshTokenRepository::delete);
     }
 
     public void register(RegisterRequest request) {
@@ -114,6 +143,25 @@ public class AuthService {
         user = userRepository.save(user);
         log.info("Profile updated for user: {}", user.getUsername());
         return toUserInfo(user);
+    }
+
+    private void storeRefreshToken(UUID userId, String refreshTokenValue) {
+        refreshTokenRepository.deleteByUserId(userId);
+
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setUserId(userId);
+        refreshToken.setTokenHash(hash(refreshTokenValue));
+        refreshToken.setExpiresAt(LocalDateTime.now().plusSeconds(jwtTokenProvider.getRefreshExpirationMs() / 1000));
+        refreshTokenRepository.save(refreshToken);
+    }
+
+    private String hash(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
+        }
     }
 
     private LoginResponse.UserInfo toUserInfo(User user) {

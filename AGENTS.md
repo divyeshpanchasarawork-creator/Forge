@@ -18,8 +18,8 @@ Layered monolith. Packages by feature (auth, topic, problem, revision, recommend
 - Flyway for all migrations, never ddl-auto=create
 - Spring Security 7 lambda DSL (no `.and()` chaining)
 - Boot 4 wires Jackson 3 (`tools.jackson`); there is NO auto-configured `com.fasterxml.jackson.databind.ObjectMapper` bean — construct `new ObjectMapper()` directly (ProblemLoader pattern)
-- JWT in httpOnly cookie (`forge_token`) + Authorization header fallback
-- Refresh token in separate httpOnly cookie (`forge_refresh`)
+- Bearer-only auth: JWT access token in `Authorization: Bearer` header only (no cookies). Frontend keeps access + refresh tokens in sessionStorage
+- Refresh tokens are server-side revocable: hashed (SHA-256) in `refresh_tokens`; login/logout revoke prior tokens, refresh rotates the pair
 - Rate limiting on `/api/auth/**` (5 req/min/IP)
 - SM-2 spaced repetition fields on Topic: `easinessFactor`, `repetitionInterval`, `lastQuality`
 - JOIN FETCH on all revision repository queries for topic

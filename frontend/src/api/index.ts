@@ -6,10 +6,10 @@ export const authApi = {
     api.post<ApiResponse<LoginResponse>>('/auth/login', { username, password }),
   register: (data: { email: string; password: string }) =>
     api.post<ApiResponse<void>>('/auth/register', data),
-  refresh: () =>
-    api.post<ApiResponse<LoginResponse>>('/auth/refresh'),
-  logout: () =>
-    api.post<ApiResponse<void>>('/auth/logout'),
+  refresh: (refreshToken: string) =>
+    api.post<ApiResponse<LoginResponse>>('/auth/refresh', { refreshToken }),
+  logout: (refreshToken: string) =>
+    api.post<ApiResponse<void>>('/auth/logout', { refreshToken }),
   getProfile: () =>
     api.get<ApiResponse<LoginResponse['user']>>('/auth/profile'),
   updateProfile: (data: { displayName?: string; email?: string; leetcodeUsername?: string; targetLevel?: number; preferredAnalysisTime?: string; timezone?: string }) =>
