@@ -51,7 +51,7 @@ public class AnalysisScheduler {
             log.info("AnalysisScheduler: candidate {} preferred={} zone={} (server UTC {}, local {} window {}..{})",
                     user.getId(), preferred, zone, serverUtc, userNow, windowStart, windowEnd);
 
-            if (preferred.isBefore(windowStart) || preferred.isAfter(windowEnd)) {
+            if (!isInWindow(preferred, userNow)) {
                 skippedOutsideWindow++;
                 continue;
             }
@@ -83,5 +83,17 @@ public class AnalysisScheduler {
         schedulerStatus.record(Instant.now(), candidates.size(), processed, skippedOutsideWindow, skippedQuota, lastError);
         log.info("AnalysisScheduler: ran at {} UTC | candidates={} processed={} skipped(outside window)={} skipped(quota)={} error={}",
                 serverUtc, candidates.size(), processed, skippedOutsideWindow, skippedQuota, lastError == null ? "none" : lastError);
+    }
+
+    /**
+     * Whether {@code preferred} falls in the half-open 30-minute window around
+     * {@code now} (lower bound exclusive, upper bound inclusive). Each 15-minute
+     * offset preference therefore fires in exactly one of the two runs that span
+     * it, instead of firing in both as a fully-inclusive window would.
+     */
+    static boolean isInWindow(LocalTime preferred, LocalTime now) {
+        LocalTime windowStart = now.minusMinutes(15);
+        LocalTime windowEnd = now.plusMinutes(15);
+        return preferred.isAfter(windowStart) && !preferred.isAfter(windowEnd);
     }
 }

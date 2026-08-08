@@ -81,6 +81,15 @@ public class LeetCodeTopicMapper {
 
     public List<Topic> mapToTopics(User user, List<LeetCodeGraphQlResponse.TagCount> tags, String skillLevel) {
         List<Topic> existingTopics = topicRepository.findByUserIdAndSource(user.getId(), "LEETCODE");
+
+        if (tags == null || tags.isEmpty()) {
+            if (!existingTopics.isEmpty()) {
+                throw new IllegalStateException(
+                        "LeetCode sync returned no tags while previously synced topics are present; aborting to protect existing data");
+            }
+            return new ArrayList<>();
+        }
+
         Map<String, Topic> existingByTitle = new HashMap<>();
         for (Topic t : existingTopics) {
             existingByTitle.put(t.getTitle(), t);

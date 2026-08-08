@@ -73,15 +73,14 @@ public class RecommendationEngine {
         if (persist) {
             recommendationRepository.deleteByUserIdAndStatus(userId, Recommendation.STATUS_ACTIVE);
             recommendationRepository.saveAll(sorted);
-            syncRecProblemsToSuggestions(userId, user, sorted, ctx);
+            syncRecProblemsToSuggestions(userId, user, sorted);
             log.info("Generated and saved {} recommendations for user {}", sorted.size(), userId);
         }
 
         return sorted;
     }
 
-    private void syncRecProblemsToSuggestions(UUID userId, User user, List<Recommendation> savedRecs,
-                                              ProblemScorer.ScoringContext ctx) {
+    private void syncRecProblemsToSuggestions(UUID userId, User user, List<Recommendation> savedRecs) {
         List<Recommendation> recsWithProblems = savedRecs.stream()
                 .filter(r -> r.getProblemSlug() != null)
                 .toList();
@@ -89,7 +88,10 @@ public class RecommendationEngine {
         problemSuggestionRepository.deleteByUserIdAndSource(userId, "RECOMMENDATION");
         if (recsWithProblems.isEmpty()) return;
 
-        Set<String> existingSlugs = ctx.suggestions().stream()
+        // Query AFTER the delete: the pre-delete list would treat every previously
+        // saved RECOMMENDATION suggestion as "already suggested" and never re-add
+        // any of them, starving the queue on every regeneration.
+        Set<String> existingSlugs = problemSuggestionRepository.findByUserId(userId).stream()
                 .map(ProblemSuggestion::getTitleSlug)
                 .collect(Collectors.toSet());
 

@@ -70,6 +70,10 @@ public class LeetCodeFetchService {
                 if (matchedUser == null) {
                     throw new IllegalStateException("LeetCode user not found: " + lcUsername);
                 }
+                if (matchedUser.getTagProblemCounts() == null) {
+                    throw new IllegalStateException(
+                            "LeetCode response is missing tag problem counts; aborting sync to protect existing data");
+                }
 
                 LeetCodeStatsResponse response = writeSyncData(userId, lcUsername, data, matchedUser);
                 generateRecommendationsInOwnTransaction(userId);
@@ -152,8 +156,6 @@ public class LeetCodeFetchService {
 
     private void saveTagStats(UUID userId, LeetCodeGraphQlResponse.MatchedUser matchedUser) {
         User user = userRepository.getReferenceById(userId);
-        tagStatRepository.deleteByUserId(userId);
-        tagStatRepository.flush();
 
         List<LeetCodeTagStat> allTags = new ArrayList<>();
 
@@ -163,10 +165,19 @@ public class LeetCodeFetchService {
             addTagsForLevel(allTags, user, matchedUser.getTagProblemCounts().getAdvanced(), "advanced");
         }
 
+        if (allTags.isEmpty() && !tagStatRepository.findByUserId(userId).isEmpty()) {
+            throw new IllegalStateException(
+                    "LeetCode sync produced no tag stats while existing stats are present; aborting to protect existing data");
+        }
+
+        tagStatRepository.deleteByUserId(userId);
+        tagStatRepository.flush();
+
         tagStatRepository.saveAll(allTags);
     }
 
     private void addTagsForLevel(List<LeetCodeTagStat> allTags, User user, List<LeetCodeGraphQlResponse.TagCount> tags, String level) {
+        if (tags == null) return;
         for (LeetCodeGraphQlResponse.TagCount tag : tags) {
             if (tag.getProblemsSolved() > 0) {
                 LeetCodeTagStat stat = new LeetCodeTagStat();

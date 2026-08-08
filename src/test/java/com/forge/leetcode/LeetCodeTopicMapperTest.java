@@ -80,4 +80,26 @@ class LeetCodeTopicMapperTest {
         verify(topicRepository, never()).deleteAll(any());
         assertEquals(1, result.size());
     }
+
+    @Test
+    void shouldThrowWhenEmptyTagsButExistingSyncedTopicsPresent() {
+        Topic existing = topic("Array");
+        when(topicRepository.findByUserIdAndSource(userId, "LEETCODE")).thenReturn(List.of(existing));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                IllegalStateException.class,
+                () -> mapper.mapToTopics(user, List.of(), "mixed"));
+
+        verify(topicRepository, never()).deleteAll(any());
+    }
+
+    @Test
+    void shouldReturnEmptyWhenEmptyTagsAndNoExistingTopics() {
+        when(topicRepository.findByUserIdAndSource(userId, "LEETCODE")).thenReturn(List.of());
+
+        List<Topic> result = mapper.mapToTopics(user, List.of(), "mixed");
+
+        assertTrue(result.isEmpty());
+        verify(topicRepository, never()).deleteAll(any());
+    }
 }
