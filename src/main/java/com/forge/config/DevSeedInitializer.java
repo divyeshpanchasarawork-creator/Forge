@@ -31,26 +31,17 @@ public class DevSeedInitializer implements ApplicationRunner {
 
     @Transactional
     public void seedDevUser() {
-        User user = userRepository.findByUsername(SEED_USERNAME).orElse(null);
-
-        if (user == null) {
-            user = new User();
-            user.setUsername(SEED_USERNAME);
-            user.setEmail(SEED_EMAIL);
-            user.setDisplayName(SEED_USERNAME);
-            user.setRole("ADMIN");
-            user.setPassword(passwordEncoder.encode(SEED_PASSWORD));
-            userRepository.save(user);
-            log.info("Dev seed user created: {} / {}", SEED_USERNAME, SEED_PASSWORD);
+        if (userRepository.findByUsername(SEED_USERNAME).isPresent()) {
             return;
         }
 
-        if (passwordEncoder.matches(SEED_PASSWORD, user.getPassword())) {
-            return;
-        }
-
+        User user = new User();
+        user.setUsername(SEED_USERNAME);
+        user.setEmail(SEED_EMAIL);
+        user.setDisplayName(SEED_USERNAME);
+        user.setRole("ADMIN");
         user.setPassword(passwordEncoder.encode(SEED_PASSWORD));
         userRepository.save(user);
-        log.info("Dev seed user password reset for: {}", SEED_USERNAME);
+        log.info("Dev seed user created: {}", SEED_USERNAME);
     }
 }

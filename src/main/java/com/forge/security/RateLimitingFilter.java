@@ -49,14 +49,14 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     }
 
     private String getClientIp(HttpServletRequest request) {
-        String xf = request.getHeader("X-Forwarded-For");
-        if (xf != null && !xf.isBlank()) {
-            String first = xf.split(",")[0].trim();
-            if (!first.isEmpty()) {
-                return first;
-            }
-        }
-        return request.getRemoteAddr();
+        // With server.forward-headers-strategy=framework the ForwardedHeaderFilter runs
+        // first (order Integer.MIN_VALUE) and rewrites remoteAddr to the client IP from
+        // X-Forwarded-For, so this never trusts a raw client-supplied header directly.
+        String ip = request.getRemoteAddr();
+        if (ip == null) return "unknown";
+        ip = ip.trim();
+        if (ip.length() > 64) ip = ip.substring(0, 64);
+        return ip.isEmpty() ? "unknown" : ip;
     }
 
     private void evictIfNeeded() {

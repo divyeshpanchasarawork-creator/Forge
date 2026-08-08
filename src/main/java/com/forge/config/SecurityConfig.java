@@ -6,6 +6,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -25,6 +27,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService userDetailsService;
+    private final Environment environment;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -32,23 +35,22 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> {})
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/api/auth/login",
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers("/api/auth/login", "/api/auth/refresh").permitAll();
+                    auth.requestMatchers("/api/internal/**").hasRole("ADMIN");
+                    auth.requestMatchers("/api/health").permitAll();
+                    if (environment.acceptsProfiles(Profiles.of("dev"))) {
+                        auth.requestMatchers(
                                 "/api/auth/register",
-                                "/api/auth/refresh"
-                        ).permitAll()
-                        .requestMatchers("/api/internal/**").hasRole("ADMIN")
-                        .requestMatchers(
-                                "/api/health",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
                                 "/h2-console/**",
                                 "/actuator/health"
-                        ).permitAll()
-                        .anyRequest().authenticated()
-                )
+                        ).permitAll();
+                    }
+                    auth.anyRequest().authenticated();
+                })
                 .headers(headers -> headers
                         .frameOptions(fo -> fo.sameOrigin())
                         .contentTypeOptions(contentTypeOptions -> {})
