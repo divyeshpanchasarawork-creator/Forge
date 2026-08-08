@@ -48,14 +48,17 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
-    // Cold-start retry: 502/503/504, at most one retry after a short backoff
-    if (!originalRequest._retryCount) {
-      originalRequest._retryCount = 0;
-    }
     const status = error.response?.status;
-    if (status >= 502 && status <= 504 && originalRequest._retryCount < 1) {
-      originalRequest._retryCount++;
+
+    // Cold-start retry: 502/503/504, at most one retry after a short backoff.
+    // Only idempotent methods are safe to retry automatically; a non-idempotent
+    // POST could already have been applied server-side and double-executing it
+    // (submit attempt, journal entry, LeetCode sync, generate) would corrupt data.
+    const method = (originalRequest?.method ?? 'get').toUpperCase();
+    const isIdempotent = method === 'GET' || method === 'HEAD' || method === 'OPTIONS'
+      || method === 'PUT' || method === 'DELETE';
+    if (status >= 502 && status <= 504 && isIdempotent && (originalRequest._retryCount ?? 0) < 1) {
+      originalRequest._retryCount = (originalRequest._retryCount ?? 0) + 1;
       await new Promise((resolve) => setTimeout(resolve, 5000));
       return api(originalRequest);
     }
@@ -85,7 +88,8 @@ api.interceptors.response.use(
         }
         const { data } = await axios.post(
           `${import.meta.env.VITE_API_URL || '/api'}/auth/refresh`,
-          { refreshToken }
+          { refreshToken },
+          { timeout: 10_000 }
         );
         const newToken = data.data.token;
         const newRefreshToken = data.data.refreshToken;

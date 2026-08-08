@@ -73,11 +73,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               clearTokens();
               setToken(null);
               await tryRefreshToken();
-            } else {
-              clearTokens();
-              setToken(null);
-              setUser(null);
             }
+            // Non-401 (5xx / network / timeout): a transient backend failure is not an
+            // auth failure. Keep the stored token and session so the user is not logged
+            // out just because the server hiccuped during boot.
           }
         } else {
           await tryRefreshToken();
@@ -105,10 +104,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         persistTokens(data);
         setToken(data.token);
         setUser(data.user);
-      } catch {
+      } catch (error) {
         if (cancelled) return;
-        setToken(null);
-        setUser(null);
+        // Only a definitive 401 invalidates the session. A 5xx / network failure on the
+        // refresh call must not wipe an otherwise valid session.
+        if ((error as AxiosError).response?.status === 401) {
+          setToken(null);
+          setUser(null);
+        }
       }
     }
 
