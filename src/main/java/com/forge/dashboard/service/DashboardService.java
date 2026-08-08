@@ -60,7 +60,7 @@ public class DashboardService {
 
         List<TopicResponse> strongTopics = topicService.getStrongTopics();
 
-        List<Topic> allTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).getContent();
+        List<Topic> allTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000));
         int avgMastery = allTopics.isEmpty() ? 0 : (int) allTopics.stream().mapToInt(Topic::getMastery).average().orElse(0);
         int avgConfidence = allTopics.isEmpty() ? 0 : (int) allTopics.stream().mapToInt(Topic::getConfidence).average().orElse(0);
         double avgRetention = allTopics.isEmpty() ? 0.0 : allTopics.stream().mapToDouble(t -> t.getEstimatedRetention() != null ? t.getEstimatedRetention() : 100.0).average().orElse(0.0);

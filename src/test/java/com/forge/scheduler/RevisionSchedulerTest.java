@@ -35,6 +35,7 @@ class RevisionSchedulerTest {
 
     private Topic dueTopic(String title) {
         Topic topic = new Topic();
+        topic.setId(UUID.randomUUID());
         topic.setTitle(title);
         topic.setNextRevision(LocalDateTime.now().minusMinutes(5));
         User user = new User();
@@ -47,7 +48,7 @@ class RevisionSchedulerTest {
     void shouldCreateRevisionForDueTopicWithoutPendingRevision() {
         Topic topic = dueTopic("Binary Search");
         when(topicRepository.findTopicsNeedingRevision(any(LocalDateTime.class))).thenReturn(List.of(topic));
-        when(revisionRepository.existsByTopicIdAndCompletedFalse(topic.getId())).thenReturn(false);
+        when(revisionRepository.findTopicIdsWithPendingRevision()).thenReturn(List.of());
 
         scheduler.materializeDueRevisions();
 
@@ -63,7 +64,7 @@ class RevisionSchedulerTest {
     void shouldSkipTopicWithExistingPendingRevision() {
         Topic topic = dueTopic("Arrays");
         when(topicRepository.findTopicsNeedingRevision(any(LocalDateTime.class))).thenReturn(List.of(topic));
-        when(revisionRepository.existsByTopicIdAndCompletedFalse(topic.getId())).thenReturn(true);
+        when(revisionRepository.findTopicIdsWithPendingRevision()).thenReturn(List.of(topic.getId()));
 
         scheduler.materializeDueRevisions();
 
@@ -77,6 +78,7 @@ class RevisionSchedulerTest {
         scheduler.materializeDueRevisions();
 
         verify(revisionRepository, never()).save(any());
+        verify(revisionRepository, never()).findTopicIdsWithPendingRevision();
     }
 
     @Test
@@ -84,8 +86,7 @@ class RevisionSchedulerTest {
         Topic t1 = dueTopic("Binary Search");
         Topic t2 = dueTopic("Two Pointers");
         when(topicRepository.findTopicsNeedingRevision(any(LocalDateTime.class))).thenReturn(List.of(t1, t2));
-        when(revisionRepository.existsByTopicIdAndCompletedFalse(t1.getId())).thenReturn(false);
-        when(revisionRepository.existsByTopicIdAndCompletedFalse(t2.getId())).thenReturn(false);
+        when(revisionRepository.findTopicIdsWithPendingRevision()).thenReturn(List.of());
 
         scheduler.materializeDueRevisions();
 

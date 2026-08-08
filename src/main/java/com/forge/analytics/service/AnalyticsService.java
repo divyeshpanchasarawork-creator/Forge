@@ -66,7 +66,7 @@ public class AnalyticsService {
         ZoneId zone = TimezoneUtil.resolve(user);
         ensureTodaySnapshot(userId, zone);
 
-        List<Topic> allTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).getContent();
+        List<Topic> allTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000));
         List<Topic> weakTopics = topicRepository.findWeakTopicsByUserId(userId);
         List<Topic> strongTopics = topicRepository.findStrongTopicsByUserId(userId);
 
@@ -144,7 +144,7 @@ public class AnalyticsService {
                 + problemAttemptRepository.countByUserIdAndOutcomeAndAttemptedAtBetween(
                         userId, "PARTIAL", weekStart.atStartOfDay(), today.atTime(LocalTime.MAX));
 
-        long topicsReviewedThisWeek = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).getContent().stream()
+        long topicsReviewedThisWeek = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).stream()
                 .filter(t -> t.getLastRevision() != null && !t.getLastRevision().toLocalDate().isBefore(weekStart))
                 .count();
 

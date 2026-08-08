@@ -49,7 +49,7 @@ public class ForgettingCurveService {
     }
 
     public void refreshUserRetentions(UUID userId) {
-        List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).getContent();
+        List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000));
         for (Topic topic : topics) {
             refreshTopicRetention(topic);
         }

@@ -37,7 +37,7 @@ public class RoadmapService {
 
         LeetCodeSnapshot snapshot = snapshotRepository.findByUserId(userId).orElse(null);
         List<LeetCodeTagStat> tagStats = tagStatRepository.findByUserId(userId);
-        List<Topic> allTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 100)).getContent();
+        List<Topic> allTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 100));
 
         int totalSolved = snapshot != null && snapshot.getTotalSolved() != null ? snapshot.getTotalSolved() : 0;
         int easy = snapshot != null && snapshot.getEasySolved() != null ? snapshot.getEasySolved() : 0;

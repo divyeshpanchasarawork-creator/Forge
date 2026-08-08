@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
@@ -58,12 +57,11 @@ class KnowledgeGraphServiceTest {
         topic.setTitle("Binary Search");
         topic.setMastery(50);
         topic.setConfidence(5);
-        Page<Topic> page = new PageImpl<>(List.of(topic));
 
         com.forge.knowledge.entity.ConceptPrerequisite dependent = new com.forge.knowledge.entity.ConceptPrerequisite();
         dependent.setConceptSlug("binary-search");
 
-        when(topicRepository.findByUserId(any(UUID.class), any(PageRequest.class))).thenReturn(page);
+        when(topicRepository.findByUserId(any(UUID.class), any(PageRequest.class))).thenReturn(List.of(topic));
         when(prerequisiteRepository.findByConceptSlug("array")).thenReturn(List.of());
         when(prerequisiteRepository.findByPrerequisiteSlug("array")).thenReturn(List.of(dependent));
 

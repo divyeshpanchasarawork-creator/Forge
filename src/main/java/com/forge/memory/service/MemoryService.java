@@ -28,7 +28,7 @@ public class MemoryService {
     @Transactional(readOnly = true)
     public MemoryResponse getMemory() {
         UUID userId = SecurityUtils.getCurrentUserId();
-        List<Topic> allTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).getContent();
+        List<Topic> allTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000));
         List<MemoryResponse.FadingConcept> fadingConcepts = computeFadingConcepts(allTopics, userId);
         return new MemoryResponse(fadingConcepts);
     }

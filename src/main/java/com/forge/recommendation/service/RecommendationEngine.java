@@ -353,7 +353,7 @@ public class RecommendationEngine {
 
         if (target >= 7) {
             List<Topic> midTopics = topicRepository.findByUserId(userId,
-                            org.springframework.data.domain.PageRequest.of(0, 50)).getContent().stream()
+                            org.springframework.data.domain.PageRequest.of(0, 50)).stream()
                     .filter(t -> t.getConfidence() >= 4 && t.getConfidence() < 7)
                     .toList();
             for (Topic topic : midTopics) {

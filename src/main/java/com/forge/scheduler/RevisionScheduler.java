@@ -13,7 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Materializes {@link Revision} rows for topics whose {@code nextRevision} has arrived.
@@ -33,10 +36,15 @@ public class RevisionScheduler {
     @Transactional
     public void materializeDueRevisions() {
         List<Topic> due = topicRepository.findTopicsNeedingRevision(LocalDateTime.now());
+        if (due.isEmpty()) return;
+
+        // Single bulk query instead of one exists-check per due topic (N+1).
+        Set<UUID> pendingTopicIds = new HashSet<>(revisionRepository.findTopicIdsWithPendingRevision());
+
         int created = 0;
         int skipped = 0;
         for (Topic topic : due) {
-            if (revisionRepository.existsByTopicIdAndCompletedFalse(topic.getId())) {
+            if (pendingTopicIds.contains(topic.getId())) {
                 skipped++;
                 continue;
             }

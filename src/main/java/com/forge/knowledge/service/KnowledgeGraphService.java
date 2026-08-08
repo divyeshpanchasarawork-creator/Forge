@@ -116,7 +116,7 @@ public class KnowledgeGraphService implements ApplicationRunner {
         if (conceptSlug == null || delta == 0) {
             return 0;
         }
-        List<Topic> all = topicRepository.findByUserId(userId, PageRequest.of(0, 200)).getContent();
+        List<Topic> all = topicRepository.findByUserId(userId, PageRequest.of(0, 200));
         List<String> related = getPrerequisites(conceptSlug);
         related.addAll(getDependents(conceptSlug));
 

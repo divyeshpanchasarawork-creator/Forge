@@ -25,7 +25,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -83,7 +82,7 @@ class PracticeServiceTest {
                 new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(), List.of(), 5,
                         RewardModel.stats(List.of()), SignalWeights.DEFAULT));
         when(candidatePoolService.rankForUser(any(), anyInt())).thenReturn(List.of());
-        when(topicRepository.findByUserId(eq(userId), any())).thenReturn(new PageImpl<>(List.of()));
+        when(topicRepository.findByUserId(eq(userId), any())).thenReturn(List.of());
         when(sessionPlanner.build(any(), any(), any(), any(), any(), anyInt())).thenReturn(List.of());
 
         PracticeQueueResponse response = service.getPracticeQueue();
@@ -108,7 +107,7 @@ class PracticeServiceTest {
                 new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(attempt), List.of(), 5,
                         RewardModel.stats(List.of(attempt)), SignalWeights.DEFAULT));
         when(candidatePoolService.rankForUser(any(), anyInt())).thenReturn(List.of());
-        when(topicRepository.findByUserId(eq(userId), any())).thenReturn(new PageImpl<>(List.of()));
+        when(topicRepository.findByUserId(eq(userId), any())).thenReturn(List.of());
         when(sessionPlanner.build(any(), any(), any(), any(), any(), anyInt())).thenAnswer(inv -> {
             Map<String, SessionPlanner.AttemptCounts> counts = inv.getArgument(2);
             assertNotNull(counts);

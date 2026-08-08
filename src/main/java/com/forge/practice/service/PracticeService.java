@@ -66,7 +66,7 @@ public class PracticeService {
         List<CandidatePoolService.Candidate> scored = candidatePoolService.rankForUser(ctx, CandidatePoolService.MAX_CANDIDATES);
         Map<String, SessionPlanner.AttemptCounts> attemptsBySlug = attemptsBySlug(ctx);
 
-        List<Topic> revisionTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 500)).getContent().stream()
+        List<Topic> revisionTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 500)).stream()
                 .filter(t -> (t.getNextRevision() != null && !t.getNextRevision().isAfter(LocalDateTime.now()))
                         || (t.getEstimatedRetention() != null && t.getEstimatedRetention() <= 60))
                 .sorted(Comparator.comparing(t -> t.getEstimatedRetention() != null ? t.getEstimatedRetention() : 100))
@@ -167,7 +167,7 @@ public class PracticeService {
     }
 
     private List<Topic> matchTopics(UUID userId, String tagSlug, String tagName, String problemTitle) {
-        List<Topic> all = topicRepository.findByUserId(userId, PageRequest.of(0, 500)).getContent();
+        List<Topic> all = topicRepository.findByUserId(userId, PageRequest.of(0, 500));
         return all.stream()
                 .filter(t -> matches(t.getTitle(), tagSlug) || matches(t.getTitle(), tagName) || matches(t.getTitle(), slugify(problemTitle)))
                 .toList();

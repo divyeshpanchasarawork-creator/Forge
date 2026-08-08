@@ -179,8 +179,7 @@ class RecommendationEngineTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
-        when(topicRepository.findByUserId(any(), any()))
-                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(midTopic)));
+        when(topicRepository.findByUserId(any(), any())).thenReturn(List.of(midTopic));
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
         when(problemScorer.context(userId)).thenReturn(emptyCtx());
 
@@ -234,9 +233,7 @@ class RecommendationEngineTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
-        when(topicRepository.findByUserId(any(), any())).thenReturn(
-                new org.springframework.data.domain.PageImpl<>(List.of(topic))
-        );
+        when(topicRepository.findByUserId(any(), any())).thenReturn(List.of(topic));
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.of(snapshot));
         when(problemScorer.context(userId)).thenReturn(emptyCtx());
 

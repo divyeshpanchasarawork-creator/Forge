@@ -48,7 +48,7 @@ public class MetricSnapshotService {
         ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
         LocalDate today = LocalDate.now(zone);
 
-        List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000)).getContent()
+        List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000))
                 .stream()
                 .filter(com.forge.common.util.TopicFilters::isEngaged)
                 .toList();

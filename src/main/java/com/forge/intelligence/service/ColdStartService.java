@@ -31,7 +31,7 @@ public class ColdStartService {
     }
 
     public Profile classify(UUID userId) {
-        List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 200)).getContent();
+        List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 200));
         long attempts = problemAttemptRepository.countByUserIdAndAttemptedAtBetween(
                 userId, LocalDateTime.now().minusYears(1), LocalDateTime.now());
         long distinctSolved = problemAttemptRepository.countDistinctProblemsByUserId(userId);
@@ -51,7 +51,7 @@ public class ColdStartService {
 
     public List<Topic> seedStarterTopics(UUID userId) {
         var user = userRepository.findById(userId).orElseThrow();
-        List<Topic> existing = topicRepository.findByUserId(userId, PageRequest.of(0, 200)).getContent();
+        List<Topic> existing = topicRepository.findByUserId(userId, PageRequest.of(0, 200));
         if (!existing.isEmpty()) return existing;
 
         List<Topic> seeds = List.of(

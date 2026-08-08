@@ -19,7 +19,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.PageImpl;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -73,7 +72,7 @@ class AnalyticsStreakTest {
         when(metricSnapshotService.snapshotForUser(userId)).thenReturn(new DailyMetric());
         when(journalRepository.findEntryDatesByUserIdBetween(eq(userId), any(), any()))
                 .thenReturn(List.of(today, today.minusDays(1), today.minusDays(2)));
-        when(topicRepository.findByUserId(eq(userId), any())).thenReturn(new PageImpl<>(List.of()));
+        when(topicRepository.findByUserId(eq(userId), any())).thenReturn(List.of());
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findStrongTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.countByUserId(userId)).thenReturn(0L);
@@ -105,7 +104,7 @@ class AnalyticsStreakTest {
         when(metricSnapshotService.snapshotForUser(userId)).thenReturn(new DailyMetric());
         when(journalRepository.findEntryDatesByUserIdBetween(eq(userId), any(), any()))
                 .thenReturn(List.of(today, today.minusDays(2)));
-        when(topicRepository.findByUserId(eq(userId), any())).thenReturn(new PageImpl<>(List.of()));
+        when(topicRepository.findByUserId(eq(userId), any())).thenReturn(List.of());
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findStrongTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.countByUserId(userId)).thenReturn(0L);

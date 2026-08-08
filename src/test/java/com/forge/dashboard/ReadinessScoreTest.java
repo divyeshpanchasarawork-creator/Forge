@@ -82,9 +82,7 @@ class ReadinessScoreTest {
         when(topicService.getWeakTopics()).thenReturn(List.of());
         when(topicService.getStrongTopics()).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.of(snapshot));
-        when(topicRepository.findByUserId(any(), any())).thenReturn(
-                new org.springframework.data.domain.PageImpl<>(List.of(topic))
-        );
+        when(topicRepository.findByUserId(any(), any())).thenReturn(List.of(topic));
         when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
@@ -124,9 +122,7 @@ class ReadinessScoreTest {
         when(topicService.getWeakTopics()).thenReturn(List.of());
         when(topicService.getStrongTopics()).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.of(snapshot));
-        when(topicRepository.findByUserId(any(), any())).thenReturn(
-                new org.springframework.data.domain.PageImpl<>(List.of(topic))
-        );
+        when(topicRepository.findByUserId(any(), any())).thenReturn(List.of(topic));
         when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
@@ -159,9 +155,7 @@ class ReadinessScoreTest {
         when(topicService.getWeakTopics()).thenReturn(List.of());
         when(topicService.getStrongTopics()).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.of(snapshot));
-        when(topicRepository.findByUserId(any(), any())).thenReturn(
-                new org.springframework.data.domain.PageImpl<>(List.of())
-        );
+        when(topicRepository.findByUserId(any(), any())).thenReturn(List.of());
         when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {

@@ -72,7 +72,7 @@ public class ProblemScorer {
     public ScoringContext context(UUID userId) {
         User user = userRepository.findById(userId).orElse(null);
         List<LeetCodeTagStat> stats = tagStatRepository.findByUserId(userId);
-        List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 100)).getContent();
+        List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 100));
         List<ProblemAttempt> attempts = problemAttemptRepository
                 .findByUserIdOrderByAttemptedAtDesc(userId, PageRequest.of(0, 500));
         List<ProblemSuggestion> suggestions = problemSuggestionRepository.findByUserId(userId);

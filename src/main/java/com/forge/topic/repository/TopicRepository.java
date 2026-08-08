@@ -1,7 +1,6 @@
 package com.forge.topic.repository;
 
 import com.forge.topic.entity.Topic;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -15,7 +14,7 @@ import java.util.UUID;
 @Repository
 public interface TopicRepository extends JpaRepository<Topic, UUID> {
 
-    Page<Topic> findByUserId(UUID userId, Pageable pageable);
+    List<Topic> findByUserId(UUID userId, Pageable pageable);
 
     @Query("SELECT t FROM Topic t WHERE t.user.id = :userId AND t.confidence < 4 " +
             "AND NOT (t.source = 'COLD_START' AND (t.attemptsTotal IS NULL OR t.attemptsTotal = 0)) " +

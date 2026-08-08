@@ -79,9 +79,7 @@ class AnalyticsReadinessTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.of(snapshot));
-        when(topicRepository.findByUserId(any(), any())).thenReturn(
-                new org.springframework.data.domain.PageImpl<>(List.of(topic))
-        );
+        when(topicRepository.findByUserId(any(), any())).thenReturn(List.of(topic));
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findStrongTopicsByUserId(userId)).thenReturn(List.of(topic));
         when(topicRepository.countByUserId(userId)).thenReturn(1L);
@@ -103,9 +101,7 @@ class AnalyticsReadinessTest {
     void analyticsDefaultTargetWhenUserNotFound() {
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
-        when(topicRepository.findByUserId(any(), any())).thenReturn(
-                new org.springframework.data.domain.PageImpl<>(List.of())
-        );
+        when(topicRepository.findByUserId(any(), any())).thenReturn(List.of());
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.findStrongTopicsByUserId(userId)).thenReturn(List.of());
         when(topicRepository.countByUserId(userId)).thenReturn(0L);
