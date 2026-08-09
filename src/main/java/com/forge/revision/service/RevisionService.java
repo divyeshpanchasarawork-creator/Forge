@@ -74,7 +74,7 @@ public class RevisionService {
         topic.setEasinessFactor(sm2.easinessFactor());
         topic.setRepetitionInterval(sm2.intervalDays());
         topic.setLastQuality(quality);
-        topic.setNextRevision(now.plusDays(sm2.intervalDays()));
+        topic.setNextRevision(now.toLocalDate().plusDays(sm2.intervalDays()));
 
         if (quality < 3) {
             topic.setRevisionCount(0);

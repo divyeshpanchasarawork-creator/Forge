@@ -29,6 +29,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -72,7 +73,7 @@ class RecommendationEngineTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of(weakTopic));
-        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(userId), any())).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
         when(problemScorer.context(userId)).thenReturn(emptyCtx());
 
@@ -87,7 +88,7 @@ class RecommendationEngineTest {
     void shouldReturnNoRecommendationsWhenAllConfident() {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
-        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(userId), any())).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
         when(problemScorer.context(userId)).thenReturn(emptyCtx());
 
@@ -108,7 +109,7 @@ class RecommendationEngineTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
-        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(userId), any())).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.of(snapshot));
         when(problemScorer.context(userId)).thenReturn(emptyCtx());
 
@@ -126,7 +127,7 @@ class RecommendationEngineTest {
     void shouldPersistWhenFlagSet() {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
-        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(userId), any())).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
         when(problemScorer.context(userId)).thenReturn(emptyCtx());
         doNothing().when(recommendationRepository).deleteByUserIdAndStatus(any(), any());
@@ -142,7 +143,7 @@ class RecommendationEngineTest {
     void shouldNotPersistWhenFlagFalse() {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
-        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(userId), any())).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
         when(problemScorer.context(userId)).thenReturn(emptyCtx());
 
@@ -156,7 +157,7 @@ class RecommendationEngineTest {
     void shouldBuildSingleContextPerGeneration() {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
-        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(userId), any())).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
         when(problemScorer.context(userId)).thenReturn(emptyCtx());
 
@@ -178,7 +179,7 @@ class RecommendationEngineTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
-        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(userId), any())).thenReturn(List.of());
         when(topicRepository.findByUserId(any(), any())).thenReturn(List.of(midTopic));
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
         when(problemScorer.context(userId)).thenReturn(emptyCtx());
@@ -201,7 +202,7 @@ class RecommendationEngineTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
-        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(userId), any())).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
         when(problemScorer.context(userId)).thenReturn(emptyCtx());
 
@@ -232,7 +233,7 @@ class RecommendationEngineTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
-        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(userId), any())).thenReturn(List.of());
         when(topicRepository.findByUserId(any(), any())).thenReturn(List.of(topic));
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.of(snapshot));
         when(problemScorer.context(userId)).thenReturn(emptyCtx());
@@ -253,7 +254,7 @@ class RecommendationEngineTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of(weak));
-        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(userId), any())).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
         when(problemScorer.context(userId)).thenReturn(emptyCtx());
         when(candidatePoolService.bestProblemForTopic(any(), any())).thenReturn(Optional.of(
@@ -273,7 +274,7 @@ class RecommendationEngineTest {
     void shouldNotInsertSuggestionWhenNoProblemBasedRecommendations() {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(topicRepository.findWeakTopicsByUserId(userId)).thenReturn(List.of());
-        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(userId), any())).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.empty());
         when(problemScorer.context(userId)).thenReturn(emptyCtx());
         when(recommendationRepository.saveAll(any())).thenReturn(List.of());

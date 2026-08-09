@@ -26,6 +26,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -74,7 +75,7 @@ class AnalyticsMilestoneTest {
 
     @Test
     void skillMilestonesAreReportedOnlyOnceAcrossTheCurve() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(ZoneId.of("UTC"));
         List<DailyMetric> metrics = new ArrayList<>();
         double[] skills = {1000, 1050, 1120, 1180, 1250, 1350, 1420};
         for (int i = 0; i < skills.length; i++) {

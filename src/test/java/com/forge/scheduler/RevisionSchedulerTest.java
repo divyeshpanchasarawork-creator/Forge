@@ -1,6 +1,7 @@
 package com.forge.scheduler;
 
 import com.forge.auth.entity.User;
+import com.forge.auth.repository.UserRepository;
 import com.forge.revision.repository.RevisionRepository;
 import com.forge.topic.entity.Topic;
 import com.forge.topic.repository.TopicRepository;
@@ -11,13 +12,15 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -25,45 +28,59 @@ class RevisionSchedulerTest {
 
     @Mock private TopicRepository topicRepository;
     @Mock private RevisionRepository revisionRepository;
+    @Mock private UserRepository userRepository;
 
     private RevisionScheduler scheduler;
 
     @BeforeEach
     void setUp() {
-        scheduler = new RevisionScheduler(topicRepository, revisionRepository);
+        scheduler = new RevisionScheduler(topicRepository, revisionRepository, userRepository);
     }
 
-    private Topic dueTopic(String title) {
+    private User user() {
+        User user = new User();
+        user.setId(UUID.randomUUID());
+        return user;
+    }
+
+    private Topic dueTopic(String title, User user) {
         Topic topic = new Topic();
         topic.setId(UUID.randomUUID());
         topic.setTitle(title);
-        topic.setNextRevision(LocalDateTime.now().minusMinutes(5));
-        User user = new User();
-        user.setId(UUID.randomUUID());
+        topic.setNextRevision(LocalDate.now().minusDays(1));
         topic.setUser(user);
         return topic;
     }
 
     @Test
     void shouldCreateRevisionForDueTopicWithoutPendingRevision() {
-        Topic topic = dueTopic("Binary Search");
-        when(topicRepository.findTopicsNeedingRevision(any(LocalDateTime.class))).thenReturn(List.of(topic));
+        User user = user();
+        Topic topic = dueTopic("Binary Search", user);
+        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(user.getId()), any())).thenReturn(List.of(topic));
         when(revisionRepository.findTopicIdsWithPendingRevision()).thenReturn(List.of());
 
         scheduler.materializeDueRevisions();
 
+        ArgumentCaptor<LocalDate> todayCaptor = ArgumentCaptor.forClass(LocalDate.class);
+        verify(topicRepository).findTopicsNeedingRevisionByUserId(eq(user.getId()), todayCaptor.capture());
+        assertEquals(LocalDate.now(ZoneId.of("UTC")), todayCaptor.getValue());
+
         ArgumentCaptor<com.forge.revision.entity.Revision> captor = ArgumentCaptor.forClass(com.forge.revision.entity.Revision.class);
         verify(revisionRepository, times(1)).save(captor.capture());
         assertEquals(topic, captor.getValue().getTopic());
-        assertEquals(topic.getUser(), captor.getValue().getUser());
+        assertEquals(user, captor.getValue().getUser());
         assertEquals("scheduled", captor.getValue().getReason());
         assertEquals(false, captor.getValue().getCompleted());
+        assertEquals(LocalDate.now(ZoneId.of("UTC")), captor.getValue().getScheduledDate());
     }
 
     @Test
     void shouldSkipTopicWithExistingPendingRevision() {
-        Topic topic = dueTopic("Arrays");
-        when(topicRepository.findTopicsNeedingRevision(any(LocalDateTime.class))).thenReturn(List.of(topic));
+        User user = user();
+        Topic topic = dueTopic("Arrays", user);
+        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(user.getId()), any())).thenReturn(List.of(topic));
         when(revisionRepository.findTopicIdsWithPendingRevision()).thenReturn(List.of(topic.getId()));
 
         scheduler.materializeDueRevisions();
@@ -73,19 +90,22 @@ class RevisionSchedulerTest {
 
     @Test
     void shouldDoNothingWhenNoTopicsAreDue() {
-        when(topicRepository.findTopicsNeedingRevision(any(LocalDateTime.class))).thenReturn(List.of());
+        User user = user();
+        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(user.getId()), any())).thenReturn(List.of());
 
         scheduler.materializeDueRevisions();
 
         verify(revisionRepository, never()).save(any());
-        verify(revisionRepository, never()).findTopicIdsWithPendingRevision();
     }
 
     @Test
     void shouldCreateRevisionsForMultipleDueTopics() {
-        Topic t1 = dueTopic("Binary Search");
-        Topic t2 = dueTopic("Two Pointers");
-        when(topicRepository.findTopicsNeedingRevision(any(LocalDateTime.class))).thenReturn(List.of(t1, t2));
+        User user = user();
+        Topic t1 = dueTopic("Binary Search", user);
+        Topic t2 = dueTopic("Two Pointers", user);
+        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(user.getId()), any())).thenReturn(List.of(t1, t2));
         when(revisionRepository.findTopicIdsWithPendingRevision()).thenReturn(List.of());
 
         scheduler.materializeDueRevisions();

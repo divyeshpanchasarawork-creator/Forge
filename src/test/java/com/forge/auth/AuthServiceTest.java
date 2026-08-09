@@ -144,7 +144,7 @@ class AuthServiceTest {
     @Test
     void refreshRejectsTokenNotPresentInStore() {
         when(jwtTokenProvider.validateRefreshToken(any())).thenReturn(true);
-        when(refreshTokenRepository.findByTokenHash(any())).thenReturn(Optional.empty());
+        when(refreshTokenRepository.findByTokenHashAndRevokedFalseAndExpiresAtAfter(any(), any())).thenReturn(Optional.empty());
 
         assertThrows(BadRequestException.class, () -> service.refresh("stolen-or-rotated"));
         verify(refreshTokenRepository, never()).save(any());
@@ -153,7 +153,7 @@ class AuthServiceTest {
     @Test
     void refreshRotatesAndStoresNewRefreshToken() {
         when(jwtTokenProvider.validateRefreshToken(any())).thenReturn(true);
-        when(refreshTokenRepository.findByTokenHash(any())).thenReturn(Optional.of(new RefreshToken()));
+        when(refreshTokenRepository.findByTokenHashAndRevokedFalseAndExpiresAtAfter(any(), any())).thenReturn(Optional.of(new RefreshToken()));
         when(jwtTokenProvider.getUserIdFromToken(any())).thenReturn(userId);
         User user = new User();
         user.setId(userId);

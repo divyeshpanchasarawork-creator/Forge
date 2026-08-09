@@ -69,7 +69,7 @@ public class PracticeService {
         Map<String, SessionPlanner.AttemptCounts> attemptsBySlug = attemptsBySlug(ctx);
 
         List<Topic> revisionTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 500)).stream()
-                .filter(t -> (t.getNextRevision() != null && !t.getNextRevision().isAfter(now))
+                .filter(t -> (t.getNextRevision() != null && !t.getNextRevision().isAfter(now.toLocalDate()))
                         || (t.getEstimatedRetention() != null && t.getEstimatedRetention() <= 60))
                 .sorted(Comparator.comparing(t -> t.getEstimatedRetention() != null ? t.getEstimatedRetention() : 100))
                 .toList();

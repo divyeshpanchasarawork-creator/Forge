@@ -27,6 +27,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -83,7 +84,7 @@ class ReadinessScoreTest {
         when(topicService.getStrongTopics()).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.of(snapshot));
         when(topicRepository.findByUserId(any(), any())).thenReturn(List.of(topic));
-        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(userId), any())).thenReturn(List.of());
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(userId);
@@ -123,7 +124,7 @@ class ReadinessScoreTest {
         when(topicService.getStrongTopics()).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.of(snapshot));
         when(topicRepository.findByUserId(any(), any())).thenReturn(List.of(topic));
-        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(userId), any())).thenReturn(List.of());
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(userId);
@@ -156,7 +157,7 @@ class ReadinessScoreTest {
         when(topicService.getStrongTopics()).thenReturn(List.of());
         when(snapshotRepository.findByUserId(userId)).thenReturn(Optional.of(snapshot));
         when(topicRepository.findByUserId(any(), any())).thenReturn(List.of());
-        when(topicRepository.findTopicsNeedingRevisionByUserId(userId)).thenReturn(List.of());
+        when(topicRepository.findTopicsNeedingRevisionByUserId(eq(userId), any())).thenReturn(List.of());
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(userId);

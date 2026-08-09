@@ -174,7 +174,7 @@ public class ProblemScorer {
                 .filter(t -> matches(t.getTitle(), tagSlug))
                 .findFirst()
                 .map(t -> {
-                    if (t.getNextRevision() != null && !t.getNextRevision().isAfter(LocalDateTime.now(ctx.zone()))) return 100.0;
+                    if (t.getNextRevision() != null && !t.getNextRevision().isAfter(LocalDate.now(ctx.zone()))) return 100.0;
                     double retention = t.getEstimatedRetention() != null ? t.getEstimatedRetention() : 100;
                     if (retention <= 50) return 100.0;
                     if (retention <= 70) return 75.0;

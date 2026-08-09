@@ -69,17 +69,29 @@ App: http://localhost:5173
 
 ## Database
 
-Uses Flyway for migrations (`src/main/resources/db/migration/`, V1–V24). Notable migrations:
+Uses Flyway for migrations (`src/main/resources/db/migration/`, V1–V27). Notable migrations:
 - `V1__init.sql` — schema; `V2__seed_default_user.sql` — default user (forge/forge123)
 - `V21__email_unique_and_optimistic_lock.sql` — unique email + optimistic locking
 - `V22__query_indexes.sql` — hot-path indexes (attempts, revisions, recommendations, topics)
 - `V23__refresh_token_revocation.sql` — hashed server-side refresh tokens
 - `V24__user_role.sql` — user roles (`ROLE_ADMIN` / `ROLE_USER`)
+- `V25__attempt_scan_index.sql` / `V26__predicted_attempt_scan_index.sql` — attempt time-series scan indexes
+- `V27__next_revision_date_only.sql` — `topics.next_revision` narrowed from TIMESTAMP to DATE (SM-2 intervals are day-granular)
+
+## Timezone Conventions
+
+Business timestamps are written and read in the **user's timezone** (stored on the user profile),
+never the server clock, so day-boundary logic stays self-consistent in any deployment zone:
+- `TimezoneUtil.now(user)` / `today(user)` / `dayStart` / `dayEnd` resolve the user's `ZoneId`
+- `topics.next_revision` is a `DATE`; "due" queries compare against the user's `today()`
+- `revisions.scheduled_date` and `daily_metrics` are day-granular `DATE` columns
+- `topics.last_revision`, `last_attempt_at`, and `problem_attempts.attempted_at` remain TIMESTAMP (instant-ish)
+- Absolute durations (JWT access/refresh expiry, SM-2 intervals) are unaffected by zone
 
 ## Testing
 
 ```bash
-# Backend — 115 tests (auth + refresh revocation, security gating, revision/SM-2, analytics streak, journals, ...)
+# Backend — 128 tests (auth + refresh revocation, security gating, revision/SM-2, analytics streak, journals, ...)
 ./mvnw test
 
 # Frontend — typecheck + production build, then lint

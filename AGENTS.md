@@ -19,11 +19,13 @@ Layered monolith. Packages by feature (auth, topic, problem, revision, recommend
 - Spring Security 7 lambda DSL (no `.and()` chaining)
 - Boot 4 wires Jackson 3 (`tools.jackson`); there is NO auto-configured `com.fasterxml.jackson.databind.ObjectMapper` bean — construct `new ObjectMapper()` directly (ProblemLoader pattern)
 - Bearer-only auth: JWT access token in `Authorization: Bearer` header only (no cookies). Frontend keeps access + refresh tokens in sessionStorage
-- Refresh tokens are server-side revocable: hashed (SHA-256) in `refresh_tokens`; login/logout revoke prior tokens, refresh rotates the pair
+- Refresh tokens are server-side revocable: hashed (SHA-256) in `refresh_tokens`; login/logout revoke prior tokens, refresh rotates the pair; the DB lookup also requires `revoked = false AND expires_at > now`
 - `POST /api/auth/register` exists only in the `dev` profile (`RegistrationController`); prod is single-user
 - `/api/internal/**` requires `ROLE_ADMIN`; the sole user is ADMIN. Unauthenticated → 401, authenticated-but-forbidden → 403 (explicit entry points)
 - Rate limiting on `/api/auth/**` (5 req/min/IP)
-- SM-2 spaced repetition fields on Topic: `easinessFactor`, `repetitionInterval`, `lastQuality`
+- SM-2 spaced repetition fields on Topic: `easinessFactor`, `repetitionInterval`, `lastQuality`; `nextRevision` is a day-granular `LocalDate`/`DATE` (interval in days) and "due" queries take an explicit `today` param
+- All business timestamps read/written in the user's timezone via `TimezoneUtil` (`resolve(user)`, `now`, `today`, `dayStart`, `dayEnd`) — never the server clock, so day-boundary logic is deployment-zone independent
+- `GET /api/health` exposes only `status`/`db`/`timestamp` — no scheduler details
 - JOIN FETCH on all revision repository queries for topic
 - `@EntityGraph(attributePaths = {"topics"})` on problem repository queries
 - KpiCard component for all metric displays with tooltip prop
@@ -46,6 +48,7 @@ Run: `mvn test`
 - Attempt snapshots for calibration: `PracticeService.submitAttempt` stores `signals_json` (the `ScoreItem` list) + `predicted_score` (breakdown total) before mastery updates
 - `RecommendationResponse.score` mirrors `scoreBreakdown.total`; recommendation lists sort by score desc, then priority asc, then createdAt desc
 - `SessionPlanner` uses marginal-gain selection: repeatedly pick the highest-score unused candidate that fits a remaining segment slot (REVISION > WARMUP > CHALLENGE > REINFORCE) instead of fixed sequential passes
+- `RevisionScheduler` materializes due revisions per user via `findTopicsNeedingRevisionByUserId(userId, TimezoneUtil.today(user))` — the day-granular `next_revision` cutoff is resolved in each user's zone, never the server clock
 - Engine health is surfaced via `GET /api/internal/engine-report` (stored-vs-live MSE/log-loss/rank-AUC over snapshots) and re-fit on demand via `POST /api/internal/calibration/run`; ProfilePage renders a KpiCard health card. Never run calibration automatically on request paths
 
 ## Key Dependencies

@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -22,7 +23,7 @@ public class TopicResponse {
     private Integer mastery;
     private String notes;
     private LocalDateTime lastRevision;
-    private LocalDateTime nextRevision;
+    private LocalDate nextRevision;
     private String status;
     private Integer revisionCount;
     private Double estimatedRetention;

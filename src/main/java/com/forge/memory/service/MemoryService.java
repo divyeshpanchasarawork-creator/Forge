@@ -46,7 +46,7 @@ public class MemoryService {
                 daysSinceRevision = Duration.between(topic.getLastRevision(), now).toDays();
             }
 
-            boolean isFading = (topic.getNextRevision() != null && topic.getNextRevision().isBefore(now))
+            boolean isFading = (topic.getNextRevision() != null && topic.getNextRevision().isBefore(now.toLocalDate()))
                     || (topic.getConfidence() < 4)
                     || (topic.getEstimatedRetention() != null && topic.getEstimatedRetention() < 60.0);
 

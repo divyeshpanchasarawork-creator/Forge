@@ -386,7 +386,7 @@ public class RecommendationEngine {
     }
 
     private List<Recommendation> checkOverdueRevisions(UUID userId, User user, ProblemScorer.ScoringContext ctx) {
-        List<Topic> overdueTopics = topicRepository.findTopicsNeedingRevisionByUserId(userId);
+        List<Topic> overdueTopics = topicRepository.findTopicsNeedingRevisionByUserId(userId, TimezoneUtil.today(user));
         List<Recommendation> recs = new ArrayList<>();
         int target = user.getTargetLevel() != null ? user.getTargetLevel() : 5;
         int overdueThreshold = target >= 7 ? 7 : (target >= 4 ? 14 : 21);

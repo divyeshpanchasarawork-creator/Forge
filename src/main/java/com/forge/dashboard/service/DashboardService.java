@@ -67,7 +67,7 @@ public class DashboardService {
         long masteredCount = allTopics.stream().filter(t -> "MASTERED".equals(t.getStatus())).count();
         long inProgressCount = allTopics.stream().filter(t -> "IN_PROGRESS".equals(t.getStatus())).count();
         long notStartedCount = allTopics.stream().filter(t -> t.getStatus() == null || "NOT_STARTED".equals(t.getStatus())).count();
-        long overdueCount = topicRepository.findTopicsNeedingRevisionByUserId(userId).size();
+        long overdueCount = topicRepository.findTopicsNeedingRevisionByUserId(userId, TimezoneUtil.today(user)).size();
 
         var todayJournal = journalRepository.findByUserIdAndEntryDate(
                 userId, LocalDate.now(TimezoneUtil.resolve(user))).orElse(null);

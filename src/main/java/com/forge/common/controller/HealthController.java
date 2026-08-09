@@ -1,6 +1,5 @@
 package com.forge.common.controller;
 
-import com.forge.scheduler.SchedulerStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -16,7 +15,6 @@ import java.util.Map;
 public class HealthController {
 
     private final JdbcTemplate jdbcTemplate;
-    private final SchedulerStatus schedulerStatus;
 
     @GetMapping("/api/health")
     public ResponseEntity<Map<String, Object>> health() {
@@ -41,7 +39,6 @@ public class HealthController {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("status", "UP");
         body.put("db", "UP");
-        body.put("scheduler", schedulerStatus.status());
         body.put("timestamp", Instant.now().toString());
         return ResponseEntity.ok(body);
     }

@@ -52,9 +52,11 @@ public class ProblemAttempt extends BaseEntity {
     @Column(name = "attempted_at", nullable = false)
     private LocalDateTime attemptedAt;
 
+    @JsonIgnore
     @Column(name = "signals_json", columnDefinition = "TEXT")
     private String signalsJson;
 
+    @JsonIgnore
     @Column(name = "predicted_score")
     private Integer predictedScore;
 }

@@ -65,7 +65,8 @@ public class AuthService {
         }
 
         String tokenHash = hash(refreshTokenValue);
-        if (refreshTokenRepository.findByTokenHash(tokenHash).isEmpty()) {
+        if (refreshTokenRepository.findByTokenHashAndRevokedFalseAndExpiresAtAfter(tokenHash, LocalDateTime.now())
+                .isEmpty()) {
             throw new BadRequestException("Invalid or expired refresh token");
         }
 

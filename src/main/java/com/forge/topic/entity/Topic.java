@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -42,7 +43,7 @@ public class Topic extends BaseEntity {
     private LocalDateTime lastRevision;
 
     @Column(name = "next_revision")
-    private LocalDateTime nextRevision;
+    private LocalDate nextRevision;
 
     @Column(length = 20)
     private String status = "NOT_STARTED";
