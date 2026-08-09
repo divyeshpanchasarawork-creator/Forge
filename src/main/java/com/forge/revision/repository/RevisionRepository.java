@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,11 +25,11 @@ public interface RevisionRepository extends JpaRepository<Revision, UUID> {
 
     long countByUserIdAndCompleted(UUID userId, Boolean completed);
 
-    @Query("SELECT COUNT(r) FROM Revision r WHERE r.user.id = :userId AND r.completed = true AND r.scheduledDate BETWEEN :startDate AND :endDate")
-    long countCompletedInRangeByUserId(@Param("userId") UUID userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    @Query("SELECT COUNT(r) FROM Revision r WHERE r.user.id = :userId AND r.completed = true AND r.completionDate BETWEEN :start AND :end")
+    long countCompletedInRangeByUserId(@Param("userId") UUID userId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
-    @Query("SELECT r.scheduledDate FROM Revision r WHERE r.user.id = :userId AND r.completed = true AND r.scheduledDate BETWEEN :startDate AND :endDate")
-    List<LocalDate> findCompletedDatesInRangeByUserId(@Param("userId") UUID userId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    @Query("SELECT r.completionDate FROM Revision r WHERE r.user.id = :userId AND r.completed = true AND r.completionDate BETWEEN :start AND :end")
+    List<LocalDateTime> findCompletedDatesInRangeByUserId(@Param("userId") UUID userId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     @Query("SELECT DISTINCT r.topic.id FROM Revision r WHERE r.completed = false")
     List<UUID> findTopicIdsWithPendingRevision();

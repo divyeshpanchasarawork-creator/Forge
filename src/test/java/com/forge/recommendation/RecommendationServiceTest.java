@@ -75,7 +75,8 @@ class RecommendationServiceTest {
         when(userRepository.reserveDailyGeneration(eq(userId), any(LocalDate.class), eq(4))).thenReturn(1);
         when(recommendationEngine.generateForUser(userId, true)).thenReturn(List.of());
         when(problemScorer.context(userId)).thenReturn(new ProblemScorer.ScoringContext(
-                List.of(), List.of(), List.of(), List.of(), 5, RewardModel.stats(List.of()), SignalWeights.DEFAULT));
+                List.of(), List.of(), List.of(), List.of(), 5, RewardModel.stats(List.of()), SignalWeights.DEFAULT,
+                java.time.ZoneId.of("UTC")));
 
         GenerateResponse resp = service.generateRecommendations();
 

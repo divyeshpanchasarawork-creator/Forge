@@ -37,12 +37,12 @@ class CandidatePoolServiceTest {
 
     private ProblemScorer.ScoringContext ctx(List<LeetCodeTagStat> stats) {
         return new ProblemScorer.ScoringContext(stats, List.of(), List.of(), List.of(), 5,
-                RewardModel.stats(List.of()), SignalWeights.DEFAULT);
+                RewardModel.stats(List.of()), SignalWeights.DEFAULT, java.time.ZoneId.of("UTC"));
     }
 
     private ProblemScorer.ScoringContext ctx(List<LeetCodeTagStat> stats, List<ProblemSuggestion> suggestions) {
         return new ProblemScorer.ScoringContext(stats, List.of(), List.of(), suggestions, 5,
-                RewardModel.stats(List.of()), SignalWeights.DEFAULT);
+                RewardModel.stats(List.of()), SignalWeights.DEFAULT, java.time.ZoneId.of("UTC"));
     }
 
     @Test

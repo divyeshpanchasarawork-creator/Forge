@@ -80,7 +80,7 @@ class PracticeServiceTest {
         when(coldStartService.planMessage(eq(userId), any())).thenReturn("plan");
         when(problemScorer.context(userId)).thenReturn(
                 new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(), List.of(), 5,
-                        RewardModel.stats(List.of()), SignalWeights.DEFAULT));
+                        RewardModel.stats(List.of()), SignalWeights.DEFAULT, java.time.ZoneId.of("UTC")));
         when(candidatePoolService.rankForUser(any(), anyInt())).thenReturn(List.of());
         when(topicRepository.findByUserId(eq(userId), any())).thenReturn(List.of());
         when(sessionPlanner.build(any(), any(), any(), any(), any(), anyInt())).thenReturn(List.of());
@@ -105,7 +105,7 @@ class PracticeServiceTest {
         when(coldStartService.planMessage(eq(userId), any())).thenReturn("plan");
         when(problemScorer.context(userId)).thenReturn(
                 new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(attempt), List.of(), 5,
-                        RewardModel.stats(List.of(attempt)), SignalWeights.DEFAULT));
+                        RewardModel.stats(List.of(attempt)), SignalWeights.DEFAULT, java.time.ZoneId.of("UTC")));
         when(candidatePoolService.rankForUser(any(), anyInt())).thenReturn(List.of());
         when(topicRepository.findByUserId(eq(userId), any())).thenReturn(List.of());
         when(sessionPlanner.build(any(), any(), any(), any(), any(), anyInt())).thenAnswer(inv -> {

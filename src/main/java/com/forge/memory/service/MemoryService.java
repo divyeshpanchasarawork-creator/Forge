@@ -1,7 +1,9 @@
 package com.forge.memory.service;
 
+import com.forge.auth.repository.UserRepository;
 import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.SecurityUtils;
+import com.forge.common.util.TimezoneUtil;
 import com.forge.leetcode.repository.LeetCodeTagStatRepository;
 import com.forge.memory.dto.MemoryResponse;
 import com.forge.topic.entity.Topic;
@@ -24,6 +26,7 @@ public class MemoryService {
     private final TopicRepository topicRepository;
     private final LeetCodeTagStatRepository tagStatRepository;
     private final ProblemLoader problemLoader;
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public MemoryResponse getMemory() {
@@ -35,7 +38,7 @@ public class MemoryService {
 
     private List<MemoryResponse.FadingConcept> computeFadingConcepts(List<Topic> topics, UUID userId) {
         List<MemoryResponse.FadingConcept> result = new ArrayList<>();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = TimezoneUtil.now(userRepository.findById(userId).orElse(null));
 
         for (Topic topic : topics) {
             long daysSinceRevision = -1;

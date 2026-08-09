@@ -67,7 +67,7 @@ public class MetricSnapshotService {
                 userId, "SOLVED", start, end);
         solvedToday += problemAttemptRepository.countByUserIdAndOutcomeAndAttemptedAtBetween(
                 userId, "PARTIAL", start, end);
-        long revisionsDone = revisionRepository.countCompletedInRangeByUserId(userId, today, today);
+        long revisionsDone = revisionRepository.countCompletedInRangeByUserId(userId, start, end);
 
         Journal todayJournal = journalRepository.findByUserIdAndEntryDate(userId, today).orElse(null);
         double journalHours = todayJournal != null && todayJournal.getHoursStudied() != null
@@ -110,8 +110,9 @@ public class MetricSnapshotService {
                         userId, start.atStartOfDay(), today.atTime(LocalTime.MAX))
                 .forEach(a -> activeDays.add(a.toLocalDate()));
 
-        revisionRepository.findCompletedDatesInRangeByUserId(userId, start, today)
-                .forEach(activeDays::add);
+        revisionRepository.findCompletedDatesInRangeByUserId(
+                        userId, start.atStartOfDay(), today.atTime(LocalTime.MAX))
+                .forEach(a -> activeDays.add(a.toLocalDate()));
 
         journalRepository.findByUserIdAndEntryDateBetweenOrderByEntryDateDesc(userId, start, today)
                 .forEach(j -> activeDays.add(j.getEntryDate()));

@@ -61,18 +61,20 @@ public class RevisionService {
             throw new BadRequestException("Revision already completed");
         }
 
+        LocalDateTime now = TimezoneUtil.now(revision.getUser());
+
         revision.setCompleted(true);
-        revision.setCompletionDate(LocalDateTime.now());
+        revision.setCompletionDate(now);
         revisionRepository.save(revision);
 
         Topic topic = revision.getTopic();
-        topic.setLastRevision(LocalDateTime.now());
+        topic.setLastRevision(now);
 
         SpacedRepetitionService.Sm2Result sm2 = spacedRepetitionService.calculate(topic, quality);
         topic.setEasinessFactor(sm2.easinessFactor());
         topic.setRepetitionInterval(sm2.intervalDays());
         topic.setLastQuality(quality);
-        topic.setNextRevision(LocalDateTime.now().plusDays(sm2.intervalDays()));
+        topic.setNextRevision(now.plusDays(sm2.intervalDays()));
 
         if (quality < 3) {
             topic.setRevisionCount(0);

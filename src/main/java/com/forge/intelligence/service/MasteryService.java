@@ -1,9 +1,8 @@
 package com.forge.intelligence.service;
 
+import com.forge.common.util.TimezoneUtil;
 import com.forge.topic.entity.Topic;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
 
 @Service
 public class MasteryService {
@@ -63,7 +62,7 @@ public class MasteryService {
         if ("SOLVED".equals(outcome) || "PARTIAL".equals(outcome)) {
             topic.setAttemptsSolved((topic.getAttemptsSolved() != null ? topic.getAttemptsSolved() : 0) + 1);
         }
-        topic.setLastAttemptAt(LocalDateTime.now());
+        topic.setLastAttemptAt(TimezoneUtil.now(topic.getUser()));
         topic.setLastQuality(quality);
 
         if (mastery >= 80) {

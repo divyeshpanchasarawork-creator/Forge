@@ -79,7 +79,7 @@ class AnalyticsHeatmapTest {
         when(problemAttemptRepository.findAttemptedAtInRangeByUserId(eq(userId), any(), any()))
                 .thenReturn(List.of(today.atTime(18, 0)));
         when(revisionRepository.findCompletedDatesInRangeByUserId(eq(userId), any(), any()))
-                .thenReturn(List.of(today));
+                .thenReturn(List.of(today.atTime(18, 0)));
 
         try (MockedStatic<SecurityUtils> securityUtils = mockStatic(SecurityUtils.class)) {
             securityUtils.when(SecurityUtils::getCurrentUserId).thenReturn(userId);

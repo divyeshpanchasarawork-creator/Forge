@@ -46,7 +46,7 @@ public class DashboardService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        String greeting = GreetingUtil.getGreeting(user.getDisplayName());
+        String greeting = GreetingUtil.getGreeting(user.getDisplayName(), TimezoneUtil.resolve(user));
 
         List<TopicResponse> weakTopics = topicService.getWeakTopics();
         String currentFocus = weakTopics.isEmpty() ? "All topics are well covered!" : weakTopics.getFirst().getTitle();

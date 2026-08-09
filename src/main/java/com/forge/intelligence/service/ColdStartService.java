@@ -2,6 +2,7 @@ package com.forge.intelligence.service;
 
 import com.forge.analytics.repository.DailyMetricRepository;
 import com.forge.auth.repository.UserRepository;
+import com.forge.common.util.TimezoneUtil;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.practice.repository.ProblemAttemptRepository;
 import com.forge.revision.repository.RevisionRepository;
@@ -32,8 +33,9 @@ public class ColdStartService {
 
     public Profile classify(UUID userId) {
         List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 200));
+        LocalDateTime now = TimezoneUtil.now(userRepository.findById(userId).orElse(null));
         long attempts = problemAttemptRepository.countByUserIdAndAttemptedAtBetween(
-                userId, LocalDateTime.now().minusYears(1), LocalDateTime.now());
+                userId, now.minusYears(1), now);
         long distinctSolved = problemAttemptRepository.countDistinctProblemsByUserId(userId);
         double avgMastery = topics.isEmpty() ? 0 : topics.stream().mapToInt(Topic::getMastery).average().orElse(0);
 

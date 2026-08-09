@@ -57,9 +57,6 @@ public class LeetCodeSnapshot extends BaseEntity {
     @Column(name = "total_active_days")
     private Integer totalActiveDays = 0;
 
-    @Column(name = "submission_calendar", columnDefinition = "TEXT")
-    private String submissionCalendar;
-
     @Column(name = "last_synced_at")
     private LocalDateTime lastSyncedAt;
 }

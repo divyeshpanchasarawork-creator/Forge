@@ -31,7 +31,7 @@ public class AnalysisScheduler {
 
     @Scheduled(cron = "0 */30 * * * *")
     public void runScheduledAnalyses() {
-        LocalTime serverUtc = LocalTime.now(ZoneId.of("UTC"));
+        LocalTime serverNow = LocalTime.now();
 
         List<User> candidates = userRepository.findByPreferredAnalysisTimeIsNotNull();
         int processed = 0;
@@ -48,8 +48,8 @@ public class AnalysisScheduler {
             LocalDate userToday = LocalDate.now(zone);
             LocalTime windowStart = userNow.minusMinutes(15);
             LocalTime windowEnd = userNow.plusMinutes(15);
-            log.info("AnalysisScheduler: candidate {} preferred={} zone={} (server UTC {}, local {} window {}..{})",
-                    user.getId(), preferred, zone, serverUtc, userNow, windowStart, windowEnd);
+            log.info("AnalysisScheduler: candidate {} preferred={} zone={} (server {}, local {} window {}..{})",
+                    user.getId(), preferred, zone, serverNow, userNow, windowStart, windowEnd);
 
             if (!isInWindow(preferred, userNow)) {
                 skippedOutsideWindow++;
@@ -81,8 +81,8 @@ public class AnalysisScheduler {
         }
 
         schedulerStatus.record(Instant.now(), candidates.size(), processed, skippedOutsideWindow, skippedQuota, lastError);
-        log.info("AnalysisScheduler: ran at {} UTC | candidates={} processed={} skipped(outside window)={} skipped(quota)={} error={}",
-                serverUtc, candidates.size(), processed, skippedOutsideWindow, skippedQuota, lastError == null ? "none" : lastError);
+        log.info("AnalysisScheduler: ran at {} (server) | candidates={} processed={} skipped(outside window)={} skipped(quota)={} error={}",
+                serverNow, candidates.size(), processed, skippedOutsideWindow, skippedQuota, lastError == null ? "none" : lastError);
     }
 
     /**

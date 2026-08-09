@@ -41,7 +41,7 @@ class ProblemScorerTest {
 
     private ProblemScorer.ScoringContext ctx(List<ProblemAttempt> attempts) {
         return new ProblemScorer.ScoringContext(List.of(), List.of(), attempts, List.of(), 5,
-                RewardModel.stats(attempts), SignalWeights.DEFAULT);
+                RewardModel.stats(attempts), SignalWeights.DEFAULT, java.time.ZoneId.of("UTC"));
     }
 
     @Test

@@ -134,7 +134,8 @@ public class AnalyticsService {
         LocalDate today = LocalDate.now(zone);
         LocalDate weekStart = today.minusDays(today.getDayOfWeek().getValue() - 1);
 
-        long revisionsCompleted = revisionRepository.countCompletedInRangeByUserId(userId, weekStart, today);
+        long revisionsCompleted = revisionRepository.countCompletedInRangeByUserId(
+                userId, weekStart.atStartOfDay(), today.atTime(LocalTime.MAX));
         List<Journal> weekJournals = journalRepository.findByUserIdAndEntryDateBetweenOrderByEntryDateDesc(userId, weekStart, today);
         double hoursThisWeek = weekJournals.stream().mapToDouble(j -> j.getHoursStudied() != null ? j.getHoursStudied() : 0).sum();
 
@@ -176,8 +177,9 @@ public class AnalyticsService {
         problemAttemptRepository.findAttemptedAtInRangeByUserId(userId, start.atStartOfDay(), end.atTime(LocalTime.MAX))
                 .forEach(a -> byDate.computeIfAbsent(a.toLocalDate(), k -> new DayAgg()).addAttempt());
 
-        revisionRepository.findCompletedDatesInRangeByUserId(userId, start, end)
-                .forEach(d -> byDate.computeIfAbsent(d, k -> new DayAgg()).addRevision());
+        revisionRepository.findCompletedDatesInRangeByUserId(
+                        userId, start.atStartOfDay(), end.atTime(LocalTime.MAX))
+                .forEach(d -> byDate.computeIfAbsent(d.toLocalDate(), k -> new DayAgg()).addRevision());
 
         List<ActivityDay> result = new ArrayList<>(span);
         for (int i = 0; i < span; i++) {

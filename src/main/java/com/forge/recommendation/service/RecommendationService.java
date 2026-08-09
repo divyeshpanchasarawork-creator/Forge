@@ -80,7 +80,7 @@ public class RecommendationService {
         }
 
         rec.setStatus(Recommendation.STATUS_COMPLETED);
-        rec.setCompletedAt(LocalDateTime.now());
+        rec.setCompletedAt(TimezoneUtil.now(rec.getUser()));
         rec.setOutcome(normalizeOutcome(outcome));
         rec = recommendationRepository.save(rec);
         return toResponse(rec, problemScorer.context(userId));
@@ -92,9 +92,10 @@ public class RecommendationService {
         List<Recommendation> recs = recommendationRepository
                 .findByUserIdAndStatusAndProblemSlug(userId, Recommendation.STATUS_ACTIVE, problemSlug);
         if (recs.isEmpty()) return;
+        LocalDateTime now = TimezoneUtil.now(recs.getFirst().getUser());
         for (Recommendation rec : recs) {
             rec.setStatus(Recommendation.STATUS_COMPLETED);
-            rec.setCompletedAt(LocalDateTime.now());
+            rec.setCompletedAt(now);
             rec.setOutcome(normalizeOutcome(outcome));
         }
         recommendationRepository.saveAll(recs);

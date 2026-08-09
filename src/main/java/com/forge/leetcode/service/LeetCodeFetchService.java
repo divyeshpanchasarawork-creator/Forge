@@ -4,6 +4,7 @@ import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.common.exception.ResourceNotFoundException;
 import com.forge.common.util.ProblemLoader;
+import com.forge.common.util.TimezoneUtil;
 import com.forge.leetcode.client.LeetCodeClient;
 import com.forge.leetcode.dto.LeetCodeGraphQlResponse;
 import com.forge.leetcode.dto.LeetCodeStatsResponse;
@@ -23,7 +24,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -140,7 +140,6 @@ public class LeetCodeFetchService {
             LeetCodeGraphQlResponse.UserCalendar cal = matchedUser.getUserCalendar();
             snapshot.setStreak(cal.getStreak() != null ? cal.getStreak() : 0);
             snapshot.setTotalActiveDays(cal.getTotalActiveDays() != null ? cal.getTotalActiveDays() : 0);
-            snapshot.setSubmissionCalendar(cal.getSubmissionCalendar());
         }
 
         if (data.getUserContestRanking() != null) {
@@ -150,7 +149,7 @@ public class LeetCodeFetchService {
             snapshot.setContestAttendedCount(cr.getAttendedContestsCount() != null ? cr.getAttendedContestsCount() : 0);
         }
 
-        snapshot.setLastSyncedAt(LocalDateTime.now());
+        snapshot.setLastSyncedAt(TimezoneUtil.now(user));
         return snapshotRepository.save(snapshot);
     }
 

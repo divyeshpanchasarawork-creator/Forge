@@ -5,6 +5,7 @@ import com.forge.common.exception.BadRequestException;
 import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.SecurityUtils;
+import com.forge.common.util.TimezoneUtil;
 import com.forge.intelligence.service.ColdStartService;
 import com.forge.intelligence.service.ForgettingCurveService;
 import com.forge.intelligence.service.MasteryService;
@@ -56,6 +57,7 @@ public class PracticeService {
 
     public PracticeQueueResponse getPracticeQueue() {
         UUID userId = SecurityUtils.getCurrentUserId();
+        LocalDateTime now = TimezoneUtil.now(userRepository.findById(userId).orElse(null));
 
         if (coldStartService.needsSeed(userId)) {
             coldStartService.seedStarterTopics(userId);
@@ -67,7 +69,7 @@ public class PracticeService {
         Map<String, SessionPlanner.AttemptCounts> attemptsBySlug = attemptsBySlug(ctx);
 
         List<Topic> revisionTopics = topicRepository.findByUserId(userId, PageRequest.of(0, 500)).stream()
-                .filter(t -> (t.getNextRevision() != null && !t.getNextRevision().isAfter(LocalDateTime.now()))
+                .filter(t -> (t.getNextRevision() != null && !t.getNextRevision().isAfter(now))
                         || (t.getEstimatedRetention() != null && t.getEstimatedRetention() <= 60))
                 .sorted(Comparator.comparing(t -> t.getEstimatedRetention() != null ? t.getEstimatedRetention() : 100))
                 .toList();
@@ -95,8 +97,9 @@ public class PracticeService {
             throw new BadRequestException("problemSlug is required");
         }
 
+        User user = userRepository.findById(userId).orElse(null);
         ProblemAttempt attempt = new ProblemAttempt();
-        attempt.setUser(userRepository.getReferenceById(userId));
+        attempt.setUser(user);
         attempt.setProblemTitle(request.getProblemTitle());
         attempt.setProblemSlug(request.getProblemSlug());
         attempt.setDifficulty(request.getDifficulty() != null ? request.getDifficulty().toUpperCase() : "MEDIUM");
@@ -106,7 +109,7 @@ public class PracticeService {
         attempt.setHintsUsed(request.getHintsUsed() != null ? request.getHintsUsed() : 0);
         attempt.setTimeTakenSeconds(request.getTimeTakenSeconds());
         attempt.setQuality(masteryService.qualityFrom(outcome, attempt.getHintsUsed(), attempt.getTimeTakenSeconds()));
-        attempt.setAttemptedAt(LocalDateTime.now());
+        attempt.setAttemptedAt(TimezoneUtil.now(user));
         snapshotSignals(attempt, request, userId);
         attempt = problemAttemptRepository.save(attempt);
 

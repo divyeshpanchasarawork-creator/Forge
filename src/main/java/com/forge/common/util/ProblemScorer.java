@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -50,18 +51,21 @@ public class ProblemScorer {
                                  double userSkill, int totalSolved,
                                  Map<String, LocalDateTime> lastAttemptBySlug,
                                  Map<String, Long> recentWeekTagCounts,
-                                 Map<String, Long> recentTagCounts, int recentSize) {
+                                 Map<String, Long> recentTagCounts, int recentSize,
+                                 ZoneId zone) {
 
         public ScoringContext(List<LeetCodeTagStat> stats, List<Topic> topics,
                               List<ProblemAttempt> attempts, List<ProblemSuggestion> suggestions,
-                              int targetLevel, RewardModel.RewardStats rewards, SignalWeights weights) {
+                              int targetLevel, RewardModel.RewardStats rewards, SignalWeights weights,
+                              ZoneId zone) {
             this(stats, topics, attempts, suggestions, targetLevel, rewards, weights,
                     SkillRatingService.skillFromTopics(topics),
                     ProblemScorer.totalSolved(stats),
                     ProblemScorer.lastAttemptBySlug(attempts),
-                    ProblemScorer.recentWeekTagCounts(attempts),
+                    ProblemScorer.recentWeekTagCounts(attempts, zone),
                     ProblemScorer.recentTagCounts(attempts),
-                    ProblemScorer.recentSize(attempts));
+                    ProblemScorer.recentSize(attempts),
+                    zone);
         }
 
         public List<String> suggestedSlugs() {
@@ -71,6 +75,7 @@ public class ProblemScorer {
 
     public ScoringContext context(UUID userId) {
         User user = userRepository.findById(userId).orElse(null);
+        ZoneId zone = TimezoneUtil.resolve(user);
         List<LeetCodeTagStat> stats = tagStatRepository.findByUserId(userId);
         List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 100));
         List<ProblemAttempt> attempts = problemAttemptRepository
@@ -78,7 +83,7 @@ public class ProblemScorer {
         List<ProblemSuggestion> suggestions = problemSuggestionRepository.findByUserId(userId);
         int targetLevel = user != null && user.getTargetLevel() != null ? user.getTargetLevel() : 5;
         return new ScoringContext(stats, topics, attempts, suggestions, targetLevel,
-                RewardModel.stats(attempts), scorerWeightsService.currentWeights());
+                RewardModel.stats(attempts), scorerWeightsService.currentWeights(), zone);
     }
 
     public ScoreBreakdown breakdown(ScoringContext ctx, ProblemLoader.ProblemEntry candidate, String tagSlug) {
@@ -87,9 +92,9 @@ public class ProblemScorer {
                 new Signal(SignalWeights.SIGNAL_NAMES.get(0), w[0], weakTagMatch(ctx.stats(), tagSlug)),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(1), w[1], topicMasteryGap(ctx.topics(), tagSlug)),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(2), w[2], difficultyFit(ctx, candidate.getDifficulty())),
-                new Signal(SignalWeights.SIGNAL_NAMES.get(3), w[3], expectedLearningGain(ctx.topics(), tagSlug)),
-                new Signal(SignalWeights.SIGNAL_NAMES.get(4), w[4], revisionUrgency(ctx.topics(), tagSlug)),
-                new Signal(SignalWeights.SIGNAL_NAMES.get(5), w[5], confidenceDecay(ctx.topics(), tagSlug)),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(3), w[3], expectedLearningGain(ctx, tagSlug)),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(4), w[4], revisionUrgency(ctx, tagSlug)),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(5), w[5], confidenceDecay(ctx, tagSlug)),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(6), w[6], readiness(ctx, candidate.getDifficulty())),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(7), w[7], timeSinceLastPractice(ctx, candidate.getTitleSlug())),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(8), w[8], coverageBalance(ctx, tagSlug)),
@@ -151,25 +156,25 @@ public class ProblemScorer {
         return 50.0;
     }
 
-    private double expectedLearningGain(List<Topic> topics, String tagSlug) {
-        return topics.stream()
+    private double expectedLearningGain(ScoringContext ctx, String tagSlug) {
+        return ctx.topics().stream()
                 .filter(t -> matches(t.getTitle(), tagSlug))
                 .findFirst()
                 .map(t -> {
                     int mastery = t.getMastery() != null ? t.getMastery() : 0;
                     boolean fresh = t.getLastAttemptAt() != null
-                            && Duration.between(t.getLastAttemptAt(), LocalDateTime.now()).toDays() < 3;
+                            && Duration.between(t.getLastAttemptAt(), LocalDateTime.now(ctx.zone())).toDays() < 3;
                     return Math.max(0, (100 - mastery) * 0.6) + (fresh ? 10 : 40);
                 })
                 .orElse(70.0);
     }
 
-    private double revisionUrgency(List<Topic> topics, String tagSlug) {
-        return topics.stream()
+    private double revisionUrgency(ScoringContext ctx, String tagSlug) {
+        return ctx.topics().stream()
                 .filter(t -> matches(t.getTitle(), tagSlug))
                 .findFirst()
                 .map(t -> {
-                    if (t.getNextRevision() != null && !t.getNextRevision().isAfter(LocalDateTime.now())) return 100.0;
+                    if (t.getNextRevision() != null && !t.getNextRevision().isAfter(LocalDateTime.now(ctx.zone()))) return 100.0;
                     double retention = t.getEstimatedRetention() != null ? t.getEstimatedRetention() : 100;
                     if (retention <= 50) return 100.0;
                     if (retention <= 70) return 75.0;
@@ -179,14 +184,14 @@ public class ProblemScorer {
                 .orElse(30.0);
     }
 
-    private double confidenceDecay(List<Topic> topics, String tagSlug) {
-        return topics.stream()
+    private double confidenceDecay(ScoringContext ctx, String tagSlug) {
+        return ctx.topics().stream()
                 .filter(t -> matches(t.getTitle(), tagSlug))
                 .findFirst()
                 .map(t -> {
                     LocalDateTime anchor = t.getLastAttemptAt() != null ? t.getLastAttemptAt() : t.getLastRevision();
                     if (anchor == null) return 50.0;
-                    long days = Duration.between(anchor, LocalDateTime.now()).toDays();
+                    long days = Duration.between(anchor, LocalDateTime.now(ctx.zone())).toDays();
                     if (days >= 14) return 100.0;
                     if (days >= 7) return 70.0;
                     if (days >= 3) return 40.0;
@@ -205,7 +210,7 @@ public class ProblemScorer {
     private double timeSinceLastPractice(ScoringContext ctx, String problemSlug) {
         LocalDateTime last = ctx.lastAttemptBySlug().get(problemSlug);
         if (last == null) return 100.0;
-        long days = Duration.between(last, LocalDateTime.now()).toDays();
+        long days = Duration.between(last, LocalDateTime.now(ctx.zone())).toDays();
         if (days >= 7) return 100.0;
         if (days >= 3) return 70.0;
         if (days >= 1) return 40.0;
@@ -275,8 +280,8 @@ public class ProblemScorer {
         return last;
     }
 
-    private static Map<String, Long> recentWeekTagCounts(List<ProblemAttempt> attempts) {
-        LocalDate weekAgo = LocalDate.now().minusDays(7);
+    private static Map<String, Long> recentWeekTagCounts(List<ProblemAttempt> attempts, ZoneId zone) {
+        LocalDate weekAgo = LocalDate.now(zone).minusDays(7);
         Map<String, Long> counts = new HashMap<>();
         for (ProblemAttempt a : attempts) {
             if (a.getAttemptedAt() == null || a.getTopicTagSlug() == null) continue;

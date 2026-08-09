@@ -1,5 +1,7 @@
 package com.forge.intelligence.service;
 
+import com.forge.auth.repository.UserRepository;
+import com.forge.common.util.TimezoneUtil;
 import com.forge.topic.entity.Topic;
 import com.forge.topic.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ public class ForgettingCurveService {
     private static final double MAX_STRENGTH = 4.0;
 
     private final TopicRepository topicRepository;
+    private final UserRepository userRepository;
 
     public double strengthFor(Topic topic) {
         double strength = topic.getMemoryStrength() != null ? topic.getMemoryStrength() : 1.0;
@@ -45,13 +48,14 @@ public class ForgettingCurveService {
     }
 
     public void refreshTopicRetention(Topic topic) {
-        topic.setEstimatedRetention(computeRetention(topic, LocalDateTime.now()));
+        topic.setEstimatedRetention(computeRetention(topic, TimezoneUtil.now(topic.getUser())));
     }
 
     public void refreshUserRetentions(UUID userId) {
+        LocalDateTime now = TimezoneUtil.now(userRepository.findById(userId).orElse(null));
         List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000));
         for (Topic topic : topics) {
-            refreshTopicRetention(topic);
+            topic.setEstimatedRetention(computeRetention(topic, now));
         }
         topicRepository.saveAll(topics);
     }

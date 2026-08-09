@@ -6,6 +6,7 @@ import com.forge.common.exception.ResourceNotFoundException;
 import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.ReadinessCalculator;
+import com.forge.common.util.TimezoneUtil;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.entity.LeetCodeTagStat;
 import com.forge.leetcode.entity.ProblemSuggestion;
@@ -392,7 +393,7 @@ public class RecommendationEngine {
 
         for (Topic topic : overdueTopics) {
             if (topic.getLastRevision() != null) {
-                long daysSince = Duration.between(topic.getLastRevision(), LocalDateTime.now()).toDays();
+                long daysSince = Duration.between(topic.getLastRevision(), TimezoneUtil.now(user)).toDays();
                 if (daysSince > overdueThreshold) {
                     ProblemLoader.ProblemEntry best = pickBestProblemForTopic(ctx, topic.getTitle());
                     if (best != null) {
