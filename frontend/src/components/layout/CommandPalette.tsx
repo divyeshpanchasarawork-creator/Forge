@@ -310,13 +310,13 @@ export default function CommandPalette({ open, onClose, recent }: { open: boolea
                 placeholder="Search…"
                 className="command-palette-input h-full w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
-              <kbd className="shrink-0 rounded-md border border-border bg-secondary/60 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">esc</kbd>
+              <kbd className="shrink-0 rounded-md border border-border bg-secondary/60 px-1.5 py-0.5 font-mono text-micro text-muted-foreground">esc</kbd>
             </div>
 
             <div ref={listRef} className="flex-1 overflow-y-auto px-2 pb-4">
               {searching && debounced && localMatches.length === 0 && (
                 <div className="space-y-1">
-                  <p className="px-2 pt-3 pb-1.5 text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/40">Problems</p>
+                  <p className="px-2 pt-3 pb-1.5 text-micro font-medium uppercase tracking-[0.2em] text-muted-foreground/40">Problems</p>
                   {[0, 1, 2].map((i) => (
                     <div key={i} className="flex h-12 w-full items-center gap-3 rounded-lg px-3">
                       <div className="h-8 w-8 shrink-0 animate-pulse rounded-md bg-secondary" />
@@ -347,7 +347,7 @@ export default function CommandPalette({ open, onClose, recent }: { open: boolea
                   return (
                     <div key={item.id}>
                       {showGroup && (
-                        <p className="px-2 pt-4 pb-1.5 text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground/40 first:pt-0">
+                        <p className="px-2 pt-4 pb-1.5 text-micro font-medium uppercase tracking-[0.2em] text-muted-foreground/40 first:pt-0">
                           {item.group}
                         </p>
                       )}
@@ -398,7 +398,7 @@ export default function CommandPalette({ open, onClose, recent }: { open: boolea
                               <Highlight text={item.title} query={q} />
                             </span>
                             {item.hint && (
-                              <kbd className="rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                              <kbd className="rounded-md border border-border px-1.5 py-0.5 font-mono text-micro text-muted-foreground">
                                 {item.hint}
                               </kbd>
                             )}
@@ -411,7 +411,7 @@ export default function CommandPalette({ open, onClose, recent }: { open: boolea
                 })}
             </div>
 
-            <div className="mt-3 flex min-h-10 shrink-0 items-center justify-between border-t border-border px-2 pt-3 pb-[calc(0.25rem+env(safe-area-inset-bottom))] text-[11px] text-muted-foreground/60">
+            <div className="mt-3 flex min-h-10 shrink-0 items-center justify-between border-t border-border px-2 pt-3 pb-[calc(0.25rem+env(safe-area-inset-bottom))] text-caption text-muted-foreground/60">
               <span>↑↓ Navigate</span>
               <span className="flex items-center gap-3">
                 <span>↵ Select</span>

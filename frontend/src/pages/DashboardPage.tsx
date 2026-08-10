@@ -129,7 +129,7 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-widest text-primary">{data.greeting}</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight md:text-[2rem]">Today's Mission</h1>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight">Today's Mission</h1>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground md:text-base">
               {mission}
             </p>

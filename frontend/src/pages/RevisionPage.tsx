@@ -110,7 +110,7 @@ export default function RevisionPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Revision</h1>
+      <h1 className="text-xl font-semibold tracking-tight">Revision</h1>
 
       {/* Today's Mission — hero */}
       <HeroCard className="fade-in-up p-6">

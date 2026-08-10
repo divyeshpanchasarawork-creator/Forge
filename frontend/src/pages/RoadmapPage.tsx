@@ -41,7 +41,7 @@ export default function RoadmapPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Roadmap</h1>
+      <h1 className="text-xl font-semibold tracking-tight">Roadmap</h1>
 
       {analysis && (
         <Card className="border-primary/20">

@@ -14,7 +14,7 @@ export default function KpiCard({ icon, value, label, tooltip }: KpiCardProps) {
     <Card className="group relative p-5 transition-all hover:border-primary/20 hover:z-20 active:scale-[0.98]">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-2xl font-bold tracking-tight">{value}</p>
+          <p className="text-xl font-bold tracking-tight tabular-nums">{value}</p>
           <p className="mt-1 text-sm text-muted-foreground">{label}</p>
         </div>
         <div className="flex items-center gap-1.5">

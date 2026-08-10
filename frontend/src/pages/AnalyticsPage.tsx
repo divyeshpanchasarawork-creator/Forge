@@ -111,7 +111,7 @@ const InsightCard = memo(function InsightCard({ insight }: { insight: Insight })
   const deltaBadge =
     typeof delta === 'number' && delta !== 0 ? (
       <span
-        className={`inline-flex items-center gap-1 text-[11px] font-semibold ${delta > 0 ? 'text-success' : 'text-destructive'}`}
+        className={`inline-flex items-center gap-1 text-caption font-semibold ${delta > 0 ? 'text-success' : 'text-destructive'}`}
       >
         {delta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
         {delta > 0 ? '+' : ''}{delta}
@@ -129,7 +129,7 @@ const InsightCard = memo(function InsightCard({ insight }: { insight: Insight })
           {meta.icon}
         </span>
         <span className="flex min-w-0 items-center gap-1">
-          <span className="truncate text-right text-[11px] uppercase tracking-wider text-muted-foreground">{insight.title}</span>
+          <span className="truncate text-right text-caption uppercase tracking-wider text-muted-foreground">{insight.title}</span>
           <button
             type="button"
             aria-label={`What is ${insight.title}?`}
@@ -137,9 +137,9 @@ const InsightCard = memo(function InsightCard({ insight }: { insight: Insight })
           >
             <Info className="h-3.5 w-3.5" />
             <span className="pointer-events-none absolute bottom-full right-0 z-20 mb-2 hidden w-64 rounded-lg border border-border bg-card p-3 text-left group-hover/btn:block group-focus-within/btn:block">
-              <p className="text-[11px] font-semibold text-foreground">What is this?</p>
-              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{explain.what}</p>
-              <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+              <p className="text-caption font-semibold text-foreground">What is this?</p>
+              <p className="mt-1 text-caption leading-relaxed text-muted-foreground">{explain.what}</p>
+              <p className="mt-1.5 text-caption leading-relaxed text-muted-foreground">
                 <span className="font-medium text-foreground">How to improve:</span> {explain.improve}
               </p>
             </span>
@@ -285,12 +285,12 @@ function LearningCurveChart({ data }: { data: LearningCurveResponse }) {
       </ResponsiveContainer>
       {data.milestones.length > 0 && (
         <div className="mt-4 space-y-1.5">
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wider text-muted-foreground">
             <Trophy className="h-3.5 w-3.5 text-warning" /> Milestones
           </p>
           {data.milestones.map((m, i) => (
             <div key={i} className="flex items-center gap-2 text-xs">
-              <span className="shrink-0 rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">{m.date}</span>
+              <span className="shrink-0 rounded bg-secondary px-1.5 py-0.5 font-mono text-micro text-muted-foreground">{m.date}</span>
               <span className="text-foreground">{m.label}</span>
             </div>
           ))}
@@ -365,7 +365,7 @@ function ConsistencyHeatmap({ activity }: { activity: ActivityDay[] }) {
     <div>
       <div className="ml-7 mb-1.5 flex gap-[3px]">
         {grid.weeks.map((_, i) => (
-          <span key={i} className="w-3 text-[9px] font-medium text-muted-foreground">
+          <span key={i} className="w-4 text-micro font-medium text-muted-foreground">
             {grid.monthLabels.find((m) => m.index === i)?.label ?? ''}
           </span>
         ))}
@@ -373,7 +373,7 @@ function ConsistencyHeatmap({ activity }: { activity: ActivityDay[] }) {
       <div className="flex gap-[3px]">
         <div className="mr-1.5 flex w-6 flex-col gap-[3px]">
           {dayLabels.map((dl, i) => (
-            <span key={i} className="flex h-3 items-center text-[9px] leading-3 text-muted-foreground">
+            <span key={i} className="flex h-3 items-center text-micro leading-3 text-muted-foreground">
               {dl}
             </span>
           ))}
@@ -393,7 +393,7 @@ function ConsistencyHeatmap({ activity }: { activity: ActivityDay[] }) {
           </div>
         ))}
       </div>
-      <div className="mt-3 flex items-center justify-end gap-1 text-[10px] text-muted-foreground">
+      <div className="mt-3 flex items-center justify-end gap-1 text-micro text-muted-foreground">
         Less
         {levels.map((l, i) => (
           <span key={i} className={`h-3 w-3 rounded-[3px] ${l}`} />
@@ -511,7 +511,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Analytics</h1>
+      <h1 className="text-xl font-semibold tracking-tight">Analytics</h1>
 
       {/* Company Readiness – Hero */}
       <section className="fade-in-up rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-6">
@@ -525,7 +525,7 @@ export default function AnalyticsPage() {
             <p className="mt-1 text-sm text-muted-foreground">Readiness Score</p>
             <p className="mt-2 text-xs text-muted-foreground">
               for <span className="font-medium text-primary">Level {tl} — {target.label}</span>
-              <span className="block text-[10px]">{target.companies}</span>
+              <span className="block text-micro">{target.companies}</span>
             </p>
             <div className="mt-4 h-3 overflow-hidden rounded-full bg-secondary">
               <div
@@ -551,7 +551,7 @@ export default function AnalyticsPage() {
                     <p className={`truncate text-sm leading-tight ${isCurrent ? 'font-medium text-primary' : ''}`}>
                       {lv.label}
                     </p>
-                    {isCurrent && <p className="truncate text-[10px] text-muted-foreground">{lv.companies}</p>}
+                    {isCurrent && <p className="truncate text-micro text-muted-foreground">{lv.companies}</p>}
                   </div>
                   {isCurrent && <Zap className="h-3 w-3 shrink-0 text-primary" />}
                   {isReached && <span className="shrink-0 text-xs text-success">✓</span>}

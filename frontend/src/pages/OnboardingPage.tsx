@@ -52,7 +52,7 @@ export default function OnboardingPage() {
             <Flame className="h-7 w-7 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Set up your forge</h1>
+            <h1 className="text-xl font-semibold tracking-tight">Set up your forge</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Two quick steps to personalize your learning engine.
             </p>

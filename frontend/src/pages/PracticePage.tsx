@@ -248,7 +248,7 @@ export default function PracticePage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Practice</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Practice</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {data?.planMessage || 'Your queue is curated by the intelligence engine.'}
           </p>
@@ -287,7 +287,7 @@ export default function PracticePage() {
             <section key={seg} className="space-y-2">
               <div className="flex items-center gap-2">
                 <span className={toneText[segmentConfig[seg].tone]}>{segmentConfig[seg].icon}</span>
-                <h2 className={`text-sm font-semibold uppercase tracking-wider ${toneText[segmentConfig[seg].tone]}`}>
+                <h2 className={`text-caption font-semibold uppercase tracking-widest ${toneText[segmentConfig[seg].tone]}`}>
                   {segmentConfig[seg].label}
                 </h2>
                 <span className="text-caption text-muted-foreground tabular-nums">({items.length})</span>

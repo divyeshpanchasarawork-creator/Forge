@@ -46,7 +46,7 @@ export default function JournalPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Journal</h1>
+      <h1 className="text-xl font-semibold tracking-tight">Journal</h1>
 
       {/* Today's Entry */}
       <Card>

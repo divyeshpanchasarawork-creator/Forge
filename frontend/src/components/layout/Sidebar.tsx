@@ -47,7 +47,7 @@ export default function Sidebar({
         {navSections.map((section) => (
           <div key={section.label}>
             {!collapsed && (
-              <p className="px-3 pb-1.5 pt-4 text-[9px] font-semibold uppercase tracking-[0.14em] text-muted-foreground/40">
+              <p className="px-3 pb-1.5 pt-4 text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground/40">
                 {section.label}
               </p>
             )}
@@ -82,7 +82,7 @@ export default function Sidebar({
                       {!collapsed && (
                         <>
                           <span className={cn('flex-1 truncate', isActive && 'font-semibold')}>{item.label}</span>
-                          <kbd className="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60">
+                          <kbd className="rounded border border-border px-1.5 py-0.5 text-micro text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60">
                             {item.shortcut}
                           </kbd>
                         </>

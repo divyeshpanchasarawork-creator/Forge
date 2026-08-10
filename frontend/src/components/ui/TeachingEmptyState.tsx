@@ -23,7 +23,7 @@ export default function TeachingEmptyState({ icon, title, description, steps, ac
           <ol className="mx-auto mt-5 max-w-sm space-y-2 text-left">
             {steps.map((step, i) => (
               <li key={i} className="flex items-start gap-2.5 text-sm">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-micro font-bold text-primary">
                   {i + 1}
                 </span>
                 <span className="text-muted-foreground">{step}</span>

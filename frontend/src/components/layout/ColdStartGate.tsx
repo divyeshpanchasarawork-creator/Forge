@@ -105,7 +105,7 @@ export default function ColdStartGate({ children }: { children: ReactNode }) {
           <Logo size="lg" className="animate-pulse" />
         </div>
         <div className="text-center">
-          <h1 className="text-2xl font-bold tracking-tight">Forge</h1>
+          <h1 className="text-xl font-bold tracking-tight">Forge</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {state === 'timeout' ? 'Taking longer than usual...' : 'Waking up the forge...'}
           </p>
