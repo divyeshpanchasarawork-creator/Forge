@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { User, Code2, Save, RefreshCw, Trophy, Flame, TrendingUp, Target, Sparkles, Activity, Gauge, TrendingDown } from 'lucide-react';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { StatTile } from '@/components/ui/StatTile';
+import { Button } from '@/components/ui/Button';
+import { Callout } from '@/components/ui/Callout';
+import { Badge } from '@/components/ui/Badge';
+import { User, Code2, Save, RefreshCw, Target, Sparkles, Activity, Gauge, TrendingDown } from 'lucide-react';
 import { authApi, leetcodeApi, calibrationApi } from '@/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTargetLevel } from '@/lib/targetLevels';
@@ -9,6 +14,9 @@ import KpiCard from '@/components/ui/KpiCard';
 
 const fmt = (v?: number | null) =>
   v != null && Number.isFinite(v) ? v.toFixed(2) : '—';
+
+const inputClass =
+  'w-full rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all focus:border-primary focus:bg-secondary focus:outline-none focus:ring-1 focus:ring-primary';
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
@@ -79,15 +87,12 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Profile</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
 
       {/* Target Level */}
       <Card className="border-primary/20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-4 w-4 text-primary" />
-            Target Level
-          </CardTitle>
+          <SectionHeader title="Target Level" icon={<Target className="h-4 w-4" />} />
         </CardHeader>
         <CardContent className="space-y-6">
           <p className="text-sm text-muted-foreground">
@@ -97,7 +102,7 @@ export default function ProfilePage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Your Target: <span className="text-primary">Level {targetLevel}</span></span>
-              <span className={`text-sm font-semibold ${currentConfig.color}`}>{currentConfig.label}</span>
+              <span className="text-sm font-semibold text-foreground">{currentConfig.label}</span>
             </div>
 
             <input
@@ -117,33 +122,21 @@ export default function ProfilePage() {
           </div>
 
           {/* Live preview */}
-          <div className="rounded-xl bg-secondary/50 p-5 space-y-4">
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-              <div className="text-center">
-                <p className="text-lg font-bold text-primary">{currentConfig.targetTotal}</p>
-                <p className="text-xs text-muted-foreground">Target Problems</p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-bold text-green-400">{currentConfig.easyPct}%</p>
-                <p className="text-xs text-muted-foreground">Easy</p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-bold text-yellow-400">{currentConfig.mediumPct}%</p>
-                <p className="text-xs text-muted-foreground">Medium</p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-bold text-red-400">{currentConfig.hardPct}%</p>
-                <p className="text-xs text-muted-foreground">Hard</p>
-              </div>
+          <div className="space-y-4 rounded-xl bg-secondary/50 p-5">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <StatTile label="Target Problems" value={currentConfig.targetTotal} tone="primary" />
+              <StatTile label="Easy" value={`${currentConfig.easyPct}%`} tone="success" />
+              <StatTile label="Medium" value={`${currentConfig.mediumPct}%`} tone="warning" />
+              <StatTile label="Hard" value={`${currentConfig.hardPct}%`} tone="danger" />
             </div>
 
-            <div className="flex h-3 overflow-hidden rounded-full bg-secondary">
-              <div className="bg-green-400 transition-all" style={{ width: `${currentConfig.easyPct}%` }} />
-              <div className="bg-yellow-400 transition-all" style={{ width: `${currentConfig.mediumPct}%` }} />
-              <div className="bg-red-400 transition-all" style={{ width: `${currentConfig.hardPct}%` }} />
+            <div className="flex h-3 overflow-hidden rounded-full bg-secondary" role="img" aria-label="Difficulty split preview">
+              <div className="bg-success transition-all" style={{ width: `${currentConfig.easyPct}%` }} />
+              <div className="bg-warning transition-all" style={{ width: `${currentConfig.mediumPct}%` }} />
+              <div className="bg-destructive transition-all" style={{ width: `${currentConfig.hardPct}%` }} />
             </div>
 
-            <p className="text-xs text-muted-foreground text-center">
+            <p className="text-center text-caption text-muted-foreground">
               {currentConfig.companies}
             </p>
           </div>
@@ -153,10 +146,7 @@ export default function ProfilePage() {
       {/* Analysis Schedule */}
       <Card className="border-primary/20">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <RefreshCw className="h-4 w-4 text-primary" />
-            Analysis Schedule
-          </CardTitle>
+          <SectionHeader title="Analysis Schedule" icon={<RefreshCw className="h-4 w-4" />} />
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
@@ -167,7 +157,7 @@ export default function ProfilePage() {
             <select
               value={preferredAnalysisTime}
               onChange={(e) => setPreferredAnalysisTime(e.target.value)}
-              className="rounded-lg border border-input bg-secondary px-4 py-2.5 text-foreground focus:border-primary focus:outline-none"
+              className="rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none"
             >
               <option value="">No scheduled analysis</option>
               {Array.from({ length: 48 }, (_, i) => {
@@ -177,10 +167,10 @@ export default function ProfilePage() {
               })}
             </select>
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-caption text-muted-foreground">
             Generations used today: {user?.dailyGenerationsUsed ?? 0} / 4
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-caption text-muted-foreground">
             Timezone: <span className="font-medium text-foreground">{browserTimezone}</span> — scheduled analysis runs in your local time.
           </div>
         </CardContent>
@@ -188,37 +178,34 @@ export default function ProfilePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Account Information
-          </CardTitle>
+          <SectionHeader title="Account Information" icon={<User className="h-4 w-4" />} />
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1.5">Username</label>
+            <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Username</label>
             <input
               type="text"
               value={user?.username || ''}
               disabled
-              className="w-full rounded-lg border border-input bg-secondary px-4 py-2.5 text-foreground opacity-60"
+              className="w-full rounded-lg border border-input bg-secondary px-4 py-2.5 text-sm text-foreground opacity-60"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1.5">Display Name</label>
+            <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Display Name</label>
             <input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className="w-full rounded-lg border border-input bg-secondary px-4 py-2.5 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1.5">Email</label>
+            <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-input bg-secondary px-4 py-2.5 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className={inputClass}
             />
           </div>
         </CardContent>
@@ -226,85 +213,53 @@ export default function ProfilePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Code2 className="h-4 w-4" />
-            LeetCode Integration
-          </CardTitle>
+          <SectionHeader title="LeetCode Integration" icon={<Code2 className="h-4 w-4" />} />
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1.5">LeetCode Username</label>
+            <label className="mb-1.5 block text-sm font-medium text-muted-foreground">LeetCode Username</label>
             <input
               type="text"
               value={leetcodeUsername}
               onChange={(e) => setLeetcodeUsername(e.target.value)}
-              className="w-full rounded-lg border border-input bg-secondary px-4 py-2.5 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className={inputClass}
               placeholder="your_leetcode_username"
             />
           </div>
 
           {syncVisible && (
-            <button
+            <Button
               onClick={() => syncMutation.mutate()}
               disabled={syncMutation.isPending}
-              className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20 disabled:opacity-50"
+              loading={syncMutation.isPending}
+              variant="secondary"
             >
-              <RefreshCw className={`h-4 w-4 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
-              {syncMutation.isPending ? 'Syncing...' : 'Sync LeetCode Data'}
-            </button>
+              <RefreshCw className="h-4 w-4" />
+              {syncMutation.isPending ? 'Syncing…' : 'Sync LeetCode Data'}
+            </Button>
           )}
 
           {syncMutation.isError && (
-            <p className="text-sm text-red-400">Sync failed. Check your LeetCode username and try again.</p>
+            <Callout tone="danger">Sync failed. Check your LeetCode username and try again.</Callout>
           )}
 
           {lcStats && (
             <div className="mt-4 space-y-4">
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                <div className="rounded-lg bg-secondary/50 px-4 py-3 text-center">
-                  <p className="text-2xl font-bold text-primary">{lcStats.totalSolved}</p>
-                  <p className="text-xs text-muted-foreground">Total Solved</p>
-                </div>
-                <div className="rounded-lg bg-secondary/50 px-4 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <Flame className="h-4 w-4 text-orange-400" />
-                    <p className="text-2xl font-bold text-orange-400">{lcStats.streak}</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Day Streak</p>
-                </div>
-                <div className="rounded-lg bg-secondary/50 px-4 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <Trophy className="h-4 w-4 text-yellow-400" />
-                    <p className="text-2xl font-bold text-yellow-400">{lcStats.ranking ? `#${lcStats.ranking.toLocaleString()}` : '-'}</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Ranking</p>
-                </div>
-                <div className="rounded-lg bg-secondary/50 px-4 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <TrendingUp className="h-4 w-4 text-green-400" />
-                    <p className="text-2xl font-bold text-green-400">{lcStats.totalActiveDays}</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Active Days</p>
-                </div>
+                <StatTile label="Total Solved" value={lcStats.totalSolved} tone="primary" />
+                <StatTile label="Day Streak" value={lcStats.streak} tone="warning" />
+                <StatTile label="Ranking" value={lcStats.ranking ? `#${lcStats.ranking.toLocaleString()}` : '-'} />
+                <StatTile label="Active Days" value={lcStats.totalActiveDays} tone="success" />
               </div>
 
-              <div className="flex gap-3">
-                <div className="flex-1 rounded-lg bg-green-500/10 px-3 py-2 text-center">
-                  <p className="text-lg font-bold text-green-400">{lcStats.easySolved}</p>
-                  <p className="text-xs text-green-400/70">Easy</p>
-                </div>
-                <div className="flex-1 rounded-lg bg-yellow-500/10 px-3 py-2 text-center">
-                  <p className="text-lg font-bold text-yellow-400">{lcStats.mediumSolved}</p>
-                  <p className="text-xs text-yellow-400/70">Medium</p>
-                </div>
-                <div className="flex-1 rounded-lg bg-red-500/10 px-3 py-2 text-center">
-                  <p className="text-lg font-bold text-red-400">{lcStats.hardSolved}</p>
-                  <p className="text-xs text-red-400/70">Hard</p>
-                </div>
+              <div className="grid grid-cols-3 gap-3">
+                <StatTile label="Easy" value={lcStats.easySolved} tone="success" />
+                <StatTile label="Medium" value={lcStats.mediumSolved} tone="warning" />
+                <StatTile label="Hard" value={lcStats.hardSolved} tone="danger" />
               </div>
 
               {lcStats.lastSyncedAt && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-caption text-muted-foreground">
                   Last synced: {new Date(lcStats.lastSyncedAt).toLocaleString()}
                 </p>
               )}
@@ -315,69 +270,67 @@ export default function ProfilePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            Recommendation Engine
-          </CardTitle>
+          <SectionHeader title="Recommendation Engine" icon={<Sparkles className="h-4 w-4" />} />
         </CardHeader>
         <CardContent className="space-y-4">
           {reportLoading ? (
             <p className="text-sm text-muted-foreground">Loading engine health…</p>
           ) : reportError ? (
-            <p className="text-sm text-red-400">Couldn't load engine health. Try again later.</p>
+            <p className="text-sm text-destructive">Couldn't load engine health. Try again later.</p>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <KpiCard
-                  icon={<Activity className="h-5 w-5 text-primary" />}
+                  icon={<Activity className="h-5 w-5 text-muted-foreground" />}
                   value={`${engineReport?.sampleCount ?? 0} / ${engineReport?.minSamples ?? 10}`}
                   label="Scored Samples"
                   tooltip={`Attempts with a stored signal snapshot used to evaluate the scorer. Calibration needs at least ${engineReport?.minSamples ?? 10} scored samples.`}
                 />
                 <KpiCard
-                  icon={<Target className="h-5 w-5 text-primary" />}
+                  icon={<Target className="h-5 w-5 text-muted-foreground" />}
                   value={fmt(engineReport?.liveAuc)}
                   label="Live Rank-AUC"
                   tooltip="Rank correlation between the active scorer and actual outcomes. 1.0 is a perfect ranking, 0.5 is random. Shows n/a until there are both success and failure samples."
                 />
                 <KpiCard
-                  icon={<Gauge className="h-5 w-5 text-primary" />}
+                  icon={<Gauge className="h-5 w-5 text-muted-foreground" />}
                   value={fmt(engineReport?.liveMse)}
                   label="Live MSE"
                   tooltip="Mean squared error between the predicted score and reward (quality/5, scaled to 0-100)."
                 />
                 <KpiCard
-                  icon={<TrendingDown className="h-5 w-5 text-primary" />}
+                  icon={<TrendingDown className="h-5 w-5 text-muted-foreground" />}
                   value={fmt(engineReport?.liveLogLoss)}
                   label="Live Log-Loss"
                   tooltip="Binary log-loss of the active scorer treating reward >= 0.6 as success."
                 />
               </div>
 
-              <div className="flex items-center justify-between gap-3 rounded-lg bg-secondary/50 px-4 py-3">
-                <div className="text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-secondary/50 px-4 py-3">
+                <div className="text-caption text-muted-foreground">
                   {engineReport?.lastCalibratedAt
                     ? `Weights v${engineReport.version} · calibrated ${new Date(engineReport.lastCalibratedAt).toLocaleString()}`
                     : engineReport?.version != null
                       ? `Weights v${engineReport.version} — recorded metrics, not yet recalibrated.`
                       : 'No calibration applied yet — the scorer is using initial default weights.'}
                 </div>
-                <button
+                <Button
                   onClick={() => calibrateMutation.mutate()}
                   disabled={calibrateMutation.isPending}
-                  className="flex shrink-0 items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20 disabled:opacity-50"
+                  loading={calibrateMutation.isPending}
+                  variant="secondary"
                 >
-                  <Sparkles className={`h-4 w-4 ${calibrateMutation.isPending ? 'animate-pulse' : ''}`} />
-                  {calibrateMutation.isPending ? 'Calibrating...' : 'Run Calibration'}
-                </button>
+                  <Sparkles className="h-4 w-4" />
+                  {calibrateMutation.isPending ? 'Calibrating…' : 'Run Calibration'}
+                </Button>
               </div>
               {calibrationMessage && (
-                <p className={`text-sm ${calibrationMessage.applied ? 'text-green-400' : 'text-amber-400'}`}>
-                  {calibrationMessage.text}
-                </p>
+                <Callout tone={calibrationMessage.applied ? 'success' : 'warning'}>
+                  <p className="text-caption">{calibrationMessage.text}</p>
+                </Callout>
               )}
               {calibrateMutation.isError && (
-                <p className="text-sm text-red-400">Calibration failed. Try again later.</p>
+                <p className="text-sm text-destructive">Calibration failed. Try again later.</p>
               )}
             </>
           )}
@@ -385,15 +338,11 @@ export default function ProfilePage() {
       </Card>
 
       <div className="flex items-center gap-4">
-        <button
-          onClick={() => profileMutation.mutate()}
-          disabled={profileMutation.isPending}
-          className="flex items-center gap-2 rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-        >
+        <Button onClick={() => profileMutation.mutate()} disabled={profileMutation.isPending} loading={profileMutation.isPending}>
           <Save className="h-4 w-4" />
-          {profileMutation.isPending ? 'Saving...' : 'Save Changes'}
-        </button>
-        {saved && <span className="text-sm text-green-400">Profile updated!</span>}
+          {profileMutation.isPending ? 'Saving…' : 'Save Changes'}
+        </Button>
+        {saved && <Badge variant="success">Profile updated!</Badge>}
       </div>
     </div>
   );

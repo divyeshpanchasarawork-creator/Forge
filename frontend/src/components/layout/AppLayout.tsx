@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopHeader from './TopHeader';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
-import { SkeletonList } from '@/components/ui/LoadingSkeleton';
+import { PageSkeleton } from '@/components/ui/LoadingSkeleton';
 
 const CommandPalette = lazy(() => import('./CommandPalette'));
 
@@ -127,7 +127,7 @@ export default function AppLayout() {
         }`}
       >
         <div className="p-4 lg:p-8">
-          <Suspense fallback={<SkeletonList rows={4} />}>
+          <Suspense fallback={<PageSkeleton />}>
             <ErrorBoundary>
               <Outlet />
             </ErrorBoundary>

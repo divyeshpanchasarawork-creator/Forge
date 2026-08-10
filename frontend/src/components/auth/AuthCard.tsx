@@ -5,11 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { parseApiError } from '@/lib/error';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 const PASSWORD_RULE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
-
-const inputClass =
-  'w-full rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-foreground placeholder:text-muted-foreground/50 transition-all focus:border-primary focus:bg-secondary focus:outline-none focus:ring-1 focus:ring-primary';
 
 export type AuthTab = 'signin' | 'signup';
 
@@ -107,12 +105,12 @@ export default function AuthCard({ tab, onTabChange }: AuthCardProps) {
     ariaLabel: string
   ) => (
     <div className="relative">
-      <input
+      <Input
         id={id}
         type={show ? 'text' : 'password'}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className={`${inputClass} pr-10`}
+        className="pr-10"
         placeholder={placeholder}
         autoComplete={autoComplete}
         required
@@ -135,128 +133,118 @@ export default function AuthCard({ tab, onTabChange }: AuthCardProps) {
     </div>
   ) : null;
 
+  const tabs: { id: AuthTab; label: string }[] = [
+    { id: 'signin', label: 'Sign In' },
+    { id: 'signup', label: 'Create Account' },
+  ];
+
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 sm:p-8">
-      <div className="flex rounded-lg bg-secondary/60 p-1">
-        <button
-          type="button"
-          onClick={() => onTabChange('signin')}
-          className={cn(
-            'flex-1 rounded-md py-2 text-sm font-medium transition-colors',
-            tab === 'signin' ? 'bg-card text-foreground' : 'text-muted-foreground hover:text-foreground'
-          )}
-        >
-          Sign In
-        </button>
-        <button
-          type="button"
-          onClick={() => onTabChange('signup')}
-          className={cn(
-            'flex-1 rounded-md py-2 text-sm font-medium transition-colors',
-            tab === 'signup' ? 'bg-card text-foreground' : 'text-muted-foreground hover:text-foreground'
-          )}
-        >
-          Create Account
-        </button>
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-card sm:p-8">
+      <div role="tablist" aria-label="Authentication" className="flex rounded-lg bg-secondary/60 p-1">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => onTabChange(t.id)}
+            className={cn(
+              'flex-1 rounded-md py-2 text-sm font-medium transition-colors',
+              tab === t.id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
-      <div className="mt-6 mb-8 text-center">
-        <h2 className="text-lg font-bold tracking-tight">
+      <div className="mt-7 mb-7 text-center">
+        <h2 className="text-section font-semibold tracking-tight">
           {tab === 'signin' ? 'Welcome back' : 'Create your account'}
         </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="mt-1.5 text-sm text-muted-foreground">
           {tab === 'signin' ? 'Sign in to continue your forge' : 'Start building your learning engine'}
         </p>
       </div>
 
       {tab === 'signin' ? (
-        <form
-          key="signin"
-          onSubmit={handleLogin}
-          className="fade-in-up space-y-4"
-        >
-            <div>
-              <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-muted-foreground">
-                Email or Username
-              </label>
-              <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                className={inputClass}
-                placeholder="you@example.com"
-                autoComplete="username"
-                autoFocus
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-muted-foreground">
-                Password
-              </label>
-              {passwordField('password', password, setPassword, 'your password', 'current-password', showPassword, setShowPassword, showPassword ? 'Hide password' : 'Show password')}
-            </div>
-            {errorBox}
-            <Button type="submit" size="lg" className="w-full" loading={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
-        ) : (
-          <form
-            key="signup"
-            onSubmit={handleRegister}
-            className="fade-in-up space-y-4"
-          >
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-muted-foreground">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={inputClass}
-                placeholder="you@example.com"
-                autoComplete="email"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-muted-foreground">
-                Password
-              </label>
-              {passwordField('signup-password', signupPassword, setSignupPassword, '8+ chars, upper+lower+digit+special', 'new-password', showSignupPassword, setShowSignupPassword, showSignupPassword ? 'Hide password' : 'Show password')}
-              {passwordTouched && (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {checks.map((c) => (
-                    <span
-                      key={c.label}
-                      className={cn(
-                        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors',
-                        c.ok ? 'bg-green-500/10 text-green-400' : 'bg-secondary text-muted-foreground'
-                      )}
-                    >
-                      {c.ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
-                      {c.label}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div>
-              <label htmlFor="confirmPassword" className="mb-1.5 block text-sm font-medium text-muted-foreground">
-                Confirm Password
-              </label>
-              {passwordField('confirmPassword', confirmPassword, setConfirmPassword, 'repeat your password', 'new-password', showConfirm, setShowConfirm, showConfirm ? 'Hide password' : 'Show password')}
-            </div>
-            {errorBox}
-            <Button type="submit" size="lg" className="w-full" loading={loading}>
-              {loading ? 'Creating account...' : 'Create Account'}
-            </Button>
-          </form>
-        )}
+        <form key="signin" onSubmit={handleLogin} className="fade-in-up space-y-4">
+          <div>
+            <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-muted-foreground">
+              Email or Username
+            </label>
+            <Input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="username"
+              autoFocus
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-muted-foreground">
+              Password
+            </label>
+            {passwordField('password', password, setPassword, 'your password', 'current-password', showPassword, setShowPassword, showPassword ? 'Hide password' : 'Show password')}
+          </div>
+          {errorBox}
+          <Button type="submit" size="lg" className="w-full" loading={loading}>
+            {loading ? 'Signing in...' : 'Sign In'}
+          </Button>
+        </form>
+      ) : (
+        <form key="signup" onSubmit={handleRegister} className="fade-in-up space-y-4">
+          <div>
+            <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-muted-foreground">
+              Email
+            </label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              autoComplete="email"
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-muted-foreground">
+              Password
+            </label>
+            {passwordField('signup-password', signupPassword, setSignupPassword, '8+ chars, upper+lower+digit+special', 'new-password', showSignupPassword, setShowSignupPassword, showSignupPassword ? 'Hide password' : 'Show password')}
+            {passwordTouched && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {checks.map((c) => (
+                  <span
+                    key={c.label}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-caption font-medium transition-colors',
+                      c.ok ? 'bg-success/10 text-success' : 'bg-secondary text-muted-foreground'
+                    )}
+                  >
+                    {c.ok ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                    {c.label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+          <div>
+            <label htmlFor="confirmPassword" className="mb-1.5 block text-sm font-medium text-muted-foreground">
+              Confirm Password
+            </label>
+            {passwordField('confirmPassword', confirmPassword, setConfirmPassword, 'repeat your password', 'new-password', showConfirm, setShowConfirm, showConfirm ? 'Hide password' : 'Show password')}
+          </div>
+          {errorBox}
+          <Button type="submit" size="lg" className="w-full" loading={loading}>
+            {loading ? 'Creating account...' : 'Create Account'}
+          </Button>
+        </form>
+      )}
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
         {tab === 'signin' ? (

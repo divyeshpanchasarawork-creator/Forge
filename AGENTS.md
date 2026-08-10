@@ -32,6 +32,14 @@ Layered monolith. Packages by feature (auth, topic, problem, revision, recommend
 - parseApiError utility for consistent API error messages
 - LoadingSkeleton component for loading states
 
+## Frontend Design System (`frontend/src/components/ui`, `lib/score.ts`)
+- All UI built from shared primitives: `Card`/`CardContent`/`CardHeader`, `Button` (+`buttonVariants` for links styled as buttons), `Badge`, `Input`, `SectionHeader` (h2 + icon + action), `HeroCard` (gradient hero), `Callout` (icon + tone), `EmptyState` (dashed, icon/title/description/action), `StatTile` (metric tile with tone), `KpiCard` (hover tooltip metric), `ProgressBar` (tone), `ReadinessRing`, `SignalChip` (score-breakdown pill), `ApiErrorState`, `LoadingSkeleton`, `TeachingEmptyState`, `ChartCard`, `AppBootScreen`
+- Semantic tokens in `index.css` `@theme`: primary, success, warning, destructive, info, secondary, muted/muted-foreground, subtle-foreground, elevated, border, input, card, background; text sizes `text-micro/caption/section`; `shadow-cta`; `fade-in-up` animation
+- Color discipline (60/30/10): use token utilities only — `bg-secondary`, `bg-primary/10`, `bg-success/10 text-success`, etc. NEVER hardcode `text-green-400`-style palette classes; stateful color only via `scoreTone(score, {good, fair})` → `toneText`/`toneFill`/`toneBg`/`toneVar` from `lib/score` (danger maps to the `destructive` token). Inline chart series colors (recharts hex / `var(--color-*)`) are exempt
+- No random `text-primary` on icons: pass plain/muted icons into primitives; headings use `SectionHeader` (icon slot) not colored `CardTitle`
+- Headings hierarchy: page title `h1`, section titles via `SectionHeader` (`h2`), hero headline `h1` inside `HeroCard` where it is the page's primary statement
+- Page structure: `space-y-6` wrapper; `fade-in-up` sections with staggered `animationDelay`
+
 ## Testing
 Run: `mvn test`
 

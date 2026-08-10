@@ -1,24 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { memoryApi } from '@/api';
 import TeachingEmptyState from '@/components/ui/TeachingEmptyState';
+import { Callout } from '@/components/ui/Callout';
+import { ProgressBar } from '@/components/ui/ProgressBar';
+import { buttonVariants } from '@/components/ui/Button';
+import { scoreTone, toneText, toneBg } from '@/lib/score';
 import { Brain, ExternalLink, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SkeletonList } from '@/components/ui/LoadingSkeleton';
 import ApiErrorState from '@/components/ui/ApiErrorState';
-
-const retentionColor = (r: number | null) => {
-  if (r == null) return 'text-muted-foreground';
-  if (r >= 80) return 'text-green-400';
-  if (r >= 60) return 'text-yellow-400';
-  return 'text-red-400';
-};
-
-const retentionBg = (r: number | null) => {
-  if (r == null) return 'bg-secondary';
-  if (r >= 80) return 'bg-green-500/10';
-  if (r >= 60) return 'bg-yellow-500/10';
-  return 'bg-red-500/10';
-};
 
 export default function MemoryPage() {
   const { data, isLoading, error, refetch } = useQuery({
@@ -40,7 +30,7 @@ export default function MemoryPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Brain className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold">Memory</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Memory</h1>
       </div>
 
       <p className="text-sm text-muted-foreground">
@@ -48,23 +38,17 @@ export default function MemoryPage() {
         Review them before they're forgotten.
       </p>
 
-      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm">
-            <Brain className="h-4 w-4 text-primary" />
-            <span className="text-muted-foreground">
-              Fading concepts appear in your <span className="font-medium text-foreground">Practice queue</span> for review.
-            </span>
-          </div>
-          <Link
-            to="/app/problems"
-            className="flex shrink-0 items-center gap-1 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
-          >
+      <Callout tone="primary" icon={<Brain className="h-4 w-4" />}>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm">
+            Fading concepts appear in your <span className="font-medium text-foreground">Practice queue</span> for review.
+          </p>
+          <Link to="/app/problems" className={buttonVariants({ variant: 'secondary', size: 'sm' })}>
             View Queue
             <ArrowRight className="h-3 w-3" />
           </Link>
         </div>
-      </div>
+      </Callout>
 
       {fading.length === 0 ? (
         <TeachingEmptyState
@@ -77,10 +61,7 @@ export default function MemoryPage() {
             'Maintain a daily journal streak — consistent study beats cramming.',
           ]}
           action={
-            <Link
-              to="/app/revision"
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
+            <Link to="/app/revision" className={buttonVariants()}>
               Review today's topics
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -88,64 +69,68 @@ export default function MemoryPage() {
         />
       ) : (
         <div className="space-y-3">
-          {fading.map((concept) => (
-            <div
-              key={concept.topicId}
-              className="rounded-xl border border-border bg-card/50 px-5 py-4 transition-all hover:border-primary/20 hover:bg-card"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold">{concept.title}</h3>
-                    {concept.estimatedRetention != null && concept.estimatedRetention < 40 && (
-                      <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
-                    )}
-                  </div>
-                  {concept.category && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">{concept.category}</p>
-                  )}
-
-                  <div className="mt-3 flex flex-wrap items-center gap-4">
-                    <div className={`rounded-lg px-2.5 py-1 text-xs font-medium ${retentionBg(concept.estimatedRetention)} ${retentionColor(concept.estimatedRetention)}`}>
-                      Retention: {concept.estimatedRetention != null ? `${Math.round(concept.estimatedRetention)}%` : 'N/A'}
+          {fading.map((concept) => {
+            const retentionTone = concept.estimatedRetention != null
+              ? scoreTone(concept.estimatedRetention, { good: 80, fair: 60 })
+              : null;
+            const masteryTone = scoreTone(concept.mastery, { good: 80, fair: 50 });
+            return (
+              <div
+                key={concept.topicId}
+                className="rounded-xl border border-border bg-card/50 px-5 py-4 transition-all hover:border-primary/20 hover:bg-card"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold">{concept.title}</h3>
+                      {concept.estimatedRetention != null && concept.estimatedRetention < 40 && (
+                        <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
+                      )}
                     </div>
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Brain className="h-3 w-3" />
-                      Confidence: {concept.confidence}/10
-                    </span>
-                    {concept.daysSinceRevision >= 0 && (
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {concept.daysSinceRevision}d since review
+                    {concept.category && (
+                      <p className="mt-0.5 text-caption text-muted-foreground">{concept.category}</p>
+                    )}
+
+                    <div className="mt-3 flex flex-wrap items-center gap-4">
+                      <span
+                        className={`rounded-lg px-2.5 py-1 text-caption font-medium ${
+                          retentionTone ? `${toneBg[retentionTone]} ${toneText[retentionTone]}` : 'bg-secondary text-muted-foreground'
+                        }`}
+                      >
+                        Retention: {concept.estimatedRetention != null ? `${Math.round(concept.estimatedRetention)}%` : 'N/A'}
                       </span>
-                    )}
-                    <div className="h-2 w-24 rounded-full bg-secondary">
-                      <div
-                        className="h-2 rounded-full"
-                        style={{
-                          width: `${concept.mastery}%`,
-                          backgroundColor: concept.mastery >= 80 ? '#22c55e' : concept.mastery >= 50 ? '#eab308' : '#ef4444',
-                        }}
-                      />
+                      <span className="flex items-center gap-1 text-caption text-muted-foreground">
+                        <Brain className="h-3 w-3" />
+                        Confidence: {concept.confidence}/10
+                      </span>
+                      {concept.daysSinceRevision >= 0 && (
+                        <span className="flex items-center gap-1 text-caption text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {concept.daysSinceRevision}d since review
+                        </span>
+                      )}
+                      <div className="flex items-center gap-2">
+                        <ProgressBar value={concept.mastery} tone={masteryTone} className="w-24" />
+                        <span className="text-caption text-muted-foreground tabular-nums">{concept.mastery}% mastery</span>
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground">{concept.mastery}% mastery</span>
                   </div>
-                </div>
 
-                {concept.suggestedProblemSlug && (
-                  <a
-                    href={`https://leetcode.com/problems/${concept.suggestedProblemSlug}/`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex shrink-0 items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-2 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    {concept.suggestedProblemDifficulty === 'Easy' ? 'Easy' : concept.suggestedProblemDifficulty === 'Hard' ? 'Hard' : 'Med'}
-                  </a>
-                )}
+                  {concept.suggestedProblemSlug && (
+                    <a
+                      href={`https://leetcode.com/problems/${concept.suggestedProblemSlug}/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={buttonVariants({ variant: 'secondary', size: 'sm' })}
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      {concept.suggestedProblemDifficulty === 'Easy' ? 'Easy' : concept.suggestedProblemDifficulty === 'Hard' ? 'Hard' : 'Med'}
+                    </a>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

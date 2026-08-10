@@ -21,11 +21,19 @@ export default function KpiCard({ icon, value, label, tooltip }: KpiCardProps) {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
             {icon}
           </div>
-          {tooltip && <Info className="h-3.5 w-3.5 text-muted-foreground/60" aria-label="More info" />}
+          {tooltip && (
+            <button
+              type="button"
+              aria-label={`${label}: ${tooltip}`}
+              className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+            >
+              <Info className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
       {tooltip && (
-        <div className="pointer-events-none absolute -bottom-2 left-1/2 z-50 hidden w-56 -translate-x-1/2 translate-y-full rounded-lg border border-border bg-card px-3 py-2 text-xs leading-relaxed text-muted-foreground group-hover:block">
+        <div className="pointer-events-none absolute -bottom-2 left-1/2 z-50 hidden w-56 -translate-x-1/2 translate-y-full rounded-lg border border-border bg-card px-3 py-2 text-xs leading-relaxed text-muted-foreground group-hover:block group-focus-within:block">
           {tooltip}
         </div>
       )}

@@ -1,8 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { journalsApi } from '@/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import ApiErrorState from '@/components/ui/ApiErrorState';
+import { NotebookPen, ListChecks } from 'lucide-react';
 import { useState } from 'react';
+
+const inputClass =
+  'w-full rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all focus:border-primary focus:bg-secondary focus:outline-none focus:ring-1 focus:ring-primary';
 
 export default function JournalPage() {
   const queryClient = useQueryClient();
@@ -39,28 +46,28 @@ export default function JournalPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Journal</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Journal</h1>
 
       {/* Today's Entry */}
       <Card>
         <CardHeader>
-          <CardTitle>Today's Entry</CardTitle>
+          <SectionHeader title="Today's Entry" icon={<NotebookPen className="h-4 w-4" />} />
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1.5">Morning Goal</label>
+            <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Morning Goal</label>
             <textarea
               value={form.morningGoal}
               onChange={(e) => setForm({ ...form, morningGoal: e.target.value })}
               placeholder="What do you want to accomplish today?"
-              className="w-full rounded-lg border border-input bg-secondary px-4 py-2.5 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className={inputClass}
               rows={3}
             />
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1.5">Energy: {energyLabels[form.energy]}</label>
+              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Energy: {energyLabels[form.energy]}</label>
               <input
                 type="range"
                 min={1}
@@ -71,7 +78,7 @@ export default function JournalPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1.5">Mood: {moodEmojis[form.mood]}</label>
+              <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Mood: {moodEmojis[form.mood]}</label>
               <input
                 type="range"
                 min={1}
@@ -84,7 +91,7 @@ export default function JournalPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1.5">Hours Studied</label>
+            <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Hours Studied</label>
             <input
               type="number"
               min={0}
@@ -92,39 +99,35 @@ export default function JournalPage() {
               step={0.5}
               value={form.hoursStudied}
               onChange={(e) => setForm({ ...form, hoursStudied: Number(e.target.value) })}
-              className="w-full rounded-lg border border-input bg-secondary px-4 py-2.5 text-foreground focus:border-primary focus:outline-none"
+              className={inputClass}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1.5">Achievements</label>
+            <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Achievements</label>
             <textarea
               value={form.achievements}
               onChange={(e) => setForm({ ...form, achievements: e.target.value })}
               placeholder="What did you achieve today?"
-              className="w-full rounded-lg border border-input bg-secondary px-4 py-2.5 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+              className={inputClass}
               rows={2}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1.5">Evening Reflection</label>
+            <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Evening Reflection</label>
             <textarea
               value={form.eveningReflection}
               onChange={(e) => setForm({ ...form, eveningReflection: e.target.value })}
               placeholder="How was your day? What did you learn?"
-              className="w-full rounded-lg border border-input bg-secondary px-4 py-2.5 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+              className={inputClass}
               rows={3}
             />
           </div>
 
-          <button
-            onClick={() => saveMutation.mutate(form)}
-            disabled={saveMutation.isPending}
-            className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            {saveMutation.isPending ? 'Saving...' : 'Save Journal Entry'}
-          </button>
+          <Button onClick={() => saveMutation.mutate(form)} disabled={saveMutation.isPending} loading={saveMutation.isPending}>
+            {saveMutation.isPending ? 'Saving…' : 'Save Journal Entry'}
+          </Button>
         </CardContent>
       </Card>
 
@@ -134,51 +137,41 @@ export default function JournalPage() {
       ) : entries.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>All Entries</CardTitle>
+            <SectionHeader title="All Entries" icon={<ListChecks className="h-4 w-4" />} />
           </CardHeader>
           <CardContent className="space-y-3">
             {entries.map((journal) => (
               <div key={journal.id} className="rounded-xl bg-secondary/30 px-5 py-4">
-                <div className="flex items-center justify-between mb-2">
+                <div className="mb-2 flex items-center justify-between">
                   <p className="text-sm font-medium">{new Date(journal.entryDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</p>
-                  <div className="flex gap-2 text-lg">
+                  <div className="flex items-center gap-2 text-lg">
                     <span>{moodEmojis[journal.mood || 3]}</span>
-                    <span className="text-xs text-muted-foreground">Energy: {journal.energy}/5</span>
+                    <span className="text-caption text-muted-foreground">Energy: {journal.energy}/5</span>
                   </div>
                 </div>
                 {journal.morningGoal && <p className="text-sm text-muted-foreground">Goal: {journal.morningGoal}</p>}
-                {journal.achievements && <p className="text-sm text-green-400">Achieved: {journal.achievements}</p>}
+                {journal.achievements && <p className="text-sm text-success">Achieved: {journal.achievements}</p>}
               </div>
             ))}
           </CardContent>
           <CardContent className="flex items-center justify-between border-t border-border pt-4">
-            <button
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={page === 0}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary disabled:opacity-40"
-            >
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0}>
               Previous
-            </button>
-            <span className="text-xs text-muted-foreground">
+            </Button>
+            <span className="text-caption text-muted-foreground tabular-nums">
               Page {journalPage ? journalPage.page + 1 : 1} of {journalPage?.totalPages ?? 1}
             </span>
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              disabled={!journalPage || journalPage.last}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary disabled:opacity-40"
-            >
+            <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)} disabled={!journalPage || journalPage.last}>
               Next
-            </button>
+            </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="rounded-xl border border-dashed border-border px-6 py-8 text-center">
-          <p className="text-sm font-medium">Your journal powers the rest of Forge</p>
-          <p className="mx-auto mt-1 max-w-lg text-xs leading-relaxed text-muted-foreground">
-            Every entry fuels your Memory page (patterns, mistakes, insights), the Analytics heatmap, and your weekly
-            study hours. One honest line a day is enough — consistency compounds.
-          </p>
-        </div>
+        <EmptyState
+          icon={<NotebookPen className="h-5 w-5" />}
+          title="Your journal powers the rest of Forge"
+          description="Every entry fuels your Memory page (patterns, mistakes, insights), the Analytics heatmap, and your weekly study hours. One honest line a day is enough — consistency compounds."
+        />
       )}
     </div>
   );

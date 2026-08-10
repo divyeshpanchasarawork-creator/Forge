@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ChartSkeleton, SkeletonCard } from '@/components/ui/LoadingSkeleton';
 import ApiErrorState from '@/components/ui/ApiErrorState';
 import { targetLevels, getTargetLevel } from '@/lib/targetLevels';
+import { scoreTone, toneText, toneFill } from '@/lib/score';
 import {
   BarChart, Bar, LineChart, Line, ReferenceDot, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell,
@@ -16,27 +17,13 @@ import {
 } from 'lucide-react';
 import type { AnalyticsResponse, ActivityDay, WeeklyProgress, LearningCurveResponse, Insight } from '@/types';
 
-const readinessColor = (score: number) => {
-  if (score >= 80) return 'text-green-400';
-  if (score >= 50) return 'text-yellow-400';
-  if (score >= 30) return 'text-orange-400';
-  return 'text-red-400';
-};
-
-const readinessBg = (score: number) => {
-  if (score >= 80) return 'bg-green-500';
-  if (score >= 50) return 'bg-yellow-500';
-  if (score >= 30) return 'bg-orange-500';
-  return 'bg-red-500';
-};
-
 const accentMap = {
   primary: 'bg-primary/10 text-primary',
-  yellow: 'bg-yellow-500/10 text-yellow-400',
-  orange: 'bg-orange-500/10 text-orange-400',
-  red: 'bg-red-500/10 text-red-400',
-  green: 'bg-green-500/10 text-green-400',
-  purple: 'bg-purple-500/10 text-purple-400',
+  yellow: 'bg-warning/10 text-warning',
+  orange: 'bg-warning/10 text-warning',
+  red: 'bg-destructive/10 text-destructive',
+  green: 'bg-success/10 text-success',
+  purple: 'bg-info/10 text-info',
 } as const;
 
 type Accent = keyof typeof accentMap;
@@ -124,7 +111,7 @@ const InsightCard = memo(function InsightCard({ insight }: { insight: Insight })
   const deltaBadge =
     typeof delta === 'number' && delta !== 0 ? (
       <span
-        className={`inline-flex items-center gap-1 text-[11px] font-semibold ${delta > 0 ? 'text-green-400' : 'text-red-400'}`}
+        className={`inline-flex items-center gap-1 text-[11px] font-semibold ${delta > 0 ? 'text-success' : 'text-destructive'}`}
       >
         {delta > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
         {delta > 0 ? '+' : ''}{delta}
@@ -299,7 +286,7 @@ function LearningCurveChart({ data }: { data: LearningCurveResponse }) {
       {data.milestones.length > 0 && (
         <div className="mt-4 space-y-1.5">
           <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            <Trophy className="h-3.5 w-3.5 text-yellow-400" /> Milestones
+            <Trophy className="h-3.5 w-3.5 text-warning" /> Milestones
           </p>
           {data.milestones.map((m, i) => (
             <div key={i} className="flex items-center gap-2 text-xs">
@@ -516,7 +503,9 @@ export default function AnalyticsPage() {
     return <ApiErrorState error={error} onRetry={() => refetch()} />;
   }
 
-  if (!data || !derived) return null;
+  if (!data || !derived) {
+    return <ApiErrorState error={new Error('Analytics returned no data.')} onRetry={() => refetch()} />;
+  }
 
   const { tl, target, rs, biggest, toNext, insights, difficultyData, masteryData } = derived;
 
@@ -532,7 +521,7 @@ export default function AnalyticsPage() {
         </CardTitle>
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="rounded-xl bg-secondary/50 p-6 text-center">
-            <p className={`text-5xl font-bold ${readinessColor(rs)}`}>{rs}</p>
+            <p className={`text-5xl font-bold ${toneText[scoreTone(rs, { good: 80, fair: 50 })]}`}>{rs}</p>
             <p className="mt-1 text-sm text-muted-foreground">Readiness Score</p>
             <p className="mt-2 text-xs text-muted-foreground">
               for <span className="font-medium text-primary">Level {tl} — {target.label}</span>
@@ -540,7 +529,7 @@ export default function AnalyticsPage() {
             </p>
             <div className="mt-4 h-3 overflow-hidden rounded-full bg-secondary">
               <div
-                className={`h-3 rounded-full transition-all ${readinessBg(rs)}`}
+                className={`h-3 rounded-full transition-all ${toneFill[scoreTone(rs, { good: 80, fair: 50 })]}`}
                 style={{ width: `${rs}%` }}
               />
             </div>
@@ -557,7 +546,7 @@ export default function AnalyticsPage() {
                     isCurrent ? 'border border-primary/20 bg-primary/10' : ''
                   } ${isReached || isCurrent ? '' : 'opacity-40'}`}
                 >
-                  <span className={`w-8 text-xs font-bold ${lv.color}`}>L{lv.level}</span>
+                  <span className="w-8 text-xs font-bold text-muted-foreground">L{lv.level}</span>
                   <div className="min-w-0 flex-1">
                     <p className={`truncate text-sm leading-tight ${isCurrent ? 'font-medium text-primary' : ''}`}>
                       {lv.label}
@@ -565,7 +554,7 @@ export default function AnalyticsPage() {
                     {isCurrent && <p className="truncate text-[10px] text-muted-foreground">{lv.companies}</p>}
                   </div>
                   {isCurrent && <Zap className="h-3 w-3 shrink-0 text-primary" />}
-                  {isReached && <span className="shrink-0 text-xs text-green-400">✓</span>}
+                  {isReached && <span className="shrink-0 text-xs text-success">✓</span>}
                 </div>
               );
             })}
@@ -660,7 +649,7 @@ export default function AnalyticsPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-green-400" />
+                <BookOpen className="h-4 w-4 text-primary" />
                 Mastery by Category
               </CardTitle>
             </CardHeader>
@@ -694,7 +683,7 @@ export default function AnalyticsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Flame className="h-4 w-4 text-orange-400" />
+              <Flame className="h-4 w-4 text-warning" />
               Consistency — Last 28 Weeks
             </CardTitle>
           </CardHeader>
@@ -728,7 +717,7 @@ export default function AnalyticsPage() {
         <section className="fade-in-up" style={{ animationDelay: '300ms' }}>
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-red-400">
+              <CardTitle className="flex items-center gap-2 text-destructive">
                 <AlertTriangle className="h-4 w-4" />
                 Weakest Topics
               </CardTitle>
@@ -745,7 +734,7 @@ export default function AnalyticsPage() {
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <div className="h-2 w-16 rounded-full bg-secondary">
-                      <div className="h-2 rounded-full bg-red-400" style={{ width: `${t.confidence * 10}%` }} />
+                      <div className="h-2 rounded-full bg-destructive" style={{ width: `${t.confidence * 10}%` }} />
                     </div>
                     <span className="text-xs">{t.confidence}/10</span>
                   </div>
@@ -758,7 +747,7 @@ export default function AnalyticsPage() {
         <section className="fade-in-up" style={{ animationDelay: '360ms' }}>
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-green-400">
+              <CardTitle className="flex items-center gap-2 text-success">
                 <TrendingUp className="h-4 w-4" />
                 Strongest Topics
               </CardTitle>
@@ -775,7 +764,7 @@ export default function AnalyticsPage() {
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <div className="h-2 w-16 rounded-full bg-secondary">
-                      <div className="h-2 rounded-full bg-green-400" style={{ width: `${t.confidence * 10}%` }} />
+                      <div className="h-2 rounded-full bg-success" style={{ width: `${t.confidence * 10}%` }} />
                     </div>
                     <span className="text-xs">{t.confidence}/10</span>
                   </div>

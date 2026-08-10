@@ -6,7 +6,8 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import ColdStartGate from '@/components/layout/ColdStartGate';
 import AppLayout from '@/components/layout/AppLayout';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
-import { SkeletonList } from '@/components/ui/LoadingSkeleton';
+import AppBootScreen from '@/components/ui/AppBootScreen';
+import { Logo } from '@/components/brand/Logo';
 
 const LandingPage = lazy(() => import('@/pages/LandingPage'));
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'));
@@ -42,24 +43,24 @@ const queryClient = new QueryClient({
   },
 });
 
-function FullPageLoader() {
+function RouteLoader() {
   return (
-    <div className="mx-auto w-full max-w-3xl p-6 pt-10">
-      <SkeletonList rows={4} />
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background" role="status" aria-label="Loading">
+      <Logo size="md" className="animate-pulse" />
     </div>
   );
 }
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading, loggingOut } = useAuth();
-  if (loading) return <FullPageLoader />;
+  if (loading) return <AppBootScreen />;
   if (!isAuthenticated && !loggingOut) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
 function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
-  if (loading) return <FullPageLoader />;
+  if (loading) return <AppBootScreen />;
   if (isAuthenticated) return <Navigate to="/app" replace />;
   return <>{children}</>;
 }
@@ -73,7 +74,7 @@ export default function App() {
             <BrowserRouter>
               <PreloadCorePages />
               <ColdStartGate>
-                <Suspense fallback={<FullPageLoader />}>
+                <Suspense fallback={<RouteLoader />}>
                   <Routes>
                     <Route path="/login" element={<Navigate to="/" replace />} />
                     <Route path="/register" element={<Navigate to="/" replace />} />

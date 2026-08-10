@@ -8,12 +8,12 @@ import ThemeToggle from '@/components/ui/ThemeToggle';
 import AuthCard, { type AuthTab } from '@/components/auth/AuthCard';
 
 const features = [
-  { icon: BookOpen, title: 'Topic Mastery', desc: 'Track your understanding across every concept with confidence scoring and spaced repetition.' },
+  { icon: BookOpen, title: 'Topic Mastery', desc: 'Track understanding across every concept with confidence scoring and spaced repetition.' },
   { icon: Code2, title: 'LeetCode Sync', desc: 'Connect your profile. Auto-import solved problems, tags, and streaks in one click.' },
-  { icon: BarChart3, title: 'Deep Analytics', desc: 'Visualize weak spots, strengths, and progress over time with rich charts.' },
+  { icon: BarChart3, title: 'Deep Analytics', desc: 'Spot weak areas and watch progress compound over time.' },
   { icon: RefreshCw, title: 'Spaced Repetition', desc: 'Smart revision scheduling so nothing slips through the cracks.' },
   { icon: Target, title: 'Daily Missions', desc: 'Wake up to a focused plan. Know exactly what to work on today.' },
-  { icon: Zap, title: 'Smart Insights', desc: 'AI-powered recommendations based on your actual solving patterns.' },
+  { icon: Zap, title: 'Smart Insights', desc: 'Recommendations based on your actual solving patterns.' },
 ];
 
 export default function LandingPage() {
@@ -50,10 +50,10 @@ export default function LandingPage() {
       {/* Signed-out acknowledgment */}
       {showSignedOut && (
         <div className="fade-in-up fixed left-1/2 top-20 z-30 -translate-x-1/2 px-4">
-          <div className="flex items-center gap-3 rounded-full border border-green-500/30 bg-card px-4 py-2 text-sm">
-            <CheckCircle2 className="h-4 w-4 text-green-400" />
-            <span className="font-medium text-green-400">Signed out</span>
-            <span className="text-muted-foreground">See you soon — your progress is saved.</span>
+          <div className="flex items-center gap-3 rounded-full border border-border bg-card px-4 py-2 text-sm shadow-card">
+            <CheckCircle2 className="h-4 w-4 text-success" />
+            <span className="font-medium">Signed out</span>
+            <span className="text-muted-foreground">Your progress is saved.</span>
             <button
               onClick={dismissSignedOut}
               className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
@@ -64,33 +64,34 @@ export default function LandingPage() {
           </div>
         </div>
       )}
-      {/* Animated background gradient */}
+
+      {/* Soft, static backdrop — a single restrained accent, never animated */}
       <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute left-1/4 top-0 h-[600px] w-[600px] animate-pulse rounded-full bg-primary/8 blur-[160px]" />
-        <div className="absolute right-1/4 bottom-0 h-[500px] w-[500px] animate-pulse rounded-full bg-purple-500/5 blur-[140px]" style={{ animationDelay: '2s' }} />
-        <div className="absolute left-1/2 top-1/3 h-[400px] w-[400px] animate-pulse rounded-full bg-blue-500/4 blur-[120px]" style={{ animationDelay: '4s' }} />
+        <div className="absolute -top-40 left-1/2 h-[480px] w-[720px] -translate-x-1/2 rounded-full bg-primary/6 blur-[120px]" />
       </div>
 
       {/* Navbar */}
-      <nav className="fixed top-0 z-20 w-full bg-background/80 backdrop-blur-xl">
+      <nav className="fixed top-0 z-20 w-full border-b border-border/60 bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <Link to="/" className="flex items-center gap-2.5">
             <Logo size="sm" variant="flame" withText />
           </Link>
           <div className="flex items-center gap-3 text-sm">
-            <button onClick={scrollToFeatures} className="hidden text-muted-foreground transition-colors hover:text-foreground sm:inline">Features</button>
+            <button onClick={scrollToFeatures} className="hidden text-muted-foreground transition-colors hover:text-foreground sm:inline">
+              Features
+            </button>
             <ThemeToggle size="md" />
             <button
               type="button"
               onClick={() => focusAuth('signin')}
-              className={buttonVariants({ variant: 'outline', className: 'h-9 px-4' })}
+              className={buttonVariants({ variant: 'secondary', className: 'h-9 px-4' })}
             >
               Sign In
             </button>
             <button
               type="button"
               onClick={() => focusAuth('signup')}
-              className={buttonVariants({ className: 'h-9 px-4' })}
+              className={buttonVariants({ variant: 'primary', className: 'h-9 px-4' })}
             >
               Get Started
             </button>
@@ -98,33 +99,29 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero */}
+      {/* Hero — 60/40 split, display type, single accent moment */}
       <section className="relative flex min-h-screen items-center pt-16">
-        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-12 px-6 lg:grid-cols-2 lg:gap-16">
-          {/* Left - Branding */}
-          <div className="flex flex-col justify-center pt-16 lg:pt-0">
-            <div className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-medium text-primary">
-              <Sparkles className="h-3 w-3" />
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-12 px-6 lg:grid-cols-[3fr_2fr] lg:gap-16">
+          <div className="flex flex-col justify-center py-20 lg:py-0">
+            <div className="mb-7 inline-flex w-fit items-center gap-2 rounded-full border border-border bg-secondary/60 px-3.5 py-1.5 text-caption font-medium text-muted-foreground">
+              <Sparkles className="h-3 w-3 text-primary" />
               Built for engineers who want to get better
             </div>
-            <h1 className="text-4xl font-extrabold leading-[1.1] tracking-tight lg:text-5xl xl:text-6xl">
+            <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl xl:text-display">
               Master your{' '}
-              <span className="bg-gradient-to-r from-primary via-purple-400 to-blue-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 engineering craft
               </span>
             </h1>
             <p className="mt-6 max-w-md text-base leading-relaxed text-muted-foreground lg:text-lg">
-              Track topics, solve problems, build consistency. Forge connects to your LeetCode profile and turns raw data into a personalized learning engine.
+              Track topics, solve problems, build consistency. Forge turns your LeetCode data into a
+              personal learning engine.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
-              <button
-                type="button"
-                onClick={() => focusAuth('signup')}
-                className={buttonVariants({ size: 'lg', className: 'group rounded-xl hover:brightness-110' })}
-              >
+              <Button size="lg" onClick={() => focusAuth('signup')} className="group">
                 Get Started Free
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </button>
+              </Button>
               <Button
                 variant="ghost"
                 onClick={scrollToFeatures}
@@ -136,24 +133,24 @@ export default function LandingPage() {
             </div>
             <div className="mt-12 flex items-center gap-8 text-sm">
               <div>
-                <p className="text-xl font-bold text-foreground">LeetCode</p>
+                <p className="text-lg font-semibold tabular-nums">LeetCode</p>
                 <p className="text-xs text-muted-foreground">Deep Integration</p>
               </div>
               <div className="h-10 w-px bg-border" />
               <div>
-                <p className="text-xl font-bold text-foreground">Spaced</p>
+                <p className="text-lg font-semibold">Spaced</p>
                 <p className="text-xs text-muted-foreground">Repetition Engine</p>
               </div>
               <div className="h-10 w-px bg-border" />
               <div>
-                <p className="text-xl font-bold text-foreground">Smart</p>
+                <p className="text-lg font-semibold">Smart</p>
                 <p className="text-xs text-muted-foreground">Recommendations</p>
               </div>
             </div>
           </div>
 
-          {/* Right - Auth card */}
-          <div className="flex items-center justify-center pt-8 lg:pt-0">
+          {/* Auth card */}
+          <div className="flex items-center justify-center pb-20 lg:pb-0">
             <div ref={authRef} className="w-full max-w-md scroll-mt-24">
               <AuthCard tab={authTab} onTabChange={setAuthTab} />
             </div>
@@ -162,25 +159,19 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section id="features" className="relative px-6 py-24">
-        <div className="pointer-events-none absolute inset-0 -z-10">
-          <div className="absolute left-1/3 top-0 h-[400px] w-[400px] rounded-full bg-primary/3 blur-[100px]" />
-        </div>
+      <section id="features" className="px-6 py-24">
         <div className="mx-auto max-w-6xl">
-          <div className="mb-16 text-center">
-            <h2 className="text-3xl font-bold tracking-tight lg:text-4xl">Everything you need to level up</h2>
-            <p className="mt-4 text-muted-foreground">One tool. All your data. Smarter than spreadsheets.</p>
+          <div className="mb-14 text-center">
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-page">Everything you need to level up</h2>
+            <p className="mt-3 text-muted-foreground">One tool. All your data. Smarter than spreadsheets.</p>
           </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
-              <Card
-                key={f.title}
-                className="group bg-card/30 p-6 transition-all hover:border-primary/20 hover:bg-card/60"
-              >
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 transition-colors group-hover:bg-primary/15">
-                  <f.icon className="h-5 w-5 text-primary" />
+              <Card key={f.title} className="p-6 transition-colors hover:border-border/80 hover:bg-card/80">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+                  <f.icon className="h-5 w-5" />
                 </div>
-                <h3 className="mb-2 text-base font-semibold">{f.title}</h3>
+                <h3 className="mb-1.5 text-base font-semibold tracking-tight">{f.title}</h3>
                 <p className="text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
               </Card>
             ))}
@@ -189,7 +180,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="px-6 py-12">
+      <footer className="border-t border-border/60 px-6 py-12">
         <div className="mx-auto grid max-w-6xl gap-10 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <Logo size="sm" variant="flame" withText />
@@ -201,14 +192,10 @@ export default function LandingPage() {
             <p className="text-sm font-semibold">Product</p>
             <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
               <li>
-                <button onClick={scrollToFeatures} className="transition-colors hover:text-foreground">
-                  Features
-                </button>
+                <button onClick={scrollToFeatures} className="transition-colors hover:text-foreground">Features</button>
               </li>
               <li>
-                <button onClick={() => focusAuth('signup')} className="transition-colors hover:text-foreground">
-                  Get Started
-                </button>
+                <button onClick={() => focusAuth('signup')} className="transition-colors hover:text-foreground">Get Started</button>
               </li>
             </ul>
           </div>
@@ -216,14 +203,10 @@ export default function LandingPage() {
             <p className="text-sm font-semibold">Account</p>
             <ul className="mt-4 space-y-2.5 text-sm text-muted-foreground">
               <li>
-                <button onClick={() => focusAuth('signin')} className="transition-colors hover:text-foreground">
-                  Sign In
-                </button>
+                <button onClick={() => focusAuth('signin')} className="transition-colors hover:text-foreground">Sign In</button>
               </li>
               <li>
-                <button onClick={() => focusAuth('signup')} className="transition-colors hover:text-foreground">
-                  Create Account
-                </button>
+                <button onClick={() => focusAuth('signup')} className="transition-colors hover:text-foreground">Create Account</button>
               </li>
             </ul>
           </div>

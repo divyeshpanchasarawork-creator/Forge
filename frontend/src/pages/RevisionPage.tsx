@@ -1,8 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { revisionsApi } from '@/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import KpiCard from '@/components/ui/KpiCard';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { ProgressBar } from '@/components/ui/ProgressBar';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Callout } from '@/components/ui/Callout';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { HeroCard } from '@/components/ui/HeroCard';
 import { SkeletonList } from '@/components/ui/LoadingSkeleton';
 import ApiErrorState from '@/components/ui/ApiErrorState';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,29 +41,23 @@ function CelebrationOverlay({ onLogJournal, onClose }: { onLogJournal: () => voi
       </div>
 
       <div
-        className="fade-in-up relative w-full max-w-md rounded-2xl border border-primary/30 bg-card p-8 text-center"
+        className="fade-in-up relative w-full max-w-md rounded-2xl border border-border bg-card p-8 text-center"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/15">
           <PartyPopper className="h-8 w-8 text-primary" />
         </div>
-        <h2 className="mt-5 text-2xl font-bold">Mission Complete</h2>
+        <h2 className="mt-5 text-xl font-semibold tracking-tight">Mission Complete</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           All of today's revisions are done. Your long-term retention is locked in — this is how streaks are built.
         </p>
         <div className="mt-6 flex flex-col gap-2">
-          <button
-            onClick={onLogJournal}
-            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:brightness-110 active:scale-[0.97]"
-          >
+          <Button onClick={onLogJournal}>
             Log a journal entry
-          </button>
-          <button
-            onClick={onClose}
-            className="rounded-xl border border-border px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-secondary"
-          >
+          </Button>
+          <Button variant="outline" onClick={onClose}>
             Back to queue
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -109,14 +110,14 @@ export default function RevisionPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Revision</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Revision</h1>
 
       {/* Today's Mission — hero */}
-      <section className="fade-in-up rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-6">
+      <HeroCard className="fade-in-up p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-widest text-primary">Today's Mission</p>
-            <h2 className="mt-1 text-xl font-bold tracking-tight">
+            <h2 className="mt-1 text-xl font-semibold tracking-tight">
               {totalDue > 0 ? `Review ${totalDue} topic${totalDue !== 1 ? 's' : ''} to lock in retention` : 'No revisions due today'}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -125,101 +126,87 @@ export default function RevisionPage() {
                 : 'Your SM-2 schedule is clear. Enjoy the headroom — or practice something new.'}
             </p>
           </div>
-          <span
-            className={`inline-flex shrink-0 items-center gap-1.5 self-start rounded-full px-3 py-1.5 text-xs font-medium sm:self-auto ${
-              missionDone
-                ? 'bg-green-500/10 text-green-400'
-                : totalDue > 0
-                  ? 'bg-primary/10 text-primary'
-                  : 'bg-secondary text-muted-foreground'
-            }`}
+          <Badge
+            variant={missionDone ? 'success' : totalDue > 0 ? 'default' : 'outline'}
+            className="w-fit shrink-0"
           >
-            {missionDone ? <PartyPopper className="h-3.5 w-3.5" /> : <Target className="h-3.5 w-3.5" />}
+            {missionDone ? <PartyPopper className="mr-1 h-3.5 w-3.5" /> : <Target className="mr-1 h-3.5 w-3.5" />}
             {missionDone ? 'Mission complete' : totalDue > 0 ? `${pct}% complete` : 'Queue clear'}
-          </span>
+          </Badge>
         </div>
         {totalDue > 0 && (
-          <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-secondary">
-            <div className="h-2.5 rounded-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} />
+          <div className="mt-4">
+            <ProgressBar value={pct} ariaLabel="Today's revision progress" />
           </div>
         )}
-      </section>
+      </HeroCard>
 
       {/* SM-2 context */}
-      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-        <div className="flex items-start gap-3">
-          <Brain className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-primary">Spaced Repetition (SM-2)</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Revisions are scheduled using the SM-2 algorithm. Topics you review well (quality 4-5) get longer gaps.
-              At your target level (<strong>Level {targetLevel}</strong>), topics overdue beyond <strong>{overdueThreshold}</strong> need immediate attention.
-            </p>
-          </div>
-        </div>
-      </div>
+      <Callout tone="primary" icon={<Brain className="h-5 w-5" />} title="Spaced Repetition (SM-2)">
+        Revisions are scheduled using the SM-2 algorithm. Topics you review well (quality 4-5) get longer gaps.
+        At your target level (<strong>Level {targetLevel}</strong>), topics overdue beyond <strong>{overdueThreshold}</strong> need immediate attention.
+      </Callout>
 
       {/* Revision KPIs */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <KpiCard icon={<Clock className="h-5 w-5 text-orange-400" />} value={totalDue} label="Due Today" tooltip="Revisions scheduled for today." />
-        <KpiCard icon={<ListTodo className="h-5 w-5 text-yellow-400" />} value={loadingPending ? '…' : pendingRevisions?.length || 0} label="Total Pending" tooltip="All pending revisions not yet completed." />
-        <KpiCard icon={<Calendar className="h-5 w-5 text-blue-400" />} value={doneCount} label="Completed Today" tooltip="Revisions completed today." />
-        <KpiCard icon={<TrendingUp className="h-5 w-5 text-green-400" />} value={totalDue ? 'Due' : 'Clear'} label="Status" tooltip={totalDue > 0 ? 'Revisions are due today.' : 'No revisions due — you are on track.'} />
+        <KpiCard icon={<Clock className="h-5 w-5 text-muted-foreground" />} value={totalDue} label="Due Today" tooltip="Revisions scheduled for today." />
+        <KpiCard icon={<ListTodo className="h-5 w-5 text-muted-foreground" />} value={loadingPending ? '…' : pendingRevisions?.length || 0} label="Total Pending" tooltip="All pending revisions not yet completed." />
+        <KpiCard icon={<Calendar className={`h-5 w-5 ${doneCount > 0 ? 'text-success' : 'text-muted-foreground'}`} />} value={doneCount} label="Completed Today" tooltip="Revisions completed today." />
+        <KpiCard icon={<TrendingUp className={`h-5 w-5 ${missionDone ? 'text-success' : 'text-muted-foreground'}`} />} value={totalDue ? 'Due' : 'Clear'} label="Status" tooltip={totalDue > 0 ? 'Revisions are due today.' : 'No revisions due — you are on track.'} />
       </div>
 
       {/* Today's Revisions — missions */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-primary" />
-            Today's Missions
-          </CardTitle>
+          <SectionHeader title="Today's Missions" icon={<Target className="h-4 w-4" />} />
         </CardHeader>
         <CardContent className="space-y-3">
           {totalDue === 0 && (
-            <div className="rounded-xl border border-dashed border-border py-10 text-center">
-              <PartyPopper className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
-              <p className="text-sm font-medium">Queue is clear</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                No revisions scheduled for today. Your retention is well-maintained — come back when SM-2 flags a topic.
-              </p>
-            </div>
+            <EmptyState
+              icon={<PartyPopper className="h-5 w-5" />}
+              title="Queue is clear"
+              description="No revisions scheduled for today. Your retention is well-maintained — come back when SM-2 flags a topic."
+            />
           )}
           {todayRevisions?.map((rev, i) => (
             <div
               key={rev.id}
               className={`flex items-center justify-between gap-3 rounded-xl px-5 py-4 transition-colors ${
-                rev.completed ? 'bg-green-500/5' : 'bg-secondary/50'
+                rev.completed ? 'bg-secondary/30' : 'bg-secondary/50'
               }`}
             >
               <div className="flex min-w-0 flex-1 items-center gap-4">
                 <span
                   className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
-                    rev.completed ? 'bg-green-500/15 text-green-400' : 'bg-primary/10 text-primary'
+                    rev.completed ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary'
                   }`}
                 >
                   {rev.completed ? <CheckCircle className="h-4 w-4" /> : String(i + 1).padStart(2, '0')}
                 </span>
                 <div className="min-w-0">
-                  <p className={`truncate font-medium ${rev.completed ? 'line-through opacity-60' : ''}`}>
+                  <p className={`truncate text-sm font-medium ${rev.completed ? 'line-through opacity-60' : ''}`}>
                     {rev.topicTitle}
                   </p>
-                  <p className="truncate text-sm text-muted-foreground">
+                  <p className="truncate text-caption text-muted-foreground">
                     {rev.topicCategory} &middot; {rev.reason || 'Spaced repetition review'}
                   </p>
                 </div>
               </div>
               {rev.completed ? (
-                <span className="shrink-0 text-xs font-medium text-green-400">Done</span>
+                <Badge variant="success">
+                  <CheckCircle className="mr-1 h-3 w-3" />
+                  Done
+                </Badge>
               ) : (
-                <button
+                <Button
+                  size="sm"
                   onClick={() => completeMutation.mutate(rev.id)}
                   disabled={completeMutation.isPending}
-                  className="flex shrink-0 items-center gap-2 rounded-lg bg-green-500/10 px-4 py-2 text-sm font-medium text-green-400 transition-colors hover:bg-green-500/20 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
+                  loading={completeMutation.isPending && completeMutation.variables === rev.id}
                 >
                   <CheckCircle className="h-4 w-4" />
                   Complete
-                </button>
+                </Button>
               )}
             </div>
           ))}
@@ -230,21 +217,24 @@ export default function RevisionPage() {
       {!loadingPending && pendingRevisions && pendingRevisions.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>All Pending Revisions</CardTitle>
+            <SectionHeader title="All Pending Revisions" icon={<ListTodo className="h-4 w-4" />} />
           </CardHeader>
           <CardContent className="space-y-3">
             {pendingRevisions.map((rev) => (
               <div key={rev.id} className="flex items-center justify-between rounded-xl bg-secondary/30 px-5 py-3">
-                <div>
-                  <p className="text-sm font-medium">{rev.topicTitle}</p>
-                  <p className="text-xs text-muted-foreground">Scheduled: {new Date(rev.scheduledDate).toLocaleDateString()}</p>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium">{rev.topicTitle}</p>
+                  <p className="text-caption text-muted-foreground">Scheduled: {new Date(rev.scheduledDate).toLocaleDateString()}</p>
                 </div>
-                <button
+                <Button
+                  size="sm"
+                  variant="ghost"
                   onClick={() => completeMutation.mutate(rev.id)}
-                  className="text-sm text-muted-foreground hover:text-green-400 transition-colors"
+                  disabled={completeMutation.isPending}
                 >
+                  <CheckCircle className="h-3.5 w-3.5" />
                   Complete
-                </button>
+                </Button>
               </div>
             ))}
           </CardContent>

@@ -21,7 +21,6 @@ export const dashboardApi = {
 };
 
 export const revisionsApi = {
-  getToday: () => api.get<ApiResponse<Revision[]>>('/revisions/today'),
   getTodayActivity: () => api.get<ApiResponse<Revision[]>>('/revisions/today-activity'),
   getPending: () => api.get<ApiResponse<Revision[]>>('/revisions/pending'),
   complete: (id: string, quality = 4) => api.post<ApiResponse<Revision>>(`/revisions/${id}/complete?quality=${quality}`),

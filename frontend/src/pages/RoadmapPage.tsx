@@ -2,22 +2,18 @@ import { useQuery } from '@tanstack/react-query';
 import { roadmapApi } from '@/api';
 import { useAuth } from '@/contexts/AuthContext';
 import TeachingEmptyState from '@/components/ui/TeachingEmptyState';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { StatTile } from '@/components/ui/StatTile';
+import { Badge } from '@/components/ui/Badge';
+import { Callout } from '@/components/ui/Callout';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { buttonVariants } from '@/components/ui/Button';
+import { scoreTone, toneText } from '@/lib/score';
 import { Brain, Target, ArrowRight, Lightbulb } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { SkeletonCard } from '@/components/ui/LoadingSkeleton';
 import ApiErrorState from '@/components/ui/ApiErrorState';
-
-const readinessColor = (score: number) => {
-  if (score >= 70) return 'text-green-400';
-  if (score >= 40) return 'text-yellow-400';
-  return 'text-red-400';
-};
-
-const readinessBg = (score: number) => {
-  if (score >= 70) return 'bg-green-500/10';
-  if (score >= 40) return 'bg-yellow-500/10';
-  return 'bg-red-500/10';
-};
 
 export default function RoadmapPage() {
   const { user } = useAuth();
@@ -41,73 +37,64 @@ export default function RoadmapPage() {
     );
   }
 
+  const readinessTone = scoreTone(analysis?.readinessScore ?? 0, { good: 70, fair: 40 });
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Roadmap</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Roadmap</h1>
 
       {analysis && (
-        <div className="rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-transparent p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary" />
-            <h2 className="font-semibold">Your Personal Analysis</h2>
-          </div>
-          <p className="text-sm leading-relaxed text-muted-foreground">{analysis.paragraph}</p>
+        <Card className="border-primary/20">
+          <CardHeader>
+            <SectionHeader title="Your Personal Analysis" icon={<Brain className="h-4 w-4" />} />
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <p className="text-sm leading-relaxed text-muted-foreground">{analysis.paragraph}</p>
 
-          <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <div className="rounded-xl bg-secondary/50 p-3 text-center">
-              <p className="text-xl font-bold text-primary">Level {analysis.currentLevel}</p>
-              <p className="text-xs text-muted-foreground">Target</p>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <StatTile label="Target" value={`Level ${analysis.currentLevel}`} tone="primary" />
+              <StatTile
+                label="Readiness"
+                value={`${analysis.readinessScore}%`}
+                tone={readinessTone}
+              />
+              <StatTile label="Focus Area" value={analysis.focusArea} hint={analysis.focusArea.length > 20 ? analysis.focusArea : undefined} />
+              <StatTile label="To Next Level" value={analysis.estimatedTimeToNextLevel} />
             </div>
-            <div className={`rounded-xl ${readinessBg(analysis.readinessScore)} p-3 text-center`}>
-              <p className={`text-xl font-bold ${readinessColor(analysis.readinessScore)}`}>{analysis.readinessScore}%</p>
-              <p className="text-xs text-muted-foreground">Readiness</p>
-            </div>
-            <div className="rounded-xl bg-secondary/50 p-3 text-center">
-              <p className="text-xl font-bold truncate" title={analysis.focusArea}>{analysis.focusArea}</p>
-              <p className="text-xs text-muted-foreground">Focus Area</p>
-            </div>
-            <div className="rounded-xl bg-secondary/50 p-3 text-center">
-              <p className="text-xl font-bold">{analysis.estimatedTimeToNextLevel}</p>
-              <p className="text-xs text-muted-foreground">To Next Level</p>
-            </div>
-          </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-4 text-xs">
-            <span className="rounded-full bg-secondary px-3 py-1 text-muted-foreground">
-              Next milestone: {analysis.nextMilestone}
-            </span>
-            <span className="rounded-full bg-secondary px-3 py-1 text-muted-foreground">
-              Suggested split: {analysis.recommendedDifficultySplit}
-            </span>
-          </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">Next milestone: {analysis.nextMilestone}</Badge>
+              <Badge variant="outline">Suggested split: {analysis.recommendedDifficultySplit}</Badge>
+            </div>
 
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-            {(analysis.strongTags ?? []).length > 0 && (
-              <div>
-                <p className="mb-2 text-xs font-semibold text-green-400">Strong Areas</p>
-                <div className="flex flex-wrap gap-2">
-                  {(analysis.strongTags ?? []).map((t: any) => (
-                    <span key={t.slug} className="rounded-full bg-green-500/10 px-2.5 py-1 text-xs text-green-400">
-                      {t.name} ({t.solved})
-                    </span>
-                  ))}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {(analysis.strongTags ?? []).length > 0 && (
+                <div>
+                  <p className={`mb-2 text-caption font-semibold ${toneText.success}`}>Strong Areas</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(analysis.strongTags ?? []).map((t) => (
+                      <Badge key={t.slug} variant="success">
+                        {t.name} ({t.solved})
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-            {(analysis.weakTags ?? []).length > 0 && (
-              <div>
-                <p className="mb-2 text-xs font-semibold text-red-400">Needs Work</p>
-                <div className="flex flex-wrap gap-2">
-                  {(analysis.weakTags ?? []).map((t: any) => (
-                    <span key={t.slug} className="rounded-full bg-red-500/10 px-2.5 py-1 text-xs text-red-400">
-                      {t.name} ({t.solved})
-                    </span>
-                  ))}
+              )}
+              {(analysis.weakTags ?? []).length > 0 && (
+                <div>
+                  <p className={`mb-2 text-caption font-semibold ${toneText.danger}`}>Needs Work</p>
+                  <div className="flex flex-wrap gap-2">
+                    {(analysis.weakTags ?? []).map((t) => (
+                      <Badge key={t.slug} variant="destructive">
+                        {t.name} ({t.solved})
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {!analysis && (
@@ -121,10 +108,7 @@ export default function RoadmapPage() {
             'Generate recommendations on the Dashboard to feed the queue.',
           ]}
           action={
-            <Link
-              to="/app/profile"
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
+            <Link to="/app/profile" className={buttonVariants()}>
               Set your target level
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -132,28 +116,22 @@ export default function RoadmapPage() {
         />
       )}
 
-      <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-        <div className="flex items-center gap-2">
-          <Target className="h-4 w-4 text-primary" />
-          <p className="text-sm">
-            <span className="font-medium text-primary">Level {targetLevel} plan</span>
-            <span className="text-muted-foreground"> — Recommendations are tailored for your target.</span>
-          </p>
-        </div>
-      </div>
-
-      <div className="rounded-xl border border-dashed border-border p-6 text-center">
-        <p className="text-sm text-muted-foreground">
-          Start your practice session to execute this plan.
+      <Callout tone="primary" icon={<Target className="h-4 w-4" />}>
+        <p className="text-sm">
+          <span className="font-medium text-primary">Level {targetLevel} plan</span>
+          <span className="text-muted-foreground"> — Recommendations are tailored for your target.</span>
         </p>
-        <Link
-          to="/app/problems"
-          className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-        >
-          Go to Practice Queue
-          <ArrowRight className="h-4 w-4" />
-        </Link>
-      </div>
+      </Callout>
+
+      <EmptyState
+        title="Start your practice session to execute this plan"
+        action={
+          <Link to="/app/problems" className={buttonVariants()}>
+            Go to Practice Queue
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        }
+      />
     </div>
   );
 }

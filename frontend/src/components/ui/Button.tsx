@@ -1,22 +1,24 @@
 import type { ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
-type ButtonVariant = 'primary' | 'outline' | 'ghost' | 'destructive';
-type ButtonSize = 'sm' | 'md' | 'lg';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
+export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    'bg-primary font-semibold text-primary-foreground hover:bg-primary/90',
+    'bg-primary text-primary-foreground shadow-cta hover:bg-primary/90 hover:shadow-none focus-visible:outline-offset-2',
+  secondary:
+    'bg-secondary text-secondary-foreground hover:bg-elevated',
   outline:
-    'border border-border bg-secondary/40 text-foreground hover:border-primary/30 hover:bg-secondary',
+    'border border-border bg-transparent text-foreground hover:bg-secondary/70 hover:border-border',
   ghost: 'text-muted-foreground hover:bg-secondary hover:text-foreground',
-  destructive: 'text-muted-foreground hover:bg-destructive/10 hover:text-destructive',
+  destructive: 'bg-destructive/10 text-destructive hover:bg-destructive/15',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
   sm: 'h-8 gap-1.5 px-3 text-xs',
   md: 'h-10 gap-2 px-4 text-sm',
-  lg: 'h-11 gap-2 px-6 text-sm',
+  lg: 'h-12 gap-2 px-7 text-sm',
 };
 
 export function buttonVariants({
@@ -29,7 +31,7 @@ export function buttonVariants({
   className?: string;
 } = {}) {
   return cn(
-    'inline-flex items-center justify-center rounded-lg font-medium transition-all active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50',
+    'inline-flex select-none items-center justify-center whitespace-nowrap rounded-lg font-medium transition-all active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50',
     variantStyles[variant],
     sizeStyles[size],
     className

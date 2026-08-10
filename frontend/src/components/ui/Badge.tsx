@@ -9,9 +9,10 @@ interface BadgeProps {
 
 const variantStyles = {
   default: 'bg-secondary text-secondary-foreground',
-  success: 'bg-green-500/10 text-green-400',
-  warning: 'bg-yellow-500/10 text-yellow-400',
-  destructive: 'bg-red-500/10 text-red-400',
+  success: 'bg-success/10 text-success',
+  warning: 'bg-warning/10 text-warning',
+  destructive: 'bg-destructive/10 text-destructive',
+  info: 'bg-info/10 text-info',
   outline: 'border border-border text-muted-foreground',
 };
 

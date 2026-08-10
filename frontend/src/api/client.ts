@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
+  timeout: 15_000,
 });
 
 api.interceptors.request.use((config) => {
@@ -50,16 +51,18 @@ api.interceptors.response.use(
     const originalRequest = error.config;
     const status = error.response?.status;
 
-    // Cold-start retry: 502/503/504, at most one retry after a short backoff.
+    // Cold-start retry: 502/503/504 or a request timeout (a cold backend can hang
+    // until the instance wakes), at most one retry after a short backoff.
     // Only idempotent methods are safe to retry automatically; a non-idempotent
     // POST could already have been applied server-side and double-executing it
     // (submit attempt, journal entry, LeetCode sync, generate) would corrupt data.
     const method = (originalRequest?.method ?? 'get').toUpperCase();
     const isIdempotent = method === 'GET' || method === 'HEAD' || method === 'OPTIONS'
       || method === 'PUT' || method === 'DELETE';
-    if (status >= 502 && status <= 504 && isIdempotent && (originalRequest._retryCount ?? 0) < 1) {
+    const timedOut = error.code === 'ECONNABORTED' && status == null;
+    if ((timedOut || (status >= 502 && status <= 504)) && isIdempotent && (originalRequest._retryCount ?? 0) < 1) {
       originalRequest._retryCount = (originalRequest._retryCount ?? 0) + 1;
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await new Promise((resolve) => setTimeout(resolve, timedOut ? 3000 : 5000));
       return api(originalRequest);
     }
 

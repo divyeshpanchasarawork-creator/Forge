@@ -57,16 +57,16 @@ const TOPICS = [
 const TOPIC_TITLES: Record<string, string> = Object.fromEntries(TOPICS.map((slug) => [slug, titleize(slug)]));
 
 const DIFF_COLOR: Record<string, string> = {
-  Easy: '#4ade80',
-  Medium: '#facc15',
-  Hard: '#f87171',
+  Easy: 'var(--color-success)',
+  Medium: 'var(--color-warning)',
+  Hard: 'var(--color-destructive)',
 };
 
 const OUTCOME_STYLE: Record<ProblemAttempt['outcome'], { dot: string; label: string }> = {
-  SOLVED: { dot: 'bg-emerald-400', label: 'Solved' },
-  PARTIAL: { dot: 'bg-amber-400', label: 'Partial' },
-  FAILED: { dot: 'bg-red-400', label: 'Failed' },
-  SKIPPED: { dot: 'bg-zinc-400', label: 'Skipped' },
+  SOLVED: { dot: 'bg-success', label: 'Solved' },
+  PARTIAL: { dot: 'bg-warning', label: 'Partial' },
+  FAILED: { dot: 'bg-destructive', label: 'Failed' },
+  SKIPPED: { dot: 'bg-muted-foreground', label: 'Skipped' },
 };
 
 function titleize(slug: string): string {

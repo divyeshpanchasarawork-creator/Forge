@@ -1,58 +1,155 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #0a0a0b;
-  --color-foreground: #fafafa;
-  --color-card: #111113;
-  --color-card-foreground: #fafafa;
+  --font-sans: "Inter Variable", "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+
+  /* ---- 60% dominant: background environment ---- */
+  --color-background: #0b0b0d;
+  --color-foreground: #f4f4f5;
+  --color-card: #141417;
+  --color-card-foreground: #f4f4f5;
+  --color-sidebar: #0e0e10;
+  --color-sidebar-foreground: #f4f4f5;
+
+  /* ---- 30% secondary: supporting surfaces, structure, muted text ---- */
+  --color-secondary: #1c1c20;
+  --color-secondary-foreground: #f4f4f5;
+  --color-muted: #1c1c20;
+  --color-muted-foreground: #9f9fa9;
+  --color-subtle-foreground: #6e6e78;
+  --color-accent: #1c1c20;
+  --color-accent-foreground: #f4f4f5;
+  --color-elevated: #232329;
+  --color-border: #26262b;
+  --color-input: #2a2a30;
+
+  /* ---- 10% accent: primary actions, active state, key focus ---- */
   --color-primary: #6d5dfc;
-  --color-primary-foreground: #fafafa;
-  --color-secondary: #1c1c1f;
-  --color-secondary-foreground: #fafafa;
-  --color-muted: #1c1c1f;
-  --color-muted-foreground: #adadad;
-  --color-accent: #1c1c1f;
-  --color-accent-foreground: #fafafa;
-  --color-destructive: #ff4444;
-  --color-destructive-foreground: #fafafa;
-  --color-border: #2f2f33;
-  --color-input: #2f2f33;
+  --color-primary-foreground: #ffffff;
+  --color-primary-muted: #262247;
   --color-ring: #6d5dfc;
-  --color-sidebar: #0d0d0f;
-  --color-sidebar-foreground: #fafafa;
-  --radius-lg: 0.75rem;
-  --radius-md: 0.5rem;
-  --radius-sm: 0.25rem;
-  --shadow-glow: 0 0 0 1px rgb(109 93 252 / 0.15), 0 8px 32px -8px rgb(109 93 252 / 0.35);
+
+  /* ---- State / data colors (restrained, semantic only) ---- */
+  --color-destructive: #f87171;
+  --color-destructive-foreground: #1a0a0c;
+  --color-success: #4ade80;
+  --color-success-foreground: #0a1a10;
+  --color-warning: #fbbf24;
+  --color-warning-foreground: #1a1405;
+  --color-info: #60a5fa;
+  --color-info-foreground: #08162a;
+
+  /* ---- Type scale (golden-ratio derived: 11 → 12 → 16 → 21 → 34 → 55) ---- */
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1.4;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.5;
+  --text-base--line-height: 1.6;
+  --text-section: 1.3125rem;
+  --text-section--line-height: 1.35;
+  --text-section--letter-spacing: -0.01em;
+  --text-page: 2.125rem;
+  --text-page--line-height: 1.15;
+  --text-page--letter-spacing: -0.015em;
+  --text-display: 3.4375rem;
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.02em;
+
+  /* ---- Elevation ---- */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 1px 3px rgb(0 0 0 / 0.12);
+  --shadow-popover: 0 4px 12px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-cta: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 1px 2px rgb(0 0 0 / 0.35);
+  --shadow-glow: 0 0 0 1px rgb(109 93 252 / 0.12), 0 8px 32px -12px rgb(109 93 252 / 0.28);
 }
 
 .light {
-  --color-background: #f8f7ff;
-  --color-foreground: #1a1a2e;
-  --color-card: #f0eeff;
-  --color-card-foreground: #1a1a2e;
+  --color-background: #f7f7f8;
+  --color-foreground: #1a1a1e;
+  --color-card: #ffffff;
+  --color-card-foreground: #1a1a1e;
+  --color-sidebar: #ffffff;
+  --color-sidebar-foreground: #1a1a1e;
+
+  --color-secondary: #efeff1;
+  --color-secondary-foreground: #1a1a1e;
+  --color-muted: #efeff1;
+  --color-muted-foreground: #63636e;
+  --color-subtle-foreground: #8b8b95;
+  --color-accent: #efeff1;
+  --color-accent-foreground: #1a1a1e;
+  --color-elevated: #e7e7ea;
+  --color-border: #e5e5e8;
+  --color-input: #d4d4d8;
+
   --color-primary: #6d5dfc;
   --color-primary-foreground: #ffffff;
-  --color-secondary: #e8e5ff;
-  --color-secondary-foreground: #1a1a2e;
-  --color-muted: #e8e5ff;
-  --color-muted-foreground: #6b6b80;
-  --color-accent: #e8e5ff;
-  --color-accent-foreground: #1a1a2e;
+  --color-primary-muted: #eceaff;
+  --color-ring: #6d5dfc;
+
   --color-destructive: #dc2626;
   --color-destructive-foreground: #ffffff;
-  --color-border: #d4d0eb;
-  --color-input: #d4d0eb;
-  --color-ring: #6d5dfc;
-  --color-sidebar: #f0eeff;
-  --color-sidebar-foreground: #1a1a2e;
-  --shadow-glow: 0 0 0 1px rgb(109 93 252 / 0.12), 0 8px 32px -12px rgb(109 93 252 / 0.25);
+  --color-success: #16a34a;
+  --color-success-foreground: #ffffff;
+  --color-warning: #d97706;
+  --color-warning-foreground: #ffffff;
+  --color-info: #0284c7;
+  --color-info-foreground: #ffffff;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 1px 3px rgb(0 0 0 / 0.06);
+  --shadow-popover: 0 4px 12px rgb(0 0 0 / 0.1), 0 1px 2px rgb(0 0 0 / 0.06);
+  --shadow-cta: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 1px 2px rgb(0 0 0 / 0.08);
+  --shadow-glow: 0 0 0 1px rgb(109 93 252 / 0.1), 0 8px 32px -12px rgb(109 93 252 / 0.16);
 }
 
-body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  :root {
+    color-scheme: dark;
+  }
+
+  .light {
+    color-scheme: light;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-primary) 30%, transparent);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-muted-foreground) 30%, transparent) transparent;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
 }
 
 @keyframes fade-in-up {
@@ -106,21 +203,6 @@ body {
 
 .fade-in {
   animation: fade-in 0.2s ease-out both;
-}
-
-::selection {
-  background: color-mix(in srgb, var(--color-primary) 30%, transparent);
-}
-
-* {
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-muted-foreground) 30%, transparent) transparent;
-}
-
-:focus-visible {
-  outline: 2px solid var(--color-ring);
-  outline-offset: 2px;
-  border-radius: 0.25rem;
 }
 
 .command-palette-input:focus,
