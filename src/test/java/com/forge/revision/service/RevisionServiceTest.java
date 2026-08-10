@@ -102,6 +102,23 @@ class RevisionServiceTest {
     }
 
     @Test
+    void todayActivityIncludesCompletedAndPendingForUsersTimezone() {
+        ZoneId zone = ZoneId.of("America/New_York");
+        User user = currentUser();
+        user.setTimezone(zone.getId());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(revisionRepository.findActivityByUserIdAndScheduledDate(eq(userId), eq(LocalDate.now(zone))))
+                .thenReturn(List.of());
+
+        try (MockedStatic<SecurityUtils> utils = mockStatic(SecurityUtils.class)) {
+            utils.when(SecurityUtils::getCurrentUserId).thenReturn(userId);
+            service.getTodayActivity();
+        }
+
+        verify(revisionRepository).findActivityByUserIdAndScheduledDate(userId, LocalDate.now(zone));
+    }
+
+    @Test
     void pendingRevisionsUseTheUsersTimezone() {
         ZoneId zone = ZoneId.of("Asia/Kolkata");
         User user = currentUser();

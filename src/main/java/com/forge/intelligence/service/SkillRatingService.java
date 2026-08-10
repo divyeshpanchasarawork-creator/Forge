@@ -44,12 +44,14 @@ public class SkillRatingService {
 
     public static double skillFromTopics(java.util.List<Topic> topics) {
         if (topics == null || topics.isEmpty()) return INITIAL_RATING;
-        long totalAttempts = topics.stream()
+        java.util.List<Topic> rated = topics.stream()
+                .filter(t -> t.getSkillRating() != null)
+                .toList();
+        long totalAttempts = rated.stream()
                 .mapToLong(t -> t.getAttemptsTotal() != null ? t.getAttemptsTotal() : 0)
                 .sum();
         if (totalAttempts == 0) return INITIAL_RATING;
-        return topics.stream()
-                .filter(t -> t.getSkillRating() != null)
+        return rated.stream()
                 .mapToDouble(t -> t.getSkillRating() * (t.getAttemptsTotal() != null ? t.getAttemptsTotal() : 0))
                 .sum() / totalAttempts;
     }

@@ -41,6 +41,12 @@ public class MemoryService {
         LocalDateTime now = TimezoneUtil.now(userRepository.findById(userId).orElse(null));
 
         for (Topic topic : topics) {
+            // Never-attempted cold-start topics (e.g. from LeetCode sync) aren't "fading" —
+            // mirror TopicRepository.findWeakTopicsByUserId / TopicFilters.isEngaged.
+            if (!com.forge.common.util.TopicFilters.isEngaged(topic)) {
+                continue;
+            }
+
             long daysSinceRevision = -1;
             if (topic.getLastRevision() != null) {
                 daysSinceRevision = Duration.between(topic.getLastRevision(), now).toDays();

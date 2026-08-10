@@ -40,6 +40,13 @@ public class RevisionService {
         return revisions.stream().map(revisionMapper::toResponse).toList();
     }
 
+    public List<RevisionResponse> getTodayActivity() {
+        UUID userId = SecurityUtils.getCurrentUserId();
+        java.time.ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
+        List<Revision> revisions = revisionRepository.findActivityByUserIdAndScheduledDate(userId, LocalDate.now(zone));
+        return revisions.stream().map(revisionMapper::toResponse).toList();
+    }
+
     public List<RevisionResponse> getPendingRevisions() {
         UUID userId = SecurityUtils.getCurrentUserId();
         java.time.ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));

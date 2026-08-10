@@ -9,6 +9,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -30,6 +32,9 @@ public class ScorerWeights extends BaseEntity {
 
     @Column(name = "version", nullable = false)
     private Integer version = 1;
+
+    @Column(name = "last_calibrated_at")
+    private LocalDateTime lastCalibratedAt;
 
     @Version
     @Column(name = "lock_version", nullable = false)

@@ -65,7 +65,7 @@ public class MetricSnapshotService {
         LocalDateTime end = today.atTime(LocalTime.MAX);
         long solvedToday = problemAttemptRepository.countByUserIdAndOutcomeAndAttemptedAtBetween(
                 userId, "SOLVED", start, end);
-        solvedToday += problemAttemptRepository.countByUserIdAndOutcomeAndAttemptedAtBetween(
+        long partialToday = problemAttemptRepository.countByUserIdAndOutcomeAndAttemptedAtBetween(
                 userId, "PARTIAL", start, end);
         long revisionsDone = revisionRepository.countCompletedInRangeByUserId(userId, start, end);
 
@@ -85,7 +85,7 @@ public class MetricSnapshotService {
         metric.setConfidence(Math.round(avgConfidence * 10) / 10.0);
         metric.setRetention(Math.round(avgRetention * 10) / 10.0);
         metric.setSkillRating(Math.round(skillRating * 10) / 10.0);
-        metric.setSolvedDelta((int) solvedToday);
+        metric.setSolvedDelta((int) Math.round(solvedToday + partialToday * 0.5));
         metric.setRevisionsDone((int) revisionsDone);
         metric.setJournalHours(journalHours);
         metric.setConsistency(Math.round(computeConsistency(userId) * 100) / 100.0);

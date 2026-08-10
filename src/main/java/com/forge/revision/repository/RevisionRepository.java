@@ -20,6 +20,9 @@ public interface RevisionRepository extends JpaRepository<Revision, UUID> {
     @Query("SELECT r FROM Revision r JOIN FETCH r.topic WHERE r.user.id = :userId AND r.scheduledDate = :date AND r.completed = :completed")
     List<Revision> findByUserIdAndScheduledDateAndCompleted(@Param("userId") UUID userId, @Param("date") LocalDate date, @Param("completed") Boolean completed);
 
+    @Query("SELECT r FROM Revision r JOIN FETCH r.topic WHERE r.user.id = :userId AND r.scheduledDate = :date ORDER BY r.completed ASC, r.priority ASC, r.scheduledDate ASC")
+    List<Revision> findActivityByUserIdAndScheduledDate(@Param("userId") UUID userId, @Param("date") LocalDate date);
+
     @Query("SELECT r FROM Revision r JOIN FETCH r.topic WHERE r.user.id = :userId AND r.scheduledDate <= :date AND r.completed = false ORDER BY r.priority ASC, r.scheduledDate ASC")
     List<Revision> findPendingRevisionsByUserId(@Param("userId") UUID userId, @Param("date") LocalDate date);
 

@@ -1,5 +1,6 @@
 package com.forge.calibration.controller;
 
+import com.forge.calibration.dto.CalibrationResult;
 import com.forge.calibration.dto.EngineReport;
 import com.forge.calibration.service.CalibrationJob;
 import com.forge.calibration.service.EngineReportService;
@@ -25,8 +26,7 @@ public class CalibrationController {
     }
 
     @PostMapping("/calibration/run")
-    public ResponseEntity<ApiResponse<EngineReport>> runCalibration() {
-        calibrationJob.calibrate();
-        return ResponseEntity.ok(ApiResponse.success("Calibration run complete", engineReportService.getReport()));
+    public ResponseEntity<ApiResponse<CalibrationResult>> runCalibration() {
+        return ResponseEntity.ok(ApiResponse.success(calibrationJob.calibrate()));
     }
 }

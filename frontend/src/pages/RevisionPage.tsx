@@ -7,6 +7,7 @@ import { SkeletonList } from '@/components/ui/LoadingSkeleton';
 import ApiErrorState from '@/components/ui/ApiErrorState';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
+import type { Revision } from '@/types';
 import {
   CheckCircle, Clock, Calendar, ListTodo, TrendingUp, Brain, Target, PartyPopper,
 } from 'lucide-react';
@@ -72,7 +73,7 @@ export default function RevisionPage() {
 
   const { data: todayRevisions, isLoading: loadingToday, error: todayError, refetch: refetchToday } = useQuery({
     queryKey: ['revisions', 'today'],
-    queryFn: () => revisionsApi.getToday().then((res) => res.data.data),
+    queryFn: () => revisionsApi.getTodayActivity().then((res) => res.data.data),
   });
 
   const { data: pendingRevisions, isLoading: loadingPending } = useQuery({
@@ -82,12 +83,12 @@ export default function RevisionPage() {
 
   const completeMutation = useMutation({
     mutationFn: (id: string) => revisionsApi.complete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['revisions'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      const allToday = todayRevisions || [];
-      const completedBefore = allToday.filter((r) => r.completed).length;
-      if (completedBefore + 1 >= allToday.length && allToday.length > 0) {
+    onSuccess: async () => {
+      const completedBefore = (todayRevisions || []).filter((r) => r.completed).length;
+      await queryClient.invalidateQueries({ queryKey: ['revisions'] });
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      const latest = queryClient.getQueryData<Revision[]>(['revisions', 'today']);
+      if (latest && latest.length > 0 && completedBefore < latest.length && latest.every((r) => r.completed)) {
         setCelebrate(true);
       }
     },

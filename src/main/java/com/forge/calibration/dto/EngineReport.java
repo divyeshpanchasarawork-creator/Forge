@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
  */
 public record EngineReport(
         int sampleCount,
+        int minSamples,
         double storedMse,
         double storedLogLoss,
         double storedAuc,

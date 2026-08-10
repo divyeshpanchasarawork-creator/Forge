@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 /**
  * Owns the single global {@link SignalWeights} row. Exposes the active weight vector to
  * the request path (cached in memory) and persists calibrated weights + evaluation
@@ -45,24 +47,28 @@ public class ScorerWeightsService {
         row.setMetricBefore(metricBefore);
         row.setMetricAfter(metricAfter);
         row.setVersion(row.getVersion() == null ? 1 : row.getVersion() + 1);
+        row.setLastCalibratedAt(LocalDateTime.now());
         repository.save(row);
         cached = weights;
         log.info("Calibration applied new scorer weights (v{}) on {} samples: MSE {} -> {}",
                 row.getVersion(), sampleCount, metricBefore, metricAfter);
     }
 
+    /**
+     * Records the metrics of a run that did not swap weights. Never creates the weights row:
+     * without an apply there is nothing to calibrate, and a row created here would make the
+     * engine look calibrated (version = 1) when it never was.
+     */
     @Transactional
     public void recordMetrics(int sampleCount, double metricBefore, double metricAfter) {
-        ScorerWeights row = currentRow();
-        if (row.getWeightsJson() == null) {
-            row.setWeightsJson(serialize(SignalWeights.DEFAULT));
-        }
-        row.setSampleCount(sampleCount);
-        row.setMetricBefore(metricBefore);
-        row.setMetricAfter(metricAfter);
-        repository.save(row);
-        log.info("Calibration kept current weights on {} samples (MSE {} vs candidate {}); no swap",
-                sampleCount, metricBefore, metricAfter);
+        repository.findFirstByOrderByCreatedAtDesc().ifPresent(row -> {
+            row.setSampleCount(sampleCount);
+            row.setMetricBefore(metricBefore);
+            row.setMetricAfter(metricAfter);
+            repository.save(row);
+            log.info("Calibration kept current weights on {} samples (MSE {} vs candidate {}); no swap",
+                    sampleCount, metricBefore, metricAfter);
+        });
     }
 
     private ScorerWeights currentRow() {

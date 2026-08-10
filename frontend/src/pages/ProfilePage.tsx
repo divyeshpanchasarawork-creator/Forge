@@ -43,6 +43,9 @@ export default function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['leetcode-stats'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['practice', 'queue'] });
+      queryClient.invalidateQueries({ queryKey: ['memory'] });
+      queryClient.invalidateQueries({ queryKey: ['roadmap-analysis'] });
     },
   });
 
@@ -54,15 +57,23 @@ export default function ProfilePage() {
 
   const lcStats = lcData;
 
-  const { data: engineReport } = useQuery({
+  const { data: engineReport, isLoading: reportLoading, isError: reportError } = useQuery({
     queryKey: ['engine-report'],
     queryFn: () => calibrationApi.getReport().then((res) => res.data.data),
+    retry: 1,
   });
+
+  const [calibrationMessage, setCalibrationMessage] = useState<{ text: string; applied: boolean } | null>(null);
 
   const calibrateMutation = useMutation({
     mutationFn: () => calibrationApi.runCalibration(),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      const result = res.data.data;
+      setCalibrationMessage({ text: result.message, applied: result.applied });
       queryClient.invalidateQueries({ queryKey: ['engine-report'] });
+    },
+    onError: () => {
+      setCalibrationMessage(null);
     },
   });
 
@@ -310,50 +321,65 @@ export default function ProfilePage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <KpiCard
-              icon={<Activity className="h-5 w-5 text-primary" />}
-              value={engineReport?.sampleCount ?? 0}
-              label="Scored Samples"
-              tooltip="Attempts with a stored signal snapshot used to evaluate the scorer."
-            />
-            <KpiCard
-              icon={<Target className="h-5 w-5 text-primary" />}
-              value={fmt(engineReport?.liveAuc)}
-              label="Live Rank-AUC"
-              tooltip="Rank correlation between the active scorer and actual outcomes. 1.0 is a perfect ranking, 0.5 is random."
-            />
-            <KpiCard
-              icon={<Gauge className="h-5 w-5 text-primary" />}
-              value={fmt(engineReport?.liveMse)}
-              label="Live MSE"
-              tooltip="Mean squared error between the predicted score and reward (quality/5, scaled to 0-100)."
-            />
-            <KpiCard
-              icon={<TrendingDown className="h-5 w-5 text-primary" />}
-              value={fmt(engineReport?.liveLogLoss)}
-              label="Live Log-Loss"
-              tooltip="Binary log-loss of the active scorer treating reward >= 0.6 as success."
-            />
-          </div>
+          {reportLoading ? (
+            <p className="text-sm text-muted-foreground">Loading engine health…</p>
+          ) : reportError ? (
+            <p className="text-sm text-red-400">Couldn't load engine health. Try again later.</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                <KpiCard
+                  icon={<Activity className="h-5 w-5 text-primary" />}
+                  value={`${engineReport?.sampleCount ?? 0} / ${engineReport?.minSamples ?? 10}`}
+                  label="Scored Samples"
+                  tooltip={`Attempts with a stored signal snapshot used to evaluate the scorer. Calibration needs at least ${engineReport?.minSamples ?? 10} scored samples.`}
+                />
+                <KpiCard
+                  icon={<Target className="h-5 w-5 text-primary" />}
+                  value={fmt(engineReport?.liveAuc)}
+                  label="Live Rank-AUC"
+                  tooltip="Rank correlation between the active scorer and actual outcomes. 1.0 is a perfect ranking, 0.5 is random. Shows n/a until there are both success and failure samples."
+                />
+                <KpiCard
+                  icon={<Gauge className="h-5 w-5 text-primary" />}
+                  value={fmt(engineReport?.liveMse)}
+                  label="Live MSE"
+                  tooltip="Mean squared error between the predicted score and reward (quality/5, scaled to 0-100)."
+                />
+                <KpiCard
+                  icon={<TrendingDown className="h-5 w-5 text-primary" />}
+                  value={fmt(engineReport?.liveLogLoss)}
+                  label="Live Log-Loss"
+                  tooltip="Binary log-loss of the active scorer treating reward >= 0.6 as success."
+                />
+              </div>
 
-          <div className="flex items-center justify-between gap-3 rounded-lg bg-secondary/50 px-4 py-3">
-            <div className="text-xs text-muted-foreground">
-              {engineReport?.version != null
-                ? `Weights v${engineReport.version}${engineReport.lastCalibratedAt ? ` · calibrated ${new Date(engineReport.lastCalibratedAt).toLocaleString()}` : ''}`
-                : 'No calibration applied yet — the scorer is using initial default weights.'}
-            </div>
-            <button
-              onClick={() => calibrateMutation.mutate()}
-              disabled={calibrateMutation.isPending}
-              className="flex shrink-0 items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20 disabled:opacity-50"
-            >
-              <Sparkles className={`h-4 w-4 ${calibrateMutation.isPending ? 'animate-pulse' : ''}`} />
-              {calibrateMutation.isPending ? 'Calibrating...' : 'Run Calibration'}
-            </button>
-          </div>
-          {calibrateMutation.isError && (
-            <p className="text-sm text-red-400">Calibration failed. Try again later.</p>
+              <div className="flex items-center justify-between gap-3 rounded-lg bg-secondary/50 px-4 py-3">
+                <div className="text-xs text-muted-foreground">
+                  {engineReport?.lastCalibratedAt
+                    ? `Weights v${engineReport.version} · calibrated ${new Date(engineReport.lastCalibratedAt).toLocaleString()}`
+                    : engineReport?.version != null
+                      ? `Weights v${engineReport.version} — recorded metrics, not yet recalibrated.`
+                      : 'No calibration applied yet — the scorer is using initial default weights.'}
+                </div>
+                <button
+                  onClick={() => calibrateMutation.mutate()}
+                  disabled={calibrateMutation.isPending}
+                  className="flex shrink-0 items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/20 disabled:opacity-50"
+                >
+                  <Sparkles className={`h-4 w-4 ${calibrateMutation.isPending ? 'animate-pulse' : ''}`} />
+                  {calibrateMutation.isPending ? 'Calibrating...' : 'Run Calibration'}
+                </button>
+              </div>
+              {calibrationMessage && (
+                <p className={`text-sm ${calibrationMessage.applied ? 'text-green-400' : 'text-amber-400'}`}>
+                  {calibrationMessage.text}
+                </p>
+              )}
+              {calibrateMutation.isError && (
+                <p className="text-sm text-red-400">Calibration failed. Try again later.</p>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

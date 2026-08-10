@@ -38,7 +38,7 @@ public class EngineReportService {
         }
 
         if (samples.isEmpty()) {
-            return new EngineReport(0, Double.NaN, Double.NaN, Double.NaN,
+            return new EngineReport(0, CalibrationJob.MIN_SAMPLES, Double.NaN, Double.NaN, Double.NaN,
                     Double.NaN, Double.NaN, Double.NaN,
                     scorerWeightsService.currentWeights(), null, null, null, null);
         }
@@ -58,10 +58,11 @@ public class EngineReportService {
         Integer version = row != null ? row.getVersion() : null;
         Double before = row != null ? row.getMetricBefore() : null;
         Double after = row != null ? row.getMetricAfter() : null;
-        java.time.LocalDateTime calibratedAt = row != null ? row.getUpdatedAt() : null;
+        java.time.LocalDateTime calibratedAt = row != null ? row.getLastCalibratedAt() : null;
 
         return new EngineReport(
                 samples.size(),
+                CalibrationJob.MIN_SAMPLES,
                 RecEngineEvaluator.mse(stored, actual),
                 RecEngineEvaluator.logLoss(stored, actual),
                 RecEngineEvaluator.auc(stored, actual),

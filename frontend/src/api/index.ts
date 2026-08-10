@@ -1,5 +1,5 @@
 import api from './client';
-import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, WeeklyProgress, LeetCodeStats, MemoryResponse, PracticeQueueResponse, RoadmapAnalysis, PagedResponse, ProblemAttempt, ProblemAttemptRequest, ProblemAttemptResponse, LearningCurveResponse, ActivityDay, EngineReport } from '@/types';
+import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, WeeklyProgress, LeetCodeStats, MemoryResponse, PracticeQueueResponse, RoadmapAnalysis, PagedResponse, ProblemAttempt, ProblemAttemptRequest, ProblemAttemptResponse, LearningCurveResponse, ActivityDay, EngineReport, CalibrationResult } from '@/types';
 
 export const authApi = {
   login: (username: string, password: string) =>
@@ -22,6 +22,7 @@ export const dashboardApi = {
 
 export const revisionsApi = {
   getToday: () => api.get<ApiResponse<Revision[]>>('/revisions/today'),
+  getTodayActivity: () => api.get<ApiResponse<Revision[]>>('/revisions/today-activity'),
   getPending: () => api.get<ApiResponse<Revision[]>>('/revisions/pending'),
   complete: (id: string, quality = 4) => api.post<ApiResponse<Revision>>(`/revisions/${id}/complete?quality=${quality}`),
 };
@@ -65,7 +66,7 @@ export const leetcodeApi = {
 
 export const calibrationApi = {
   getReport: () => api.get<ApiResponse<EngineReport>>('/internal/engine-report'),
-  runCalibration: () => api.post<ApiResponse<EngineReport>>('/internal/calibration/run'),
+  runCalibration: () => api.post<ApiResponse<CalibrationResult>>('/internal/calibration/run'),
 };
 
 export interface SearchProblem {

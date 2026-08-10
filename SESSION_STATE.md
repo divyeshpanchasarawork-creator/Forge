@@ -56,7 +56,7 @@
   - Chunk 7 (`b6de756`): `/api/auth/register` gated to `dev` profile; `/api/internal/**` requires `ROLE_ADMIN` (V24 role column); explicit 401/403 entry points
   - Chunk 8 (`5501cd6`): Removed dead code — `TopicController` CRUD, `GET /api/journals/today`, `GET /api/journals/recent`, `GET /api/recommendations`, unused repo methods + frontend exports
   - Chunk 9 (`5684b72`): Added unit tests for revision completion path + SM-2 algorithm
-  - Final suite: **115 tests green** (`./mvnw test`)
+  - Final suite: **128 tests green** (`./mvnw test`)
 
 ## Deployment Notes
 - Backend: Render uses Dockerfile multi-stage build

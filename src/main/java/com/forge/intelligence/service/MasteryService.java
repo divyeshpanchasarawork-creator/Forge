@@ -14,7 +14,7 @@ public class MasteryService {
     public int qualityFrom(String outcome, int hintsUsed, Integer timeTakenSeconds) {
         int hints = Math.max(0, hintsUsed);
         int quality = switch (outcome) {
-            case "SOLVED" -> hints == 0 ? 5 : Math.max(3, 5 - hints);
+            case "SOLVED" -> hints == 0 ? 5 : Math.max(1, 5 - hints);
             case "PARTIAL" -> hints == 0 ? 3 : 2;
             case "FAILED" -> 1;
             case "SKIPPED" -> 0;

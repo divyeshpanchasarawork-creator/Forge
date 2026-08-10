@@ -47,6 +47,7 @@ export interface Recommendation {
 
 export interface EngineReport {
   sampleCount: number;
+  minSamples: number;
   storedMse: number;
   storedLogLoss: number;
   storedAuc: number;
@@ -58,6 +59,16 @@ export interface EngineReport {
   lastMetricBefore: number | null;
   lastMetricAfter: number | null;
   lastCalibratedAt: string | null;
+}
+
+export interface CalibrationResult {
+  status: 'SKIPPED' | 'APPLIED';
+  message: string;
+  sampleCount: number;
+  minSamples: number;
+  before: number | null;
+  after: number | null;
+  applied: boolean;
 }
 
 export interface Journal {

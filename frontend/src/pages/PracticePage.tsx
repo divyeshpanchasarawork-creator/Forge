@@ -57,6 +57,8 @@ const ProblemRow = memo(function ProblemRow({ problem, index }: { problem: Pract
       setError('');
       queryClient.invalidateQueries({ queryKey: ['practice', 'queue'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['memory'] });
     },
     onError: (err: unknown) => setError(parseApiError(err)),
   });

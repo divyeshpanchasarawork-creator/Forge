@@ -45,7 +45,7 @@ class EngineReportServiceTest {
         row.setVersion(3);
         row.setMetricBefore(5000.0);
         row.setMetricAfter(60.0);
-        row.setUpdatedAt(LocalDateTime.of(2026, 8, 6, 2, 0));
+        row.setLastCalibratedAt(LocalDateTime.of(2026, 8, 6, 2, 0));
 
         when(attemptRepository.findWithPredictedScores(any())).thenReturn(attempts);
         when(scorerWeightsService.currentWeights()).thenReturn(weights);
@@ -54,6 +54,7 @@ class EngineReportServiceTest {
         EngineReport report = new EngineReportService(attemptRepository, scorerWeightsRepository, scorerWeightsService).getReport();
 
         assertEquals(3, report.sampleCount());
+        assertEquals(CalibrationJob.MIN_SAMPLES, report.minSamples());
         assertEquals(14969.0 / 3.0, report.storedMse(), 1e-9);
         assertEquals(200.0 / 3.0, report.liveMse(), 1e-9);
         assertEquals(1.0, report.storedAuc(), 1e-9);
@@ -63,9 +64,29 @@ class EngineReportServiceTest {
         assertEquals(3, report.version());
         assertEquals(5000.0, report.lastMetricBefore());
         assertEquals(60.0, report.lastMetricAfter());
-        assertEquals(row.getUpdatedAt(), report.lastCalibratedAt());
+        assertEquals(row.getLastCalibratedAt(), report.lastCalibratedAt());
         assertTrue(report.storedLogLoss() > report.liveLogLoss(),
                 "stored (uncalibrated) log-loss should exceed live one");
+    }
+
+    @Test
+    void shouldReportNullCalibratedAtWhenWeightsNeverApplied() throws Exception {
+        List<ProblemAttempt> attempts = new ArrayList<>();
+        attempts.add(attempt(signalsAt(0, 100), 15, 5));
+
+        SignalWeights weights = SignalWeights.DEFAULT;
+        ScorerWeights row = new ScorerWeights();
+        row.setVersion(1);
+        row.setLastCalibratedAt(null);
+
+        when(attemptRepository.findWithPredictedScores(any())).thenReturn(attempts);
+        when(scorerWeightsService.currentWeights()).thenReturn(weights);
+        when(scorerWeightsRepository.findFirstByOrderByCreatedAtDesc()).thenReturn(java.util.Optional.of(row));
+
+        EngineReport report = new EngineReportService(attemptRepository, scorerWeightsRepository, scorerWeightsService).getReport();
+
+        assertNull(report.lastCalibratedAt(),
+                "a metrics-only row must not look calibrated");
     }
 
     @Test
@@ -76,6 +97,7 @@ class EngineReportServiceTest {
         EngineReport report = new EngineReportService(attemptRepository, scorerWeightsRepository, scorerWeightsService).getReport();
 
         assertEquals(0, report.sampleCount());
+        assertEquals(CalibrationJob.MIN_SAMPLES, report.minSamples());
         assertTrue(Double.isNaN(report.liveMse()));
     }
 

@@ -4,7 +4,7 @@
 
 | Task | Command |
 |---|---|
-| Backend tests | `./mvnw test` (expect 115 tests, `BUILD SUCCESS`) |
+| Backend tests | `./mvnw test` (expect 128 tests, `BUILD SUCCESS`) |
 | Frontend typecheck + build | `npx tsc -b` then `npm run build` (in `frontend/`) |
 | Frontend lint | `npm run lint` (oxlint) |
 | Dev backend | `./mvnw spring-boot:run` (port 8080) |

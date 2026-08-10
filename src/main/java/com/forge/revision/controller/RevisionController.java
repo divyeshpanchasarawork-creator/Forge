@@ -22,6 +22,11 @@ public class RevisionController {
         return ResponseEntity.ok(ApiResponse.success(revisionService.getTodayRevisions()));
     }
 
+    @GetMapping("/today-activity")
+    public ResponseEntity<ApiResponse<List<RevisionResponse>>> getTodayActivity() {
+        return ResponseEntity.ok(ApiResponse.success(revisionService.getTodayActivity()));
+    }
+
     @GetMapping("/pending")
     public ResponseEntity<ApiResponse<List<RevisionResponse>>> getPendingRevisions() {
         return ResponseEntity.ok(ApiResponse.success(revisionService.getPendingRevisions()));

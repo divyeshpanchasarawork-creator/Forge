@@ -1,6 +1,7 @@
 package com.forge.calibration.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.forge.calibration.dto.CalibrationResult;
 import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.SignalWeights;
 import com.forge.practice.entity.ProblemAttempt;
@@ -24,6 +25,7 @@ import static org.mockito.Mockito.*;
 class CalibrationJobTest {
 
     private static final int SIGNALS = SignalWeights.SIGNAL_NAMES.size();
+    private static final int MIN_SAMPLES = 10;
 
     @Mock private ProblemAttemptRepository attemptRepository;
     @Mock private ScorerWeightsService scorerWeightsService;
@@ -37,11 +39,15 @@ class CalibrationJobTest {
     }
 
     @Test
-    void shouldSkipWhenFewerThanThirtySamples() {
+    void shouldSkipWhenFewerThanTenSamples() {
         when(attemptRepository.findWithPredictedScores(any())).thenReturn(List.of());
 
-        job.calibrate();
+        CalibrationResult result = job.calibrate();
 
+        assertEquals("SKIPPED", result.status());
+        assertFalse(result.applied());
+        assertEquals(0, result.sampleCount());
+        assertEquals(MIN_SAMPLES, result.minSamples());
         verify(scorerWeightsService, never()).applyWeights(any(), anyInt(), anyDouble(), anyDouble());
         verify(scorerWeightsService, never()).recordMetrics(anyInt(), anyDouble(), anyDouble());
     }
@@ -66,13 +72,15 @@ class CalibrationJobTest {
         when(attemptRepository.findWithPredictedScores(any())).thenReturn(attempts);
         when(scorerWeightsService.currentWeights()).thenReturn(SignalWeights.DEFAULT);
 
-        job.calibrate();
+        CalibrationResult result = job.calibrate();
 
         ArgumentCaptor<SignalWeights> weightsCaptor = ArgumentCaptor.forClass(SignalWeights.class);
         ArgumentCaptor<Double> beforeCaptor = ArgumentCaptor.forClass(Double.class);
         ArgumentCaptor<Double> afterCaptor = ArgumentCaptor.forClass(Double.class);
         verify(scorerWeightsService).applyWeights(weightsCaptor.capture(), eq(60), beforeCaptor.capture(), afterCaptor.capture());
 
+        assertTrue(result.applied(), "weights should be applied when MSE improves");
+        assertEquals("APPLIED", result.status());
         assertTrue(afterCaptor.getValue() < beforeCaptor.getValue(),
                 "MSE should drop after calibration, got " + beforeCaptor.getValue() + " -> " + afterCaptor.getValue());
         assertTrue(mse(SignalWeights.DEFAULT, signals, qualities) > mse(weightsCaptor.getValue(), signals, qualities),
@@ -88,10 +96,35 @@ class CalibrationJobTest {
         when(attemptRepository.findWithPredictedScores(any())).thenReturn(attempts);
         when(scorerWeightsService.currentWeights()).thenReturn(SignalWeights.DEFAULT);
 
-        job.calibrate();
+        CalibrationResult result = job.calibrate();
 
+        assertFalse(result.applied(), "no swap when improvement is below threshold");
+        assertEquals("SKIPPED", result.status());
         verify(scorerWeightsService, never()).applyWeights(any(), anyInt(), anyDouble(), anyDouble());
         verify(scorerWeightsService).recordMetrics(40, 0.0, 0.0);
+    }
+
+    @Test
+    void shouldRejectCandidateThatRanksAtOrBelowRandom() throws Exception {
+        // Quality is inversely related to the signal: high x0 -> low quality. The fitted weights
+        // (clipped non-negative) predict higher scores for higher x0, so the candidate ranks the
+        // samples backwards and its AUC is at or below random. It must not be swapped in even if
+        // its in-sample MSE improved.
+        List<ProblemAttempt> attempts = new ArrayList<>();
+        for (int i = 0; i < 40; i++) {
+            double x0 = (i * 37) % 101;
+            double[] s = new double[SIGNALS];
+            s[0] = x0;
+            int quality = (x0 >= 50) ? 0 : 5;
+            attempts.add(attempt(s, quality));
+        }
+        when(attemptRepository.findWithPredictedScores(any())).thenReturn(attempts);
+        when(scorerWeightsService.currentWeights()).thenReturn(SignalWeights.DEFAULT);
+
+        CalibrationResult result = job.calibrate();
+
+        verify(scorerWeightsService, never()).applyWeights(any(), anyInt(), anyDouble(), anyDouble());
+        assertFalse(result.applied(), "candidate with degenerate AUC must not be swapped in");
     }
 
     private ProblemAttempt attempt(double[] signals, int quality) throws Exception {
