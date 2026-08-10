@@ -15,7 +15,7 @@ export function SignalChip({ name, contribution, value, weight, className }: Sig
     <span
       title={tooltip}
       className={cn(
-        'inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-caption font-medium text-muted-foreground',
+        'inline-flex items-center gap-1 rounded-full bg-secondary px-1.5 py-0.5 text-micro font-medium text-muted-foreground',
         className
       )}
     >

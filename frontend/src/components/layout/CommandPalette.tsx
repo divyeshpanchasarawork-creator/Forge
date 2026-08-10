@@ -149,7 +149,10 @@ export default function CommandPalette({ open, onClose, recent }: { open: boolea
       setDebounced('');
       setActive(0);
       const t = requestAnimationFrame(() => inputRef.current?.focus());
-      return () => cancelAnimationFrame(t);
+      return () => {
+        cancelAnimationFrame(t);
+        inputRef.current?.blur();
+      };
     }
   }, [open]);
 
