@@ -122,7 +122,7 @@ export default function AppLayout() {
         onMobileClose={() => setMobileOpen(false)}
       />
       <main
-        className={`min-h-screen pt-16 transition-all ${
+        className={`min-h-screen bg-dots pt-16 transition-all ${
           sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'
         }`}
       >

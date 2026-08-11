@@ -65,7 +65,8 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* Soft, static backdrop — a single restrained accent, never animated */}
+      {/* Soft, static backdrop — dot grid + a single restrained accent, never animated */}
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-dots" />
       <div className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute -top-40 left-1/2 h-[480px] w-[720px] -translate-x-1/2 rounded-full bg-primary/6 blur-[120px]" />
       </div>

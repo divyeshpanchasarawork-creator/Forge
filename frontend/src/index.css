@@ -205,6 +205,16 @@
   animation: fade-in 0.2s ease-out both;
 }
 
+/* ---- Dot grid backdrop (theme-adaptive: dot color derives from foreground) ---- */
+.bg-dots {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--color-foreground) 8%, transparent) 1px,
+    transparent 0
+  );
+  background-size: 22px 22px;
+}
+
 .command-palette-input:focus,
 .command-palette-input:focus-visible {
   outline: none;
