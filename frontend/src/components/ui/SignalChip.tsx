@@ -15,12 +15,11 @@ export function SignalChip({ name, contribution, value, weight, className }: Sig
     <span
       title={tooltip}
       className={cn(
-        'inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-[3px] text-micro text-muted-foreground tabular-nums',
+        'rounded-full bg-secondary px-2 py-0.5 text-tag font-medium text-muted-foreground',
         className
       )}
     >
-      <span>{name}</span>
-      <span>+{contribution}</span>
+      {name} <span className="text-primary">+{contribution}</span>
     </span>
   );
 }

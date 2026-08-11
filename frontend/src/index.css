@@ -43,6 +43,8 @@
   /* ---- Type scale (golden-ratio derived: 11 → 12 → 16 → 21 → 34 → 55) ---- */
   --text-micro: 0.6875rem;
   --text-micro--line-height: 1.4;
+  --text-tag: 0.625rem;
+  --text-tag--line-height: 1.5;
   --text-caption: 0.75rem;
   --text-caption--line-height: 1.5;
   --text-base--line-height: 1.6;

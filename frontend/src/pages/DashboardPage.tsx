@@ -501,7 +501,7 @@ export default function DashboardPage() {
                     </div>
                     <p className="mt-1 text-caption text-muted-foreground">{rec.reason}</p>
                     {rec.scoreBreakdown?.items?.length ? (
-                      <div className="mt-2 flex flex-wrap gap-1">
+                      <div className="mt-2 flex flex-wrap gap-1.5">
                         {[...rec.scoreBreakdown.items]
                           .sort((a, b) => b.contribution - a.contribution)
                           .slice(0, 3)
