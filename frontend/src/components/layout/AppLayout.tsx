@@ -108,7 +108,8 @@ export default function AppLayout() {
   };
 
   return (
-    <div ref={rootRef} tabIndex={-1} className="min-h-screen bg-background outline-none">
+    <div ref={rootRef} tabIndex={-1} className="min-h-screen outline-none">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-dots" aria-hidden="true" />
       <TopHeader sidebarCollapsed={sidebarCollapsed} onMenuClick={() => setMobileOpen(true)} onOpenSearch={openPalette} />
       {paletteMounted && (
         <Suspense fallback={null}>
@@ -122,7 +123,7 @@ export default function AppLayout() {
         onMobileClose={() => setMobileOpen(false)}
       />
       <main
-        className={`min-h-screen bg-dots pt-16 transition-all ${
+        className={`min-h-screen pt-16 transition-all ${
           sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'
         }`}
       >

@@ -46,7 +46,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col">
       {/* Signed-out acknowledgment */}
       {showSignedOut && (
         <div className="fade-in-up fixed left-1/2 top-20 z-30 -translate-x-1/2 px-4">

@@ -123,7 +123,7 @@ export default function Sidebar({
       {/* Desktop floating sidebar */}
       <aside
         className={cn(
-          'fixed left-3 top-3 bottom-3 z-40 hidden flex-col rounded-2xl border border-border bg-sidebar transition-all duration-200 lg:flex',
+          'fixed left-3 top-3 bottom-3 z-40 hidden flex-col rounded-2xl border border-border bg-sidebar/90 transition-all duration-200 lg:flex',
           collapsed ? 'w-16' : 'w-60'
         )}
       >
