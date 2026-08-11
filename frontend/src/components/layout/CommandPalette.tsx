@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNod
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  LayoutDashboard, Lightbulb, Code2, RefreshCw, PenLine, Brain, BarChart3,
-  User, Search, Sun, Moon, NotebookPen, LogOut, CornerDownLeft, History,
+  Search, Sun, Moon, NotebookPen, LogOut, CornerDownLeft, History,
   Hash, Loader2, ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,16 +10,9 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import { practiceApi, searchApi, type SearchProblem } from '@/api';
 import type { ProblemAttempt } from '@/types';
+import { NAV_ITEMS } from '@/lib/nav';
 
 type CommandIcon = ComponentType<{ className?: string }>;
-
-interface NavCommand {
-  id: string;
-  label: string;
-  icon: CommandIcon;
-  hint?: string;
-  to: string;
-}
 
 interface PaletteItem {
   id: string;
@@ -34,17 +26,6 @@ interface PaletteItem {
   outcome?: ProblemAttempt['outcome'];
   run: () => void;
 }
-
-const navCommands: NavCommand[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, hint: '1', to: '/app' },
-  { id: 'roadmap', label: 'Roadmap', icon: Lightbulb, hint: '2', to: '/app/roadmap' },
-  { id: 'practice', label: 'Practice', icon: Code2, hint: '3', to: '/app/problems' },
-  { id: 'revision', label: 'Revision', icon: RefreshCw, hint: '4', to: '/app/revision' },
-  { id: 'journal', label: 'Journal', icon: PenLine, hint: '5', to: '/app/journal' },
-  { id: 'memory', label: 'Memory', icon: Brain, hint: '6', to: '/app/memory' },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3, hint: '7', to: '/app/analytics' },
-  { id: 'profile', label: 'Profile', icon: User, hint: '8', to: '/app/profile' },
-];
 
 const TOPICS = [
   'array', 'string', 'hash-table', 'two-pointers', 'sliding-window', 'stack', 'queue',
@@ -112,6 +93,7 @@ export default function CommandPalette({ open, onClose, recent }: { open: boolea
   const [debounced, setDebounced] = useState('');
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { logout } = useAuth();
@@ -150,10 +132,15 @@ export default function CommandPalette({ open, onClose, recent }: { open: boolea
       setActive(0);
       const input = inputRef.current;
       const t = requestAnimationFrame(() => input?.focus());
-      return () => {
-        cancelAnimationFrame(t);
-        input?.blur();
-      };
+      return () => cancelAnimationFrame(t);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (open) return;
+    const active = document.activeElement as HTMLElement | null;
+    if (active && containerRef.current?.contains(active)) {
+      active.blur();
     }
   }, [open]);
 
@@ -177,13 +164,13 @@ export default function CommandPalette({ open, onClose, recent }: { open: boolea
           icon: History,
           run: () => navigate(r.path),
         })),
-      ...navCommands.map((c): PaletteItem => ({
-        id: c.id,
+      ...NAV_ITEMS.map((c): PaletteItem => ({
+        id: c.to,
         kind: 'page',
         group: 'Navigate',
         title: c.label,
         icon: c.icon,
-        hint: c.hint,
+        hint: c.shortcut,
         run: () => navigate(c.to),
       })),
       {
@@ -283,6 +270,7 @@ export default function CommandPalette({ open, onClose, recent }: { open: boolea
 
   return (
     <div
+      ref={containerRef}
       className={cn(
         'fixed inset-0 z-50 flex items-end justify-center bg-black/50 transition-opacity duration-150 md:items-center md:p-4',
         open ? 'opacity-100' : 'pointer-events-none opacity-0'

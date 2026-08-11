@@ -4,6 +4,7 @@ import Sidebar from './Sidebar';
 import TopHeader from './TopHeader';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
 import { PageSkeleton } from '@/components/ui/LoadingSkeleton';
+import { NAV_SHORTCUTS } from '@/lib/nav';
 
 const CommandPalette = lazy(() => import('./CommandPalette'));
 
@@ -36,6 +37,13 @@ export default function AppLayout() {
     window.focus();
     rootRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    const active = document.activeElement as HTMLElement | null;
+    if (active && active !== document.body && active !== rootRef.current) {
+      active.blur();
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const pageLabels: Record<string, string> = {
@@ -75,24 +83,27 @@ export default function AppLayout() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || e.metaKey || e.ctrlKey || e.altKey) return;
-      const routeByNum: Record<string, string> = {
-        '1': '/app',
-        '2': '/app/roadmap',
-        '3': '/app/problems',
-        '4': '/app/revision',
-        '5': '/app/journal',
-        '6': '/app/memory',
-        '7': '/app/analytics',
-        '8': '/app/profile',
-      };
-      const to = routeByNum[e.key];
-      if (to && to !== pathRef.current) navigate(to);
+      if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+      const target = e.target as HTMLElement | null;
+      const editable =
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.tagName === 'SELECT' ||
+        target?.isContentEditable;
+      if (!paletteOpen && editable) return;
+      const key = e.code?.startsWith('Digit')
+        ? e.code.slice(5)
+        : e.code?.startsWith('Numpad')
+          ? e.code.slice(6)
+          : e.key;
+      const to = NAV_SHORTCUTS[key];
+      if (!to) return;
+      if (paletteOpen) setPaletteOpen(false);
+      if (to !== pathRef.current) navigate(to);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [navigate]);
+  }, [navigate, paletteOpen]);
 
   const toggleSidebar = () => {
     setSidebarCollapsed((prev) => {

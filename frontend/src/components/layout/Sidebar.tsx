@@ -1,31 +1,8 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Code2, RefreshCw, PenLine, BarChart3, User, Lightbulb, Brain, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/brand/Logo';
-
-const navSections: { label: string; items: { to: string; icon: typeof LayoutDashboard; label: string; shortcut: string }[] }[] = [
-  {
-    label: 'Navigate',
-    items: [
-      { to: '/app', icon: LayoutDashboard, label: 'Dashboard', shortcut: '1' },
-      { to: '/app/roadmap', icon: Lightbulb, label: 'Roadmap', shortcut: '2' },
-      { to: '/app/problems', icon: Code2, label: 'Practice', shortcut: '3' },
-      { to: '/app/revision', icon: RefreshCw, label: 'Revision', shortcut: '4' },
-    ],
-  },
-  {
-    label: 'Insights',
-    items: [
-      { to: '/app/journal', icon: PenLine, label: 'Journal', shortcut: '5' },
-      { to: '/app/memory', icon: Brain, label: 'Memory', shortcut: '6' },
-      { to: '/app/analytics', icon: BarChart3, label: 'Analytics', shortcut: '7' },
-    ],
-  },
-  {
-    label: 'Account',
-    items: [{ to: '/app/profile', icon: User, label: 'Profile', shortcut: '8' }],
-  },
-];
+import { NAV_SECTIONS } from '@/lib/nav';
 
 export default function Sidebar({
   collapsed,
@@ -44,7 +21,7 @@ export default function Sidebar({
         <Logo size="sm" variant="flame" withText={!collapsed} />
       </div>
       <nav className={cn('flex-1 overflow-y-auto px-2.5', collapsed ? 'mt-3' : '')}>
-        {navSections.map((section) => (
+        {NAV_SECTIONS.map((section) => (
           <div key={section.label}>
             {!collapsed && (
               <p className="px-3 pb-1.5 pt-4 text-micro font-semibold uppercase tracking-[0.14em] text-muted-foreground/40">
