@@ -490,7 +490,7 @@ export default function DashboardPage() {
               (data.recommendations ?? [])
                 .slice(0, 5)
                 .map((rec) => (
-                  <div key={rec.id} className="rounded-xl bg-secondary/50 p-4">
+                  <div key={rec.id} className="rounded-xl bg-secondary/50 p-3.5">
                     <div className="flex items-center gap-2">
                       <p className="min-w-0 flex-1 truncate text-sm font-medium">{rec.title}</p>
                       {rec.priority <= 2 && (
@@ -501,7 +501,7 @@ export default function DashboardPage() {
                     </div>
                     <p className="mt-1 text-caption text-muted-foreground">{rec.reason}</p>
                     {rec.scoreBreakdown?.items?.length ? (
-                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      <div className="mt-2 flex flex-wrap gap-1">
                         {[...rec.scoreBreakdown.items]
                           .sort((a, b) => b.contribution - a.contribution)
                           .slice(0, 3)
@@ -516,7 +516,7 @@ export default function DashboardPage() {
                           ))}
                       </div>
                     ) : null}
-                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
                       {rec.problemSlug && (
                         <a
                           href={`https://leetcode.com/problems/${rec.problemSlug}/`}

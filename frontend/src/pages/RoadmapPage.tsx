@@ -71,7 +71,7 @@ export default function RoadmapPage() {
               {(analysis.strongTags ?? []).length > 0 && (
                 <div>
                   <p className={`mb-2 text-caption font-semibold ${toneText.success}`}>Strong Areas</p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {(analysis.strongTags ?? []).map((t) => (
                       <Badge key={t.slug} variant="success">
                         {t.name} ({t.solved})
@@ -83,7 +83,7 @@ export default function RoadmapPage() {
               {(analysis.weakTags ?? []).length > 0 && (
                 <div>
                   <p className={`mb-2 text-caption font-semibold ${toneText.danger}`}>Needs Work</p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {(analysis.weakTags ?? []).map((t) => (
                       <Badge key={t.slug} variant="destructive">
                         {t.name} ({t.solved})

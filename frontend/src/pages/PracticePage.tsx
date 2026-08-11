@@ -106,12 +106,12 @@ const ProblemRow = memo(function ProblemRow({ problem, index }: { problem: Pract
               {problem.difficulty}
             </Badge>
             {problem.topicTag && (
-              <span className="shrink-0 rounded-full bg-secondary px-2.5 py-0.5 text-caption font-medium text-muted-foreground">
+              <span className="shrink-0 rounded-full bg-secondary px-2 py-[3px] text-micro font-medium text-muted-foreground">
                 {problem.topicTag}
               </span>
             )}
             {typeof problem.score === 'number' && (
-              <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-caption font-semibold text-primary tabular-nums">
+              <span className="shrink-0 rounded-full bg-primary/10 px-2 py-[3px] text-micro font-medium text-primary tabular-nums">
                 {problem.score}
               </span>
             )}
