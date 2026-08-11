@@ -171,9 +171,7 @@ export default function RevisionPage() {
           {todayRevisions?.map((rev, i) => (
             <div
               key={rev.id}
-              className={`flex items-center justify-between gap-3 rounded-xl px-5 py-4 transition-colors ${
-                rev.completed ? 'bg-secondary/30' : 'bg-secondary/50'
-              }`}
+              className="flex items-center justify-between gap-3 rounded-xl bg-secondary/50 px-5 py-4 transition-colors"
             >
               <div className="flex min-w-0 flex-1 items-center gap-4">
                 <span
@@ -221,7 +219,7 @@ export default function RevisionPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {pendingRevisions.map((rev) => (
-              <div key={rev.id} className="flex items-center justify-between rounded-xl bg-secondary/30 px-5 py-3">
+              <div key={rev.id} className="flex items-center justify-between rounded-xl bg-secondary/50 px-5 py-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{rev.topicTitle}</p>
                   <p className="text-caption text-muted-foreground">Scheduled: {new Date(rev.scheduledDate).toLocaleDateString()}</p>

@@ -87,7 +87,7 @@ const ProblemRow = memo(function ProblemRow({ problem, index }: { problem: Pract
   };
 
   return (
-    <div className="group rounded-xl border border-border bg-card/50 px-5 py-4 transition-all hover:border-primary/20 hover:bg-card">
+    <div className="group rounded-xl border border-border bg-card px-5 py-4 transition-all hover:border-primary/20">
       <div className="flex items-start gap-4">
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary/70 text-xs font-bold text-muted-foreground tabular-nums">
           {String(index + 1).padStart(2, '0')}

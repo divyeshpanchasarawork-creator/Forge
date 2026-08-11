@@ -42,10 +42,6 @@ export default function OnboardingPage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center px-4 py-16">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-dots" />
-      <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute left-1/4 top-0 h-[600px] w-[600px] animate-pulse rounded-full bg-primary/8 blur-[160px]" />
-        <div className="absolute bottom-0 right-1/4 h-[500px] w-[500px] animate-pulse rounded-full bg-primary/5 blur-[140px]" style={{ animationDelay: '2s' }} />
-      </div>
 
       <div className="w-full max-w-lg space-y-6">
         <div className="flex flex-col items-center gap-3 text-center">

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, BookOpen, Code2, RefreshCw, Zap, Target, ArrowRight, Sparkles, ChevronDown, X, CheckCircle2 } from 'lucide-react';
+import { BarChart3, BookOpen, Code2, RefreshCw, Zap, Target, ArrowRight, Sparkles, ChevronDown, X, CheckCircle2, Plus } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, buttonVariants } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -14,6 +14,21 @@ const features = [
   { icon: RefreshCw, title: 'Spaced Repetition', desc: 'Smart revision scheduling so nothing slips through the cracks.' },
   { icon: Target, title: 'Daily Missions', desc: 'Wake up to a focused plan. Know exactly what to work on today.' },
   { icon: Zap, title: 'Smart Insights', desc: 'Recommendations based on your actual solving patterns.' },
+];
+
+const PLUS_FIELD = [
+  { top: '12%', left: '6%', size: 18, delay: '0s' },
+  { top: '20%', left: '88%', size: 22, delay: '1.2s' },
+  { top: '34%', left: '14%', size: 14, delay: '2.4s' },
+  { top: '45%', left: '72%', size: 20, delay: '0.6s' },
+  { top: '56%', left: '30%', size: 16, delay: '3s' },
+  { top: '63%', left: '92%', size: 18, delay: '1.8s' },
+  { top: '70%', left: '45%', size: 14, delay: '4s' },
+  { top: '78%', left: '12%', size: 22, delay: '2.2s' },
+  { top: '85%', left: '68%', size: 16, delay: '0.9s' },
+  { top: '30%', left: '58%', size: 12, delay: '3.6s' },
+  { top: '92%', left: '35%', size: 18, delay: '1.5s' },
+  { top: '10%', left: '42%', size: 14, delay: '4.8s' },
 ];
 
 export default function LandingPage() {
@@ -65,10 +80,17 @@ export default function LandingPage() {
         </div>
       )}
 
-      {/* Soft, static backdrop — dot grid + a single restrained accent, never animated */}
+      {/* Backdrop — static dot grid + breathing plus accents (landing only) */}
       <div className="pointer-events-none fixed inset-0 -z-10 bg-dots" />
-      <div className="pointer-events-none fixed inset-0 -z-10">
-        <div className="absolute -top-40 left-1/2 h-[480px] w-[720px] -translate-x-1/2 rounded-full bg-primary/6 blur-[120px]" />
+      <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden="true">
+        {PLUS_FIELD.map((p, i) => (
+          <Plus
+            key={i}
+            strokeWidth={2.5}
+            className="breathe absolute text-primary"
+            style={{ top: p.top, left: p.left, width: p.size, height: p.size, animationDelay: p.delay }}
+          />
+        ))}
       </div>
 
       {/* Navbar */}
@@ -168,7 +190,7 @@ export default function LandingPage() {
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {features.map((f) => (
-              <Card key={f.title} className="p-6 transition-colors hover:border-border/80 hover:bg-card/80">
+              <Card key={f.title} className="p-6 transition-colors hover:border-border/80">
                 <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
                   <f.icon className="h-5 w-5" />
                 </div>

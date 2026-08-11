@@ -141,7 +141,7 @@ export default function JournalPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {entries.map((journal) => (
-              <div key={journal.id} className="rounded-xl bg-secondary/30 px-5 py-4">
+              <div key={journal.id} className="rounded-xl bg-secondary/50 px-5 py-4">
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-sm font-medium">{new Date(journal.entryDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</p>
                   <div className="flex items-center gap-2 text-lg">

@@ -121,7 +121,7 @@ const InsightCard = memo(function InsightCard({ insight }: { insight: Insight })
   return (
     <Card
       className={`p-5 transition-all ${
-        isUnlock ? 'border-dashed bg-card/40' : 'hover:border-primary/20'
+        isUnlock ? 'border-dashed bg-card' : 'hover:border-primary/20'
       }`}
     >
       <div className="flex items-center justify-between gap-2">

@@ -213,7 +213,7 @@ export default function DashboardPage() {
                   <Link
                     key={rev.id}
                     to="/app/revision"
-                    className="group flex items-center gap-3 rounded-xl bg-secondary/40 px-4 py-3 transition-colors hover:bg-secondary"
+                    className="group flex items-center gap-3 rounded-xl bg-secondary/50 px-4 py-3 transition-colors hover:bg-secondary"
                   >
                     <RefreshCw className="h-4 w-4 shrink-0 text-warning" />
                     <div className="min-w-0 flex-1">
@@ -230,7 +230,7 @@ export default function DashboardPage() {
                     href={`https://leetcode.com/problems/${problem.titleSlug}/`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group flex items-center gap-3 rounded-xl bg-secondary/40 px-4 py-3 transition-colors hover:bg-secondary"
+                    className="group flex items-center gap-3 rounded-xl bg-secondary/50 px-4 py-3 transition-colors hover:bg-secondary"
                   >
                     <Code2 className="h-4 w-4 shrink-0 text-success" />
                     <div className="min-w-0 flex-1">

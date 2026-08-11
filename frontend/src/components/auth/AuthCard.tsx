@@ -168,7 +168,17 @@ export default function AuthCard({ tab, onTabChange }: AuthCardProps) {
       </div>
 
       {tab === 'signin' ? (
-        <form key="signin" onSubmit={handleLogin} className="fade-in-up space-y-4">
+        <form
+          key="signin"
+          onSubmit={handleLogin}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing && (e.target as HTMLElement).tagName === 'INPUT') {
+              e.preventDefault();
+              e.currentTarget.requestSubmit();
+            }
+          }}
+          className="fade-in-up space-y-4"
+        >
           <div>
             <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-muted-foreground">
               Email or Username
@@ -196,7 +206,17 @@ export default function AuthCard({ tab, onTabChange }: AuthCardProps) {
           </Button>
         </form>
       ) : (
-        <form key="signup" onSubmit={handleRegister} className="fade-in-up space-y-4">
+        <form
+          key="signup"
+          onSubmit={handleRegister}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.nativeEvent.isComposing && (e.target as HTMLElement).tagName === 'INPUT') {
+              e.preventDefault();
+              e.currentTarget.requestSubmit();
+            }
+          }}
+          className="fade-in-up space-y-4"
+        >
           <div>
             <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-muted-foreground">
               Email
