@@ -51,7 +51,7 @@ Run: `mvn test`
 - Memory page surfaces fading concepts, patterns, mistakes, and insights from journal entries
 - KpiCard component simplified (no trend/trendValue props)
 - Scoring self-containment: the 13 signal weights live in `SignalWeights` (order = `SIGNAL_NAMES`, same as the breakdown emits); `ScoringContext.weights` carries them per request; calibration is a single global `scorer_weights` row (single-user app, no per-user scope)
-- `ScorerWeightsService` caches the active weight vector; `CalibrationJob` (nightly) least-squares fits weights against stored attempt snapshots and swaps only when MSE improves by >= max(1.0, 5%) on >= 30 samples
+- `ScorerWeightsService` caches the active weight vector; `CalibrationJob` (nightly 02:00 Asia/Kolkata) least-squares fits weights against stored attempt snapshots and swaps only when MSE improves by >= max(1.0, 5%) on >= 10 samples
 - `RecEngineEvaluator` is the shared pure-metric utility (MSE / binary log-loss / rank-AUC, reward = quality/5) used by calibration and the engine report
 - Attempt snapshots for calibration: `PracticeService.submitAttempt` stores `signals_json` (the `ScoreItem` list) + `predicted_score` (breakdown total) before mastery updates
 - `RecommendationResponse.score` mirrors `scoreBreakdown.total`; recommendation lists sort by score desc, then priority asc, then createdAt desc

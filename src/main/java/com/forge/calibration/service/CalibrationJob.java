@@ -40,7 +40,7 @@ public class CalibrationJob {
     private final ProblemAttemptRepository attemptRepository;
     private final ScorerWeightsService scorerWeightsService;
 
-    @Scheduled(cron = "0 0 2 * * *")
+    @Scheduled(cron = "0 0 2 * * *", zone = "Asia/Kolkata")
     @Transactional
     public CalibrationResult calibrate() {
         List<ProblemAttempt> attempts = attemptRepository.findWithPredictedScores(PageRequest.of(0, MAX_SAMPLES));
