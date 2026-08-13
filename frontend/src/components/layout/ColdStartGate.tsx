@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { Logo } from '@/components/brand/Logo';
+import { buttonVariants } from '@/components/ui/Button';
 
 const POLL_INTERVAL = 4000;
 const REQUEST_TIMEOUT = 10000;
@@ -26,70 +27,62 @@ export default function ColdStartGate({ children }: { children: ReactNode }) {
   const [attempt, setAttempt] = useState(0);
   const [cycle, setCycle] = useState(0);
   const resolvedRef = useRef(false);
+  const reqControllerRef = useRef<AbortController | null>(null);
+
+  const poll = useCallback(() => {
+    if (resolvedRef.current) return;
+    const baseUrl = import.meta.env.VITE_API_URL || '/api';
+    const reqController = new AbortController();
+    reqControllerRef.current = reqController;
+    const timeoutTimer = setTimeout(() => reqController.abort(), REQUEST_TIMEOUT);
+
+    fetch(`${baseUrl}/health`, {
+      signal: reqController.signal,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('health check failed');
+        if (resolvedRef.current) return;
+        resolvedRef.current = true;
+        clearTimeout(timeoutTimer);
+        try {
+          sessionStorage.setItem(HEALTH_CACHE_KEY, String(Date.now()));
+        } catch {
+          /* ignore */
+        }
+        setState('ready');
+      })
+      .catch(() => {
+        clearTimeout(timeoutTimer);
+        if (resolvedRef.current || reqController.signal.aborted) return;
+        setAttempt((a) => a + 1);
+      });
+  }, []);
 
   useEffect(() => {
-    if (state === 'ready') return;
-    let pollTimer: ReturnType<typeof setTimeout>;
-    let timeoutTimer: ReturnType<typeof setTimeout>;
-    let elapsedInterval: ReturnType<typeof setInterval>;
-
+    if (state !== 'loading') return;
     resolvedRef.current = false;
 
-    const stopTimers = () => {
-      clearTimeout(pollTimer);
-      clearTimeout(timeoutTimer);
-      clearInterval(elapsedInterval);
-    };
-
-    const fail = () => {
-      if (resolvedRef.current) return;
-      setAttempt((a) => {
-        const next = a + 1;
-        if (next >= MAX_RETRIES) {
-          setState('timeout');
-          stopTimers();
-          return next;
-        }
-        pollTimer = setTimeout(poll, POLL_INTERVAL);
-        return next;
-      });
-    };
-
-    const poll = () => {
-      const baseUrl = import.meta.env.VITE_API_URL || '/api';
-      const reqController = new AbortController();
-      timeoutTimer = setTimeout(() => reqController.abort(), REQUEST_TIMEOUT);
-
-      fetch(`${baseUrl}/health`, {
-        signal: reqController.signal,
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error('health check failed');
-          resolvedRef.current = true;
-          stopTimers();
-          try {
-            sessionStorage.setItem(HEALTH_CACHE_KEY, String(Date.now()));
-          } catch {
-            /* ignore */
-          }
-          setState('ready');
-        })
-        .catch(() => {
-          clearTimeout(timeoutTimer);
-          fail();
-        });
-    };
-
-    elapsedInterval = setInterval(() => {
+    const elapsedInterval = setInterval(() => {
       setElapsed((e) => e + 1);
     }, 1000);
 
     poll();
 
     return () => {
-      stopTimers();
+      clearInterval(elapsedInterval);
+      reqControllerRef.current?.abort();
     };
-  }, [state, cycle]);
+  }, [state, cycle, poll]);
+
+  useEffect(() => {
+    if (state !== 'loading' || resolvedRef.current || attempt === 0) return;
+    if (attempt >= MAX_RETRIES) {
+      setState('timeout');
+      return;
+    }
+    const pollTimer = setTimeout(poll, POLL_INTERVAL);
+    return () => clearTimeout(pollTimer);
+  }, [attempt, state, cycle, poll]);
 
   if (state === 'ready') return <>{children}</>;
 
@@ -130,7 +123,7 @@ export default function ColdStartGate({ children }: { children: ReactNode }) {
                   setElapsed(0);
                   setCycle((c) => c + 1);
                 }}
-                className="font-medium text-primary hover:text-primary/80 transition-colors"
+                className={buttonVariants({ variant: 'ghost', size: 'sm' })}
               >
                 Retry
               </button>

@@ -2,7 +2,9 @@ package com.forge.leetcode.service;
 
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
+import com.forge.common.exception.BadRequestException;
 import com.forge.common.exception.ResourceNotFoundException;
+import com.forge.common.exception.ServiceUnavailableException;
 import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.TimezoneUtil;
 import com.forge.leetcode.client.LeetCodeClient;
@@ -57,21 +59,21 @@ public class LeetCodeFetchService {
 
                 String lcUsername = user.getLeetcodeUsername();
                 if (lcUsername == null || lcUsername.isBlank()) {
-                    throw new IllegalStateException("No LeetCode username set. Update your profile first.");
+                    throw new BadRequestException("No LeetCode username set. Update your profile first.");
                 }
 
                 LeetCodeGraphQlResponse graphqlResponse = leetCodeClient.fetchUserProfile(lcUsername);
                 if (graphqlResponse == null || graphqlResponse.getData() == null) {
-                    throw new IllegalStateException("Could not fetch LeetCode data for: " + lcUsername);
+                    throw new ServiceUnavailableException("Could not fetch LeetCode data for: " + lcUsername);
                 }
 
                 LeetCodeGraphQlResponse.Data data = graphqlResponse.getData();
                 LeetCodeGraphQlResponse.MatchedUser matchedUser = data.getMatchedUser();
                 if (matchedUser == null) {
-                    throw new IllegalStateException("LeetCode user not found: " + lcUsername);
+                    throw new ResourceNotFoundException("LeetCode user", "username", lcUsername);
                 }
                 if (matchedUser.getTagProblemCounts() == null) {
-                    throw new IllegalStateException(
+                    throw new ServiceUnavailableException(
                             "LeetCode response is missing tag problem counts; aborting sync to protect existing data");
                 }
 
@@ -165,7 +167,7 @@ public class LeetCodeFetchService {
         }
 
         if (allTags.isEmpty() && !tagStatRepository.findByUserId(userId).isEmpty()) {
-            throw new IllegalStateException(
+            throw new ServiceUnavailableException(
                     "LeetCode sync produced no tag stats while existing stats are present; aborting to protect existing data");
         }
 

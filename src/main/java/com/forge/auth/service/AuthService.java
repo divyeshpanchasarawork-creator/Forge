@@ -65,12 +65,27 @@ public class AuthService {
         }
 
         String tokenHash = hash(refreshTokenValue);
-        if (refreshTokenRepository.findByTokenHashAndRevokedFalseAndExpiresAtAfter(tokenHash, LocalDateTime.now())
-                .isEmpty()) {
+        RefreshToken stored = refreshTokenRepository.findByTokenHash(tokenHash).orElse(null);
+        if (stored == null || stored.isRevoked() || stored.getExpiresAt().isBefore(LocalDateTime.now())) {
+            // Reuse detection: a revoked row means the token was already consumed (or the whole
+            // family was revoked) — replaying it is a signal the token was stolen, so revoke the
+            // family and reject.
+            if (stored != null && stored.isRevoked()) {
+                refreshTokenRepository.revokeAllForUser(stored.getUserId());
+                log.warn("Refresh token reuse detected; revoked all tokens for user {}", stored.getUserId());
+            }
             throw new BadRequestException("Invalid or expired refresh token");
         }
 
-        UUID userId = jwtTokenProvider.getUserIdFromToken(refreshTokenValue);
+        // Atomic claim: only one concurrent refresh may consume this token. The UPDATE re-checks
+        // revoked=false after acquiring the row lock, so a parallel replay matches 0 rows and is
+        // rejected instead of minting a second live session.
+        int claimed = refreshTokenRepository.markRevoked(stored.getId(), LocalDateTime.now());
+        if (claimed == 0) {
+            throw new BadRequestException("Invalid or expired refresh token");
+        }
+
+        UUID userId = stored.getUserId();
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 

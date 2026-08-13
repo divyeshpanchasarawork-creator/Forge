@@ -32,9 +32,14 @@ public class ProdAdminSeedInitializer implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        if (adminUsername.isBlank() || adminPassword.isBlank()) {
-            log.error("Prod admin seeding skipped: set ADMIN_USERNAME and ADMIN_PASSWORD env vars to enable it");
+        if (userRepository.count() > 0) {
             return;
+        }
+        if (adminUsername.isBlank() || adminPassword.isBlank()) {
+            throw new IllegalStateException(
+                    "Fresh prod database has no users but ADMIN_USERNAME/ADMIN_PASSWORD are not set. "
+                            + "Refusing to boot without an admin account — set ADMIN_PASSWORD in the "
+                            + "Render dashboard and redeploy.");
         }
         seedAdminUser();
     }

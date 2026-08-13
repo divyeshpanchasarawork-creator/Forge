@@ -73,6 +73,7 @@ class RecommendationServiceTest {
         user.setDailyGenerationsUsed(1);
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(userRepository.reserveDailyGeneration(eq(userId), any(LocalDate.class), eq(4))).thenReturn(1);
+        when(userRepository.findDailyGenerationsUsed(userId)).thenReturn(2);
         when(recommendationEngine.generateForUser(userId, true)).thenReturn(List.of());
         when(problemScorer.context(userId)).thenReturn(new ProblemScorer.ScoringContext(
                 List.of(), List.of(), List.of(), List.of(), 5, RewardModel.stats(List.of()), SignalWeights.DEFAULT,
@@ -80,9 +81,10 @@ class RecommendationServiceTest {
 
         GenerateResponse resp = service.generateRecommendations();
 
-        assertEquals(3, resp.getRemainingGenerations());
+        assertEquals(2, resp.getRemainingGenerations());
         assertEquals(4, resp.getDailyLimit());
         verify(userRepository).reserveDailyGeneration(eq(userId), any(LocalDate.class), eq(4));
+        verify(userRepository).findDailyGenerationsUsed(userId);
         verify(recommendationEngine).generateForUser(userId, true);
         verify(userRepository, never()).releaseDailyGeneration(any(), any());
     }

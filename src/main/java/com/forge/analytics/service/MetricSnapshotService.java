@@ -4,6 +4,7 @@ import com.forge.analytics.entity.DailyMetric;
 import com.forge.analytics.repository.DailyMetricRepository;
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
+import com.forge.common.exception.ResourceNotFoundException;
 import com.forge.common.util.TopicFilters;
 import com.forge.common.util.TimezoneUtil;
 import com.forge.intelligence.service.ForgettingCurveService;
@@ -76,7 +77,8 @@ public class MetricSnapshotService {
         DailyMetric metric = dailyMetricRepository.findByUserIdAndMetricDate(userId, today)
                 .orElseGet(() -> {
                     DailyMetric m = new DailyMetric();
-                    m.setUser(userRepository.findById(userId).orElseThrow());
+                    m.setUser(userRepository.findById(userId)
+                            .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId)));
                     m.setMetricDate(today);
                     return m;
                 });

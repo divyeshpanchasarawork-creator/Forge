@@ -1,5 +1,6 @@
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { parseApiError } from '@/lib/error';
+import { Button } from '@/components/ui/Button';
 
 interface Props {
   error: unknown;
@@ -22,13 +23,10 @@ export default function ApiErrorState({ error, onRetry, title = 'Something went 
           {parseApiError(error)}
         </p>
       </div>
-      <button
-        onClick={onRetry}
-        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.97]"
-      >
+      <Button onClick={onRetry} variant="destructive">
         <RefreshCw className="h-4 w-4" />
         Try again
-      </button>
+      </Button>
     </div>
   );
 }

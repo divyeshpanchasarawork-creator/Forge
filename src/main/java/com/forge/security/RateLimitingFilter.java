@@ -4,17 +4,12 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
-@Component
-@Order(1)
 public class RateLimitingFilter extends OncePerRequestFilter {
 
     private static final int MAX_REQUESTS = 5;
@@ -49,13 +44,35 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     }
 
     private String getClientIp(HttpServletRequest request) {
-        // With server.forward-headers-strategy=framework the ForwardedHeaderFilter runs
-        // first (order Integer.MIN_VALUE) and rewrites remoteAddr to the client IP from
-        // X-Forwarded-For, so this never trusts a raw client-supplied header directly.
+        // Key on the RIGHTMOST hop of X-Forwarded-For — the entry appended by the trusted
+        // edge proxy (Render), which a client cannot control. Leftmost entries are attacker-
+        // supplied; with forward-headers-strategy=framework the rewritten remoteAddr would
+        // reflect that spoofable value, so XFF is resolved here instead.
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) {
+            String[] hops = xff.split(",");
+            for (int i = hops.length - 1; i >= 0; i--) {
+                String hop = hops[i].trim();
+                if (isIpLiteral(hop)) {
+                    return truncate(hop);
+                }
+            }
+            // XFF present but unparseable -> collapse to a single shared bucket so clients
+            // cannot churn unlimited buckets with malformed headers.
+            return "unknown";
+        }
         String ip = request.getRemoteAddr();
         if (ip == null) return "unknown";
-        ip = ip.trim();
-        if (ip.length() > 64) ip = ip.substring(0, 64);
+        return truncate(ip.trim());
+    }
+
+    private static boolean isIpLiteral(String value) {
+        if (value == null || value.isEmpty()) return false;
+        return value.matches("\\d{1,3}(\\.\\d{1,3}){3}") || value.contains(":");
+    }
+
+    private static String truncate(String ip) {
+        if (ip.length() > 64) return ip.substring(0, 64);
         return ip.isEmpty() ? "unknown" : ip;
     }
 
@@ -66,23 +83,20 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     }
 
     private static class Bucket {
-        private final AtomicInteger count = new AtomicInteger(0);
-        private volatile long windowStart = System.currentTimeMillis();
+        private static final double TOKENS_PER_MS = (double) MAX_REQUESTS / WINDOW_MS;
+
+        private double tokens = MAX_REQUESTS;
+        private long lastRefill = System.currentTimeMillis();
         private volatile long lastAccess = System.currentTimeMillis();
 
-        boolean tryConsume() {
+        synchronized boolean tryConsume() {
             long now = System.currentTimeMillis();
-            long ws = windowStart;
-            if (now - ws > WINDOW_MS) {
-                synchronized (this) {
-                    if (now - windowStart > WINDOW_MS) {
-                        windowStart = now;
-                        count.set(0);
-                    }
-                }
-            }
+            tokens = Math.min(MAX_REQUESTS, tokens + (now - lastRefill) * TOKENS_PER_MS);
+            lastRefill = now;
             lastAccess = now;
-            return count.incrementAndGet() <= MAX_REQUESTS;
+            if (tokens < 1.0) return false;
+            tokens -= 1.0;
+            return true;
         }
 
         long lastAccess() {

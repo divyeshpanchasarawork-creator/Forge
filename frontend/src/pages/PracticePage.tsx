@@ -63,7 +63,6 @@ const ProblemRow = memo(function ProblemRow({ problem, index }: { problem: Pract
     mutationFn: (payload: ProblemAttemptRequest) => practiceApi.submitAttempt(payload).then((res) => res.data),
     onSuccess: (res) => {
       setFeedback(res.data.feedback);
-      setOpen(false);
       setError('');
       queryClient.invalidateQueries({ queryKey: ['practice', 'queue'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
@@ -194,8 +193,8 @@ const ProblemRow = memo(function ProblemRow({ problem, index }: { problem: Pract
               <CheckCircle2 className="h-3.5 w-3.5" /> {feedback}
             </p>
           )}
-          <Button size="sm" className="mt-3" onClick={handleSubmit} loading={submit.isPending} disabled={submit.isPending}>
-            {submit.isPending ? 'Saving…' : 'Save result'}
+          <Button size="sm" className="mt-3" onClick={handleSubmit} loading={submit.isPending} disabled={submit.isPending || !!feedback}>
+            {submit.isPending ? 'Saving…' : feedback ? 'Saved' : 'Save result'}
           </Button>
         </div>
       )}

@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 
 interface Props {
   children: ReactNode;
@@ -39,19 +40,13 @@ export default class ErrorBoundary extends Component<Props, State> {
             An unexpected error interrupted this screen. Your data is safe — reload to continue.
           </p>
           <div className="flex items-center gap-2">
-            <button
-              onClick={this.handleReset}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
+            <Button onClick={this.handleReset}>
               <RefreshCw className="h-4 w-4" />
               Try again
-            </button>
-            <button
-              onClick={() => window.location.reload()}
-              className="rounded-lg border border-border bg-secondary px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary/70"
-            >
+            </Button>
+            <Button variant="outline" onClick={() => window.location.reload()}>
               Reload page
-            </button>
+            </Button>
           </div>
         </div>
       </div>

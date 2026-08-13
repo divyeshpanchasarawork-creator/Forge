@@ -2,6 +2,7 @@ package com.forge.intelligence.service;
 
 import com.forge.analytics.repository.DailyMetricRepository;
 import com.forge.auth.repository.UserRepository;
+import com.forge.common.exception.ResourceNotFoundException;
 import com.forge.common.util.TimezoneUtil;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.practice.repository.ProblemAttemptRepository;
@@ -52,7 +53,8 @@ public class ColdStartService {
     }
 
     public List<Topic> seedStarterTopics(UUID userId) {
-        var user = userRepository.findById(userId).orElseThrow();
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
         List<Topic> existing = topicRepository.findByUserId(userId, PageRequest.of(0, 200));
         if (!existing.isEmpty()) return existing;
 

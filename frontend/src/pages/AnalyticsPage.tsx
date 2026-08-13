@@ -2,11 +2,15 @@ import { memo, useMemo, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { analyticsApi } from '@/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { HeroCard } from '@/components/ui/HeroCard';
+import { ProgressBar } from '@/components/ui/ProgressBar';
+import { Button } from '@/components/ui/Button';
 import { ChartSkeleton, SkeletonCard } from '@/components/ui/LoadingSkeleton';
 import ApiErrorState from '@/components/ui/ApiErrorState';
 import { targetLevels, getTargetLevel } from '@/lib/targetLevels';
-import { scoreTone, toneText, toneFill } from '@/lib/score';
+import { scoreTone, toneText } from '@/lib/score';
 import {
   BarChart, Bar, LineChart, Line, ReferenceDot, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Cell,
@@ -514,26 +518,24 @@ export default function AnalyticsPage() {
       <h1 className="text-xl font-semibold tracking-tight">Analytics</h1>
 
       {/* Company Readiness – Hero */}
-      <section className="fade-in-up rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-card to-card p-6">
-        <CardTitle className="flex items-center gap-2">
-          <Target className="h-4 w-4 text-primary" />
-          Company Readiness
-        </CardTitle>
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="rounded-xl bg-secondary/50 p-6 text-center">
-            <p className={`text-5xl font-bold ${toneText[scoreTone(rs, { good: 80, fair: 50 })]}`}>{rs}</p>
-            <p className="mt-1 text-sm text-muted-foreground">Readiness Score</p>
-            <p className="mt-2 text-xs text-muted-foreground">
-              for <span className="font-medium text-primary">Level {tl} — {target.label}</span>
-              <span className="block text-micro">{target.companies}</span>
-            </p>
-            <div className="mt-4 h-3 overflow-hidden rounded-full bg-secondary">
-              <div
-                className={`h-3 rounded-full transition-all ${toneFill[scoreTone(rs, { good: 80, fair: 50 })]}`}
-                style={{ width: `${rs}%` }}
+      <HeroCard className="fade-in-up">
+        <div className="p-6">
+          <SectionHeader title="Company Readiness" icon={<Target className="h-4 w-4" />} />
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="rounded-xl bg-secondary/50 p-6 text-center">
+              <p className={`text-5xl font-bold ${toneText[scoreTone(rs, { good: 80, fair: 50 })]}`}>{rs}</p>
+              <p className="mt-1 text-sm text-muted-foreground">Readiness Score</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                for <span className="font-medium text-primary">Level {tl} — {target.label}</span>
+                <span className="block text-micro">{target.companies}</span>
+              </p>
+              <ProgressBar
+                value={rs}
+                tone={scoreTone(rs, { good: 80, fair: 50 })}
+                className="mt-4 h-3"
+                ariaLabel="Readiness score"
               />
             </div>
-          </div>
 
           <div className="space-y-1">
             {targetLevels.map((lv) => {
@@ -564,16 +566,14 @@ export default function AnalyticsPage() {
           At Level {tl} ({target.label}) you're {rs}/100 ready. The fastest path up is closing the {biggest.k}-problem
           gap, then clearing {toNext > 0 ? `${toNext} more` : 'the next target'} problems.
         </SoWhat>
-      </section>
+        </div>
+      </HeroCard>
 
       {/* Learning Curve – Flagship */}
       <section className="fade-in-up" style={{ animationDelay: '40ms' }}>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              Learning Curve — Last 30 Days
-            </CardTitle>
+            <SectionHeader title="Learning Curve — Last 30 Days" icon={<TrendingUp className="h-4 w-4" />} />
           </CardHeader>
           <CardContent>
             {learningCurve && learningCurve.points.length > 0 ? (
@@ -603,10 +603,7 @@ export default function AnalyticsPage() {
         <section className="fade-in-up" style={{ animationDelay: '120ms' }}>
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Code2 className="h-4 w-4 text-primary" />
-                Problems by Difficulty
-              </CardTitle>
+              <SectionHeader title="Problems by Difficulty" icon={<Code2 className="h-4 w-4" />} />
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={240}>
@@ -648,10 +645,7 @@ export default function AnalyticsPage() {
         <section className="fade-in-up" style={{ animationDelay: '180ms' }}>
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-primary" />
-                Mastery by Category
-              </CardTitle>
+              <SectionHeader title="Mastery by Category" icon={<BookOpen className="h-4 w-4" />} />
             </CardHeader>
             <CardContent>
               {masteryData.length > 0 ? (
@@ -682,10 +676,7 @@ export default function AnalyticsPage() {
       <section className="fade-in-up" style={{ animationDelay: '240ms' }}>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Flame className="h-4 w-4 text-warning" />
-              Consistency — Last 28 Weeks
-            </CardTitle>
+            <SectionHeader title="Consistency — Last 28 Days" icon={<Flame className="h-4 w-4" />} />
           </CardHeader>
           <CardContent>
             {heatmap?.some((d) => d.active) ? (
@@ -699,13 +690,14 @@ export default function AnalyticsPage() {
                   Consistency is the #1 predictor of interview success, and this heatmap makes your momentum
                   (or its absence) impossible to ignore.
                 </p>
-                <button
+                <Button
                   onClick={() => navigate('/app/journal')}
-                  className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-4 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                  size="sm"
+                  className="bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary"
                 >
                   Log today's entry
                   <ArrowRight className="h-3 w-3" />
-                </button>
+                </Button>
               </div>
             )}
           </CardContent>
@@ -717,10 +709,7 @@ export default function AnalyticsPage() {
         <section className="fade-in-up" style={{ animationDelay: '300ms' }}>
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="h-4 w-4" />
-                Weakest Topics
-              </CardTitle>
+              <SectionHeader title="Weakest Topics" icon={<AlertTriangle className="h-4 w-4" />} />
             </CardHeader>
             <CardContent className="space-y-3">
               {data.weakestTopics?.length === 0 && (
@@ -733,9 +722,7 @@ export default function AnalyticsPage() {
                     <p className="truncate text-xs text-muted-foreground">{t.category}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <div className="h-2 w-16 rounded-full bg-secondary">
-                      <div className="h-2 rounded-full bg-destructive" style={{ width: `${t.confidence * 10}%` }} />
-                    </div>
+                    <ProgressBar value={t.confidence * 10} tone="danger" className="w-16" ariaLabel={`${t.title} confidence`} />
                     <span className="text-xs">{t.confidence}/10</span>
                   </div>
                 </div>
@@ -747,10 +734,7 @@ export default function AnalyticsPage() {
         <section className="fade-in-up" style={{ animationDelay: '360ms' }}>
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-success">
-                <TrendingUp className="h-4 w-4" />
-                Strongest Topics
-              </CardTitle>
+              <SectionHeader title="Strongest Topics" icon={<TrendingUp className="h-4 w-4" />} />
             </CardHeader>
             <CardContent className="space-y-3">
               {data.strongestTopics?.length === 0 && (
@@ -763,9 +747,7 @@ export default function AnalyticsPage() {
                     <p className="truncate text-xs text-muted-foreground">{t.category}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
-                    <div className="h-2 w-16 rounded-full bg-secondary">
-                      <div className="h-2 rounded-full bg-success" style={{ width: `${t.confidence * 10}%` }} />
-                    </div>
+                    <ProgressBar value={t.confidence * 10} tone="success" className="w-16" ariaLabel={`${t.title} confidence`} />
                     <span className="text-xs">{t.confidence}/10</span>
                   </div>
                 </div>

@@ -33,6 +33,10 @@ services:
         value: admin
       - key: ADMIN_EMAIL
         value: admin@example.com
+      # Render generates this on first deploy; copy it from the service's
+      # "Environment" tab — it is the initial admin login password.
+      - key: ADMIN_PASSWORD
+        generateValue: true
       - key: JAVA_OPTS
         value: "-Xms64m -Xmx256m -XX:MaxMetaspaceSize=192m -XX:CompressedClassSpaceSize=64m -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
 

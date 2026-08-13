@@ -23,12 +23,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -144,7 +146,7 @@ class AuthServiceTest {
     @Test
     void refreshRejectsTokenNotPresentInStore() {
         when(jwtTokenProvider.validateRefreshToken(any())).thenReturn(true);
-        when(refreshTokenRepository.findByTokenHashAndRevokedFalseAndExpiresAtAfter(any(), any())).thenReturn(Optional.empty());
+        when(refreshTokenRepository.findByTokenHash(any())).thenReturn(Optional.empty());
 
         assertThrows(BadRequestException.class, () -> service.refresh("stolen-or-rotated"));
         verify(refreshTokenRepository, never()).save(any());
@@ -153,8 +155,13 @@ class AuthServiceTest {
     @Test
     void refreshRotatesAndStoresNewRefreshToken() {
         when(jwtTokenProvider.validateRefreshToken(any())).thenReturn(true);
-        when(refreshTokenRepository.findByTokenHashAndRevokedFalseAndExpiresAtAfter(any(), any())).thenReturn(Optional.of(new RefreshToken()));
-        when(jwtTokenProvider.getUserIdFromToken(any())).thenReturn(userId);
+        RefreshToken stored = new RefreshToken();
+        stored.setId(UUID.randomUUID());
+        stored.setUserId(userId);
+        stored.setRevoked(false);
+        stored.setExpiresAt(LocalDateTime.now().plusDays(7));
+        when(refreshTokenRepository.findByTokenHash(any())).thenReturn(Optional.of(stored));
+        when(refreshTokenRepository.markRevoked(eq(stored.getId()), any())).thenReturn(1);
         User user = new User();
         user.setId(userId);
         user.setUsername("testuser");
@@ -168,8 +175,40 @@ class AuthServiceTest {
 
         assertEquals("new-access", response.getToken());
         assertEquals("new-refresh", response.getRefreshToken());
+        verify(refreshTokenRepository).markRevoked(eq(stored.getId()), any());
         verify(refreshTokenRepository).deleteByUserId(userId);
         verify(refreshTokenRepository).save(any());
+    }
+
+    @Test
+    void refreshRejectsWhenTokenClaimFailsDueToConcurrentReplay() {
+        when(jwtTokenProvider.validateRefreshToken(any())).thenReturn(true);
+        RefreshToken stored = new RefreshToken();
+        stored.setId(UUID.randomUUID());
+        stored.setUserId(userId);
+        stored.setRevoked(false);
+        stored.setExpiresAt(LocalDateTime.now().plusDays(7));
+        when(refreshTokenRepository.findByTokenHash(any())).thenReturn(Optional.of(stored));
+        when(refreshTokenRepository.markRevoked(eq(stored.getId()), any())).thenReturn(0);
+
+        assertThrows(BadRequestException.class, () -> service.refresh("contended-token"));
+        verify(refreshTokenRepository, never()).save(any());
+        verify(refreshTokenRepository, never()).deleteByUserId(any());
+    }
+
+    @Test
+    void refreshRejectsAlreadyRevokedTokenAndRevokesFamily() {
+        when(jwtTokenProvider.validateRefreshToken(any())).thenReturn(true);
+        RefreshToken stored = new RefreshToken();
+        stored.setId(UUID.randomUUID());
+        stored.setUserId(userId);
+        stored.setRevoked(true);
+        when(refreshTokenRepository.findByTokenHash(any())).thenReturn(Optional.of(stored));
+
+        assertThrows(BadRequestException.class, () -> service.refresh("replayed-token"));
+
+        verify(refreshTokenRepository).revokeAllForUser(userId);
+        verify(refreshTokenRepository, never()).save(any());
     }
 
     @Test

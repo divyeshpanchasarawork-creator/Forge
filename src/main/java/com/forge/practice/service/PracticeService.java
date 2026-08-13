@@ -15,6 +15,7 @@ import com.forge.practice.dto.PracticeProblemResponse;
 import com.forge.practice.dto.PracticeQueueResponse;
 import com.forge.practice.dto.ProblemAttemptRequest;
 import com.forge.practice.dto.ProblemAttemptResponse;
+import com.forge.practice.dto.ProblemAttemptSummary;
 import com.forge.practice.entity.ProblemAttempt;
 import com.forge.practice.repository.ProblemAttemptRepository;
 import com.forge.recommendation.service.CandidatePoolService;
@@ -136,9 +137,12 @@ public class PracticeService {
         return new ProblemAttemptResponse(attempt, updatedTitles, feedback);
     }
 
-    public List<ProblemAttempt> getAttemptHistory(int limit) {
+    public List<ProblemAttemptSummary> getAttemptHistory(int limit) {
         UUID userId = SecurityUtils.getCurrentUserId();
-        return problemAttemptRepository.findByUserIdOrderByAttemptedAtDesc(userId, PageRequest.of(0, Math.min(50, Math.max(1, limit))));
+        return problemAttemptRepository.findByUserIdOrderByAttemptedAtDesc(userId, PageRequest.of(0, Math.min(50, Math.max(1, limit))))
+                .stream()
+                .map(ProblemAttemptSummary::from)
+                .toList();
     }
 
     private void snapshotSignals(ProblemAttempt attempt, ProblemAttemptRequest request, UUID userId) {

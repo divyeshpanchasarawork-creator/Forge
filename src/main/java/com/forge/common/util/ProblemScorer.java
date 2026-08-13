@@ -146,13 +146,21 @@ public class ProblemScorer {
         if (ctx.stats().isEmpty()) return 50.0;
         int totalSolved = ctx.totalSolved();
         if (totalSolved == 0) return 60.0;
-        int easy = totalSolved / 3;
-        int hard = totalSolved / 10;
-        double ratio = (double) easy / totalSolved;
+        // Tag stats carry no per-difficulty breakdown, so estimate from the solve total.
+        int hardEstimate = Math.max(1, totalSolved / 10);
 
-        if ("EASY".equalsIgnoreCase(difficulty) && ratio > 0.4) return 30.0;
-        if ("HARD".equalsIgnoreCase(difficulty) && hard < 5) return 80.0;
-        if ("MEDIUM".equalsIgnoreCase(difficulty)) return 70.0;
+        if ("EASY".equalsIgnoreCase(difficulty)) {
+            // Easy problems are valuable early, then decay toward a mild penalty once the
+            // user has a base (~20 solves) so the engine starts pushing harder topics.
+            return Math.max(30.0, 60.0 - totalSolved * 1.5);
+        }
+        if ("HARD".equalsIgnoreCase(difficulty)) {
+            // Strong early boost, decaying as the user accumulates hard solves.
+            return hardEstimate < 5 ? 80.0 : Math.max(40.0, 80.0 - hardEstimate * 4);
+        }
+        if ("MEDIUM".equalsIgnoreCase(difficulty)) {
+            return 70.0;
+        }
         return 50.0;
     }
 

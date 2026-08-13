@@ -4,11 +4,14 @@ import com.forge.common.dto.ApiResponse;
 import com.forge.practice.dto.PracticeQueueResponse;
 import com.forge.practice.dto.ProblemAttemptRequest;
 import com.forge.practice.dto.ProblemAttemptResponse;
-import com.forge.practice.entity.ProblemAttempt;
+import com.forge.practice.dto.ProblemAttemptSummary;
 import com.forge.practice.service.PracticeService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,6 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/practice")
 @RequiredArgsConstructor
+@Validated
 public class PracticeController {
 
     private final PracticeService practiceService;
@@ -31,7 +35,8 @@ public class PracticeController {
     }
 
     @GetMapping("/attempts")
-    public ResponseEntity<ApiResponse<List<ProblemAttempt>>> getAttempts(@RequestParam(defaultValue = "20") int limit) {
+    public ResponseEntity<ApiResponse<List<ProblemAttemptSummary>>> getAttempts(
+            @RequestParam(defaultValue = "20") @Min(1) @Max(100) int limit) {
         return ResponseEntity.ok(ApiResponse.success(practiceService.getAttemptHistory(limit)));
     }
 }

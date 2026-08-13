@@ -41,4 +41,12 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("UPDATE User u SET u.dailyGenerationsUsed = u.dailyGenerationsUsed - 1 " +
             "WHERE u.id = :userId AND u.dailyGenerationsUsed > 0 AND u.lastGenerationDate = :today")
     int releaseDailyGeneration(@Param("userId") UUID userId, @Param("today") LocalDate today);
+
+    /**
+     * Fresh read of the daily-generation counter straight from the DB. A projection query
+     * bypasses the first-level entity cache, so it reflects bulk @Modifying updates that the
+     * managed entity does not.
+     */
+    @Query("SELECT u.dailyGenerationsUsed FROM User u WHERE u.id = :userId")
+    int findDailyGenerationsUsed(@Param("userId") UUID userId);
 }

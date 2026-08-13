@@ -11,6 +11,8 @@ import com.forge.intelligence.service.SkillRatingService;
 import com.forge.knowledge.service.KnowledgeGraphService;
 import com.forge.practice.dto.PracticeProblemResponse;
 import com.forge.practice.dto.PracticeQueueResponse;
+import com.forge.practice.dto.ProblemAttemptSummary;
+import com.forge.practice.entity.ProblemAttempt;
 import com.forge.practice.repository.ProblemAttemptRepository;
 import com.forge.practice.service.PracticeService;
 import com.forge.practice.service.SessionPlanner;
@@ -23,8 +25,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -119,5 +123,51 @@ class PracticeServiceTest {
         service.getPracticeQueue();
 
         verify(problemAttemptRepository, never()).findByUserIdOrderByAttemptedAtDesc(any(), any());
+    }
+
+    @Test
+    void getAttemptHistoryMapsEntitiesToSummaries() {
+        ProblemAttempt attempt = new ProblemAttempt();
+        attempt.setId(UUID.randomUUID());
+        attempt.setProblemTitle("Two Sum");
+        attempt.setProblemSlug("two-sum");
+        attempt.setDifficulty("EASY");
+        attempt.setTopicTagSlug("arrays");
+        attempt.setTopicTagName("Arrays");
+        attempt.setOutcome("SOLVED");
+        attempt.setHintsUsed(0);
+        attempt.setTimeTakenSeconds(420);
+        attempt.setQuality(5);
+        attempt.setAttemptedAt(java.time.LocalDateTime.of(2026, 8, 12, 10, 0));
+        when(problemAttemptRepository.findByUserIdOrderByAttemptedAtDesc(eq(userId), any()))
+                .thenReturn(List.of(attempt));
+
+        List<ProblemAttemptSummary> result = service.getAttemptHistory(20);
+
+        assertEquals(1, result.size());
+        ProblemAttemptSummary s = result.get(0);
+        assertEquals(attempt.getId(), s.id());
+        assertEquals("Two Sum", s.problemTitle());
+        assertEquals("two-sum", s.problemSlug());
+        assertEquals("EASY", s.difficulty());
+        assertEquals("arrays", s.topicTagSlug());
+        assertEquals("Arrays", s.topicTagName());
+        assertEquals("SOLVED", s.outcome());
+        assertEquals(0, s.hintsUsed());
+        assertEquals(420, s.timeTakenSeconds());
+        assertEquals(5, s.quality());
+        assertEquals(java.time.LocalDateTime.of(2026, 8, 12, 10, 0), s.attemptedAt());
+    }
+
+    @Test
+    void getAttemptHistoryClampsLimitToFifty() {
+        when(problemAttemptRepository.findByUserIdOrderByAttemptedAtDesc(eq(userId), any()))
+                .thenReturn(List.of());
+
+        service.getAttemptHistory(999);
+
+        ArgumentCaptor<PageRequest> captor = ArgumentCaptor.forClass(PageRequest.class);
+        verify(problemAttemptRepository).findByUserIdOrderByAttemptedAtDesc(eq(userId), captor.capture());
+        assertEquals(50, captor.getValue().getPageSize());
     }
 }

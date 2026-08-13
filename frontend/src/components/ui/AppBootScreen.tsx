@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Logo } from '@/components/brand/Logo';
+import { Button } from '@/components/ui/Button';
 
 const RETRY_THRESHOLD = 25;
 
@@ -40,13 +41,9 @@ export default function AppBootScreen() {
           {elapsed}s
         </p>
         {stuck && (
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="rounded-lg border border-border bg-secondary/60 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
-          >
+          <Button variant="outline" type="button" onClick={() => window.location.reload()}>
             Retry
-          </button>
+          </Button>
         )}
       </div>
     </div>

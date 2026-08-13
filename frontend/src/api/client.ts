@@ -49,6 +49,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    if (!originalRequest) return Promise.reject(error);
     const status = error.response?.status;
 
     // Cold-start retry: 502/503/504 or a request timeout (a cold backend can hang

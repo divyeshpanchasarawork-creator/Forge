@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatTile } from '@/components/ui/StatTile';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { Callout } from '@/components/ui/Callout';
 import { Badge } from '@/components/ui/Badge';
 import { User, Code2, Save, RefreshCw, Target, Sparkles, Activity, Gauge, TrendingDown } from 'lucide-react';
@@ -14,9 +15,6 @@ import KpiCard from '@/components/ui/KpiCard';
 
 const fmt = (v?: number | null) =>
   v != null && Number.isFinite(v) ? v.toFixed(2) : '—';
-
-const inputClass =
-  'w-full rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all focus:border-primary focus:bg-secondary focus:outline-none focus:ring-1 focus:ring-primary';
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
@@ -183,29 +181,27 @@ export default function ProfilePage() {
         <CardContent className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Username</label>
-            <input
+            <Input
               type="text"
               value={user?.username || ''}
               disabled
-              className="w-full rounded-lg border border-input bg-secondary px-4 py-2.5 text-sm text-foreground opacity-60"
+              className="opacity-60"
             />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Display Name</label>
-            <input
+            <Input
               type="text"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              className={inputClass}
             />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Email</label>
-            <input
+            <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className={inputClass}
             />
           </div>
         </CardContent>
@@ -218,11 +214,10 @@ export default function ProfilePage() {
         <CardContent className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-muted-foreground">LeetCode Username</label>
-            <input
+            <Input
               type="text"
               value={leetcodeUsername}
               onChange={(e) => setLeetcodeUsername(e.target.value)}
-              className={inputClass}
               placeholder="your_leetcode_username"
             />
           </div>

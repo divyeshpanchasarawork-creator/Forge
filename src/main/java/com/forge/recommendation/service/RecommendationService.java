@@ -56,9 +56,7 @@ public class RecommendationService {
 
         try {
             List<Recommendation> recs = recommendationEngine.generateForUser(userId, true);
-            int used = userRepository.findById(userId)
-                    .map(u -> u.getDailyGenerationsUsed() != null ? u.getDailyGenerationsUsed() : 0)
-                    .orElse(0);
+            int used = userRepository.findDailyGenerationsUsed(userId);
             List<RecommendationResponse> responseRecs = toResponses(recs);
             return new GenerateResponse(responseRecs, Math.max(0, DAILY_LIMIT - used), DAILY_LIMIT);
         } catch (RuntimeException e) {

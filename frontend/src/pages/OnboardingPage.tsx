@@ -6,11 +6,9 @@ import { parseApiError } from '@/lib/error';
 import { getTargetLevel } from '@/lib/targetLevels';
 import { StatTile } from '@/components/ui/StatTile';
 import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 import { Callout } from '@/components/ui/Callout';
 import { Flame, Code2, ArrowRight } from 'lucide-react';
-
-const inputClass =
-  'mt-3 w-full rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all focus:border-primary focus:bg-secondary focus:outline-none focus:ring-1 focus:ring-primary';
 
 export default function OnboardingPage() {
   const { user, setUser } = useAuth();
@@ -102,11 +100,11 @@ export default function OnboardingPage() {
                 Skip for now — you can sync anytime from Profile.
               </p>
             </div>
-            <input
+            <Input
               type="text"
               value={leetcodeUsername}
               onChange={(e) => setLeetcodeUsername(e.target.value)}
-              className={inputClass}
+              className="mt-3"
               placeholder="your_leetcode_username"
             />
           </div>

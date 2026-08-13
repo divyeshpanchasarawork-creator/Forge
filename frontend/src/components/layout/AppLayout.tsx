@@ -83,6 +83,7 @@ export default function AppLayout() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (paletteOpen) return;
       if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
       const target = e.target as HTMLElement | null;
       const editable =
@@ -90,7 +91,7 @@ export default function AppLayout() {
         target?.tagName === 'TEXTAREA' ||
         target?.tagName === 'SELECT' ||
         target?.isContentEditable;
-      if (!paletteOpen && editable) return;
+      if (editable) return;
       const key = e.code?.startsWith('Digit')
         ? e.code.slice(5)
         : e.code?.startsWith('Numpad')
@@ -98,7 +99,6 @@ export default function AppLayout() {
           : e.key;
       const to = NAV_SHORTCUTS[key];
       if (!to) return;
-      if (paletteOpen) setPaletteOpen(false);
       if (to !== pathRef.current) navigate(to);
     };
     window.addEventListener('keydown', onKey);

@@ -5,6 +5,8 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import ApiErrorState from '@/components/ui/ApiErrorState';
+import { SkeletonList } from '@/components/ui/LoadingSkeleton';
+import { Input } from '@/components/ui/Input';
 import { NotebookPen, ListChecks } from 'lucide-react';
 import { useState } from 'react';
 
@@ -26,7 +28,7 @@ export default function JournalPage() {
 
   const [page, setPage] = useState(0);
 
-  const { data: journalPage, error, refetch } = useQuery({
+  const { data: journalPage, error, refetch, isLoading } = useQuery({
     queryKey: ['journal', 'all', page],
     queryFn: () => journalsApi.getAll(page, 20).then((res) => res.data.data),
   });
@@ -92,14 +94,13 @@ export default function JournalPage() {
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-muted-foreground">Hours Studied</label>
-            <input
+            <Input
               type="number"
               min={0}
               max={24}
               step={0.5}
               value={form.hoursStudied}
               onChange={(e) => setForm({ ...form, hoursStudied: Number(e.target.value) })}
-              className={inputClass}
             />
           </div>
 
@@ -132,7 +133,16 @@ export default function JournalPage() {
       </Card>
 
       {/* All Entries */}
-      {error ? (
+      {isLoading ? (
+        <Card>
+          <CardHeader>
+            <SectionHeader title="All Entries" icon={<ListChecks className="h-4 w-4" />} />
+          </CardHeader>
+          <CardContent>
+            <SkeletonList rows={5} />
+          </CardContent>
+        </Card>
+      ) : error ? (
         <ApiErrorState error={error} onRetry={() => refetch()} />
       ) : entries.length > 0 ? (
         <Card>
