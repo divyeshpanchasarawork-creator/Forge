@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { practiceApi, leetcodeApi } from '@/api';
 import { Badge } from '@/components/ui/Badge';
 import { Button, buttonVariants } from '@/components/ui/Button';
+import { Select } from '@/components/ui/Select';
 import { SignalChip } from '@/components/ui/SignalChip';
 import { Callout } from '@/components/ui/Callout';
 import TeachingEmptyState from '@/components/ui/TeachingEmptyState';
@@ -10,6 +11,7 @@ import { Code, RefreshCw, ExternalLink, CheckCircle2, ChevronDown, ChevronUp, Sp
 import { SkeletonList } from '@/components/ui/LoadingSkeleton';
 import ApiErrorState from '@/components/ui/ApiErrorState';
 import { parseApiError } from '@/lib/error';
+import { useToast } from '@/contexts/ToastContext';
 import type { PracticeProblem, ProblemAttemptRequest } from '@/types';
 
 const segmentConfig: Record<string, { label: string; tone: 'primary' | 'success' | 'warning' | 'danger'; icon: React.ReactNode }> = {
@@ -46,6 +48,7 @@ const outcomeConfig: Record<Outcome, { label: string; base: string; active: stri
 
 const ProblemRow = memo(function ProblemRow({ problem, index }: { problem: PracticeProblem; index: number }) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [outcome, setOutcome] = useState<Outcome>('SOLVED');
   const [hints, setHints] = useState(0);
@@ -68,8 +71,12 @@ const ProblemRow = memo(function ProblemRow({ problem, index }: { problem: Pract
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['memory'] });
+      toast({ title: 'Attempt recorded', tone: 'success' });
     },
-    onError: (err: unknown) => setError(parseApiError(err)),
+    onError: (err: unknown) => {
+      setError(parseApiError(err));
+      toast({ title: 'Could not record attempt', description: parseApiError(err), tone: 'danger' });
+    },
   });
 
   const handleSubmit = () => {
@@ -163,27 +170,29 @@ const ProblemRow = memo(function ProblemRow({ problem, index }: { problem: Pract
             <div className="ml-auto flex items-center gap-3 text-caption text-muted-foreground">
               <label className="flex items-center gap-1.5">
                 Hints
-                <select
+                <Select
+                  variant="sm"
                   value={hints}
                   onChange={(e) => setHints(Number(e.target.value))}
-                  className="rounded-md border border-border bg-card px-2 py-1 text-xs"
+                  className="w-[4.5rem]"
                 >
                   {[0, 1, 2, 3].map((h) => (
                     <option key={h} value={h}>{h}</option>
                   ))}
-                </select>
+                </Select>
               </label>
               <label className="flex items-center gap-1.5">
                 Time (min)
-                <select
+                <Select
+                  variant="sm"
                   value={time}
                   onChange={(e) => setTime(Number(e.target.value))}
-                  className="rounded-md border border-border bg-card px-2 py-1 text-xs"
+                  className="w-[4.5rem]"
                 >
                   {[0, 5, 10, 15, 20, 30, 45].map((t) => (
                     <option key={t} value={t}>{t === 0 ? '—' : t}</option>
                   ))}
-                </select>
+                </Select>
               </label>
             </div>
           </div>

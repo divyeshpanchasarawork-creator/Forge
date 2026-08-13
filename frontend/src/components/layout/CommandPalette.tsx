@@ -146,6 +146,16 @@ export default function CommandPalette({ open, onClose, recent }: { open: boolea
 
   useEffect(() => {
     if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    return () => {
+      if (previouslyFocused && document.contains(previouslyFocused)) {
+        previouslyFocused.focus();
+      }
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
     const t = setTimeout(() => setDebounced(query.trim()), 250);
     return () => clearTimeout(t);
   }, [query, open]);
@@ -266,6 +276,25 @@ export default function CommandPalette({ open, onClose, recent }: { open: boolea
     }
   };
 
+  const handleContainerKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab') return;
+    const dialog = containerRef.current?.querySelector('[role="dialog"]');
+    if (!dialog) return;
+    const focusables = dialog.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
   const twoLine = (item: PaletteItem) => item.kind === 'problem' || item.kind === 'attempt';
 
   return (
@@ -276,6 +305,7 @@ export default function CommandPalette({ open, onClose, recent }: { open: boolea
         open ? 'opacity-100' : 'pointer-events-none opacity-0'
       )}
       onClick={onClose}
+      onKeyDown={handleContainerKeyDown}
     >
       <div
         role="dialog"
@@ -300,6 +330,8 @@ export default function CommandPalette({ open, onClose, recent }: { open: boolea
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search…"
+                aria-label="Search"
+                autoComplete="off"
                 className="command-palette-input h-full w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               />
               <kbd className="shrink-0 rounded-md border border-border bg-secondary/60 px-1.5 py-0.5 font-mono text-micro text-muted-foreground">esc</kbd>

@@ -13,6 +13,8 @@ import { HeroCard } from '@/components/ui/HeroCard';
 import { SkeletonList } from '@/components/ui/LoadingSkeleton';
 import ApiErrorState from '@/components/ui/ApiErrorState';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
+import { parseApiError } from '@/lib/error';
 import { useState } from 'react';
 import type { Revision } from '@/types';
 import {
@@ -68,6 +70,7 @@ export default function RevisionPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [celebrate, setCelebrate] = useState(false);
   const targetLevel = user?.targetLevel ?? 5;
   const overdueThreshold = targetLevel >= 7 ? '7 days' : targetLevel >= 4 ? '14 days' : '21 days';
@@ -88,10 +91,14 @@ export default function RevisionPage() {
       const completedBefore = (todayRevisions || []).filter((r) => r.completed).length;
       await queryClient.invalidateQueries({ queryKey: ['revisions'] });
       await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      toast({ title: 'Revision complete', tone: 'success' });
       const latest = queryClient.getQueryData<Revision[]>(['revisions', 'today']);
       if (latest && latest.length > 0 && completedBefore < latest.length && latest.every((r) => r.completed)) {
         setCelebrate(true);
       }
+    },
+    onError: (err: unknown) => {
+      toast({ title: 'Could not complete revision', description: parseApiError(err), tone: 'danger' });
     },
   });
 

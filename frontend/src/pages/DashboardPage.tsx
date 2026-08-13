@@ -16,6 +16,7 @@ import ReadinessRing from '@/components/ui/ReadinessRing';
 import ApiErrorState from '@/components/ui/ApiErrorState';
 import { DashboardSkeleton } from '@/components/ui/LoadingSkeleton';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import {
   Flame, Target, RefreshCw, BookOpen, Zap,
   Code2, Brain, Sparkles, ArrowRight,
@@ -38,6 +39,7 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [remaining, setRemaining] = useState<number | null>(null);
 
@@ -63,8 +65,12 @@ export default function DashboardPage() {
       setRemaining(res.remainingGenerations);
       setGenerateError(null);
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      toast({ title: 'Recommendations generated', tone: 'success' });
     },
-    onError: (err) => setGenerateError(parseApiError(err)),
+    onError: (err) => {
+      setGenerateError(parseApiError(err));
+      toast({ title: 'Could not generate recommendations', description: parseApiError(err), tone: 'danger' });
+    },
   });
 
   const resolveMutation = useMutation({
@@ -77,6 +83,7 @@ export default function DashboardPage() {
     },
     onError: (err, _vars) => {
       setGenerateError(parseApiError(err));
+      toast({ title: 'Action failed', description: parseApiError(err), tone: 'danger' });
     },
   });
 

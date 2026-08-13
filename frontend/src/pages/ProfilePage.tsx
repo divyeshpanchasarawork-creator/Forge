@@ -5,12 +5,15 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { StatTile } from '@/components/ui/StatTile';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Callout } from '@/components/ui/Callout';
 import { Badge } from '@/components/ui/Badge';
 import { User, Code2, Save, RefreshCw, Target, Sparkles, Activity, Gauge, TrendingDown } from 'lucide-react';
 import { authApi, leetcodeApi, calibrationApi } from '@/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTargetLevel } from '@/lib/targetLevels';
+import { parseApiError } from '@/lib/error';
+import { useToast } from '@/contexts/ToastContext';
 import KpiCard from '@/components/ui/KpiCard';
 
 const fmt = (v?: number | null) =>
@@ -19,6 +22,7 @@ const fmt = (v?: number | null) =>
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [email, setEmail] = useState(user?.email || '');
   const [leetcodeUsername, setLeetcodeUsername] = useState(user?.leetcodeUsername || '');
@@ -40,6 +44,10 @@ export default function ProfilePage() {
       setUser?.(res.data.data);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
+      toast({ title: 'Profile updated', tone: 'success' });
+    },
+    onError: (err: unknown) => {
+      toast({ title: 'Could not update profile', description: parseApiError(err), tone: 'danger' });
     },
   });
 
@@ -52,6 +60,10 @@ export default function ProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['practice', 'queue'] });
       queryClient.invalidateQueries({ queryKey: ['memory'] });
       queryClient.invalidateQueries({ queryKey: ['roadmap-analysis'] });
+      toast({ title: 'LeetCode data synced', tone: 'success' });
+    },
+    onError: (err: unknown) => {
+      toast({ title: 'Sync failed', description: parseApiError(err), tone: 'danger' });
     },
   });
 
@@ -152,10 +164,10 @@ export default function ProfilePage() {
             once daily within 15 minutes of your chosen time (max 4/day).
           </p>
           <div className="flex items-center gap-3">
-            <select
+            <Select
               value={preferredAnalysisTime}
               onChange={(e) => setPreferredAnalysisTime(e.target.value)}
-              className="rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none"
+              className="max-w-xs"
             >
               <option value="">No scheduled analysis</option>
               {Array.from({ length: 48 }, (_, i) => {
@@ -163,7 +175,7 @@ export default function ProfilePage() {
                 const m = i % 2 === 0 ? '00' : '30';
                 return <option key={i} value={`${h}:${m}`}>{`${h}:${m}`}</option>;
               })}
-            </select>
+            </Select>
           </div>
           <div className="text-caption text-muted-foreground">
             Generations used today: {user?.dailyGenerationsUsed ?? 0} / 4

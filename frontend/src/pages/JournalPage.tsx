@@ -7,6 +7,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import ApiErrorState from '@/components/ui/ApiErrorState';
 import { SkeletonList } from '@/components/ui/LoadingSkeleton';
 import { Input } from '@/components/ui/Input';
+import { useToast } from '@/contexts/ToastContext';
+import { parseApiError } from '@/lib/error';
 import { NotebookPen, ListChecks } from 'lucide-react';
 import { useState } from 'react';
 
@@ -15,6 +17,7 @@ const inputClass =
 
 export default function JournalPage() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [form, setForm] = useState({
     morningGoal: '',
     eveningReflection: '',
@@ -40,6 +43,10 @@ export default function JournalPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['journal'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      toast({ title: 'Journal entry saved', tone: 'success' });
+    },
+    onError: (err: unknown) => {
+      toast({ title: 'Could not save entry', description: parseApiError(err), tone: 'danger' });
     },
   });
 

@@ -5,6 +5,7 @@ import { buttonVariants } from '@/components/ui/Button';
 const POLL_INTERVAL = 4000;
 const REQUEST_TIMEOUT = 10000;
 const MAX_RETRIES = 30;
+const WARMUP_CAP_SECONDS = 90;
 const HEALTH_CACHE_KEY = 'forge_health_ok';
 const HEALTH_CACHE_TTL = 5 * 60 * 1000;
 
@@ -53,7 +54,12 @@ export default function ColdStartGate({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         clearTimeout(timeoutTimer);
-        if (resolvedRef.current || reqController.signal.aborted) return;
+        if (resolvedRef.current) return;
+        // A stale abort from a retry-cycle reset or unmount no longer owns the ref, so it must
+        // not count as a round. Every real failure (including the 10s timeout that dominates
+        // during a cold start) advances the counter — otherwise the bar freezes at 0% and the
+        // next poll is never scheduled.
+        if (reqControllerRef.current !== reqController) return;
         setAttempt((a) => a + 1);
       });
   }, []);
@@ -70,7 +76,9 @@ export default function ColdStartGate({ children }: { children: ReactNode }) {
 
     return () => {
       clearInterval(elapsedInterval);
-      reqControllerRef.current?.abort();
+      const ctrl = reqControllerRef.current;
+      reqControllerRef.current = null;
+      ctrl?.abort();
     };
   }, [state, cycle, poll]);
 
@@ -107,7 +115,7 @@ export default function ColdStartGate({ children }: { children: ReactNode }) {
           <div
             className="h-full rounded-full bg-primary transition-all"
             style={{
-              width: state === 'timeout' ? '95%' : `${Math.min(95, (attempt / MAX_RETRIES) * 100)}%`,
+              width: state === 'timeout' ? '95%' : `${Math.min(95, (elapsed / WARMUP_CAP_SECONDS) * 100)}%`,
               animation: state !== 'timeout' ? 'pulse 2s ease-in-out infinite' : 'none',
             }}
           />
