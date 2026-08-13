@@ -1,5 +1,6 @@
 package com.forge.leetcode.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.forge.auth.entity.User;
 import com.forge.common.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -14,6 +15,7 @@ import lombok.Setter;
 @Table(name = "problem_suggestions")
 public class ProblemSuggestion extends BaseEntity {
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

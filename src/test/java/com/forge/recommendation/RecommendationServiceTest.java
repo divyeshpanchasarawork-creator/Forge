@@ -22,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -45,6 +46,7 @@ class RecommendationServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private ProblemScorer problemScorer;
     @Mock private ProblemLoader problemLoader;
+    @Mock private PlatformTransactionManager transactionManager;
 
     private RecommendationService service;
     private UUID userId;
@@ -53,7 +55,7 @@ class RecommendationServiceTest {
     @BeforeEach
     void setUp() {
         service = new RecommendationService(recommendationRepository, recommendationEngine,
-                recommendationMapper, userRepository, problemScorer, problemLoader);
+                recommendationMapper, userRepository, problemScorer, problemLoader, transactionManager);
         userId = UUID.randomUUID();
         user = new User();
         user.setId(userId);

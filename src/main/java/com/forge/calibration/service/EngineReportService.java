@@ -9,6 +9,7 @@ import com.forge.practice.repository.ProblemAttemptRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,7 @@ public class EngineReportService {
     private final ScorerWeightsRepository scorerWeightsRepository;
     private final ScorerWeightsService scorerWeightsService;
 
+    @Transactional(readOnly = true)
     public EngineReport getReport() {
         List<ProblemAttempt> attempts = attemptRepository.findWithPredictedScores(PageRequest.of(0, MAX_SAMPLES));
         List<Sample> samples = new ArrayList<>();

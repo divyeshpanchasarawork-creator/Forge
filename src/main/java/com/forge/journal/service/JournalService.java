@@ -13,10 +13,15 @@ import com.forge.journal.mapper.JournalMapper;
 import com.forge.journal.repository.JournalRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -30,7 +35,9 @@ public class JournalService {
     private final JournalRepository journalRepository;
     private final UserRepository userRepository;
     private final JournalMapper journalMapper;
+    private final PlatformTransactionManager transactionManager;
 
+    @Transactional(readOnly = true)
     public PagedResponse<JournalResponse> getJournals(int page, int size) {
         UUID userId = SecurityUtils.getCurrentUserId();
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by("entryDate").descending());
@@ -56,14 +63,25 @@ public class JournalService {
         apply(journal, user, entryDate, request);
 
         try {
-            journal = journalRepository.save(journal);
-        } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            journal = findOrCreate(userId, entryDate);
-            apply(journal, user, entryDate, request);
-            journal = journalRepository.save(journal);
+            journal = saveJournal(journal);
+        } catch (DataIntegrityViolationException e) {
+            Journal fresh = findOrCreate(userId, entryDate);
+            apply(fresh, user, entryDate, request);
+            journal = saveJournal(fresh);
         }
         log.info("Journal saved for date: {} by user: {}", entryDate, userId);
         return journalMapper.toResponse(journal);
+    }
+
+    /**
+     * Persists in its own transaction so a {@link DataIntegrityViolationException} (concurrent
+     * same-day upsert) rolls back cleanly and the retry runs against a fresh persistence context.
+     * A retry inside the surrounding transaction would be doomed by the rollback-only marker.
+     */
+    private Journal saveJournal(Journal journal) {
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
+        tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        return tx.execute(status -> journalRepository.save(journal));
     }
 
     private void apply(Journal journal, User user, LocalDate entryDate, JournalRequest request) {

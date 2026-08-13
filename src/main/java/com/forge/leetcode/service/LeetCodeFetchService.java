@@ -106,6 +106,7 @@ public class LeetCodeFetchService {
         txTemplate.executeWithoutResult(status -> recommendationEngine.generateForUser(userId, true));
     }
 
+    @Transactional(readOnly = true)
     public LeetCodeStatsResponse getLatestStats(UUID userId) {
         LeetCodeSnapshot snapshot = snapshotRepository.findByUserId(userId).orElse(null);
         if (snapshot == null) return null;

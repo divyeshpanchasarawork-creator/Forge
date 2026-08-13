@@ -1,5 +1,6 @@
 package com.forge.analytics.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.forge.auth.entity.User;
 import com.forge.common.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -16,6 +17,7 @@ import java.time.LocalDate;
 @Table(name = "daily_metrics")
 public class DailyMetric extends BaseEntity {
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

@@ -15,6 +15,7 @@ import com.forge.topic.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
 import java.util.List;
@@ -30,6 +31,7 @@ public class RoadmapService {
     private final LeetCodeTagStatRepository tagStatRepository;
     private final TopicRepository topicRepository;
 
+    @Transactional(readOnly = true)
     public RoadmapAnalysisResponse getAnalysis() {
         UUID userId = SecurityUtils.getCurrentUserId();
         User user = userRepository.findById(userId)

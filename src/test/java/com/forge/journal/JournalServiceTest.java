@@ -19,6 +19,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -35,13 +36,14 @@ class JournalServiceTest {
 
     @Mock private JournalRepository journalRepository;
     @Mock private UserRepository userRepository;
+    @Mock private PlatformTransactionManager transactionManager;
 
     private JournalService service;
     private UUID userId;
 
     @BeforeEach
     void setUp() {
-        service = new JournalService(journalRepository, userRepository, new JournalMapper());
+        service = new JournalService(journalRepository, userRepository, new JournalMapper(), transactionManager);
         userId = UUID.randomUUID();
         UserPrincipal principal = new UserPrincipal(userId, "testuser", "password", "USER");
         Authentication auth = new UsernamePasswordAuthenticationToken(principal, null, List.of());

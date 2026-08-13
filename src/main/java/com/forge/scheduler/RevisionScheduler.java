@@ -11,8 +11,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,37 +33,44 @@ public class RevisionScheduler {
     private final TopicRepository topicRepository;
     private final RevisionRepository revisionRepository;
     private final UserRepository userRepository;
+    private final TransactionTemplate transactionTemplate;
 
     @Scheduled(cron = "0 */30 * * * *")
-    @Transactional
     public void materializeDueRevisions() {
         // Due dates are day-granular and stored in each user's timezone, so the "today" cutoff
         // must be resolved per user — never the server clock.
         // Single bulk query instead of one exists-check per due topic (N+1).
         Set<UUID> pendingTopicIds = new HashSet<>(revisionRepository.findTopicIdsWithPendingRevision());
 
-        int created = 0;
-        int skipped = 0;
         for (User user : userRepository.findAll()) {
-            List<Topic> due = topicRepository.findTopicsNeedingRevisionByUserId(user.getId(), TimezoneUtil.today(user));
-            for (Topic topic : due) {
-                if (pendingTopicIds.contains(topic.getId())) {
-                    skipped++;
-                    continue;
-                }
-                Revision revision = new Revision();
-                revision.setUser(user);
-                revision.setTopic(topic);
-                revision.setScheduledDate(TimezoneUtil.today(user));
-                revision.setPriority(1);
-                revision.setReason("scheduled");
-                revision.setCompleted(false);
-                revisionRepository.save(revision);
-                created++;
+            try {
+                transactionTemplate.executeWithoutResult(status -> {
+                    LocalDate today = TimezoneUtil.today(user);
+                    List<Topic> due = topicRepository.findTopicsNeedingRevisionByUserId(user.getId(), today);
+                    List<Revision> toCreate = due.stream()
+                            .filter(topic -> !pendingTopicIds.contains(topic.getId()))
+                            .map(topic -> buildRevision(user, topic, today))
+                            .toList();
+                    if (!toCreate.isEmpty()) {
+                        revisionRepository.saveAll(toCreate);
+                        log.info("RevisionScheduler: materialized {} revision(s) for user {} ({} already pending)",
+                                toCreate.size(), user.getId(), due.size() - toCreate.size());
+                    }
+                });
+            } catch (RuntimeException e) {
+                log.error("RevisionScheduler: failed to materialize revisions for user {}", user.getId(), e);
             }
         }
-        if (created > 0) {
-            log.info("RevisionScheduler: materialized {} revision(s) for due topics ({} already pending)", created, skipped);
-        }
+    }
+
+    private Revision buildRevision(User user, Topic topic, LocalDate today) {
+        Revision revision = new Revision();
+        revision.setUser(user);
+        revision.setTopic(topic);
+        revision.setScheduledDate(today);
+        revision.setPriority(1);
+        revision.setReason("scheduled");
+        revision.setCompleted(false);
+        return revision;
     }
 }

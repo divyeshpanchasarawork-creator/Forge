@@ -107,6 +107,7 @@ public class AuthService {
                 .ifPresent(refreshTokenRepository::delete);
     }
 
+    @Transactional
     public void register(RegisterRequest request) {
         String email = request.getEmail().trim().toLowerCase();
         if (userRepository.existsByEmail(email)) {
@@ -128,6 +129,7 @@ public class AuthService {
         log.info("User registered: {}", user.getUsername());
     }
 
+    @Transactional(readOnly = true)
     public LoginResponse.UserInfo getProfile() {
         UUID userId = SecurityUtils.getCurrentUserId();
         User user = userRepository.findById(userId)
@@ -135,6 +137,7 @@ public class AuthService {
         return toUserInfo(user);
     }
 
+    @Transactional
     public LoginResponse.UserInfo updateProfile(ProfileRequest request) {
         UUID userId = SecurityUtils.getCurrentUserId();
         User user = userRepository.findById(userId)

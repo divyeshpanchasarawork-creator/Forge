@@ -1,5 +1,6 @@
 package com.forge.revision.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.forge.auth.entity.User;
 import com.forge.common.entity.BaseEntity;
 import com.forge.topic.entity.Topic;
@@ -18,10 +19,12 @@ import java.time.LocalDateTime;
 @Table(name = "revisions")
 public class Revision extends BaseEntity {
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "topic_id", nullable = false)
     private Topic topic;

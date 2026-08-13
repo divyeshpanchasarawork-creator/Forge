@@ -7,6 +7,7 @@ import com.forge.topic.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -51,6 +52,7 @@ public class ForgettingCurveService {
         topic.setEstimatedRetention(computeRetention(topic, TimezoneUtil.now(topic.getUser())));
     }
 
+    @Transactional
     public void refreshUserRetentions(UUID userId) {
         LocalDateTime now = TimezoneUtil.now(userRepository.findById(userId).orElse(null));
         List<Topic> topics = topicRepository.findByUserId(userId, PageRequest.of(0, 1000));

@@ -13,6 +13,7 @@ import com.forge.intelligence.service.SkillRatingService;
 import com.forge.knowledge.service.KnowledgeGraphService;
 import com.forge.practice.dto.PracticeProblemResponse;
 import com.forge.practice.dto.PracticeQueueResponse;
+import com.forge.practice.dto.ProblemAttemptDto;
 import com.forge.practice.dto.ProblemAttemptRequest;
 import com.forge.practice.dto.ProblemAttemptResponse;
 import com.forge.practice.dto.ProblemAttemptSummary;
@@ -134,9 +135,10 @@ public class PracticeService {
         recommendationService.completeRecommendationsForProblem(userId, request.getProblemSlug(), outcome);
         log.info("Attempt submitted: {} {} ({} matching topics) for user {}",
                 outcome, request.getProblemSlug(), matched.size(), userId);
-        return new ProblemAttemptResponse(attempt, updatedTitles, feedback);
+        return new ProblemAttemptResponse(ProblemAttemptDto.from(attempt), updatedTitles, feedback);
     }
 
+    @Transactional(readOnly = true)
     public List<ProblemAttemptSummary> getAttemptHistory(int limit) {
         UUID userId = SecurityUtils.getCurrentUserId();
         return problemAttemptRepository.findByUserIdOrderByAttemptedAtDesc(userId, PageRequest.of(0, Math.min(50, Math.max(1, limit))))

@@ -1,5 +1,6 @@
 package com.forge.auth.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.forge.common.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -16,6 +17,7 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true, length = 50)
     private String username;
 
+    @JsonIgnore
     @Column
     private String password;
 

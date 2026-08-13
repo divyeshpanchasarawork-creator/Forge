@@ -1,5 +1,6 @@
 package com.forge.journal.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.forge.auth.entity.User;
 import com.forge.common.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -18,6 +19,7 @@ import java.time.LocalDate;
 })
 public class Journal extends BaseEntity {
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -46,4 +48,8 @@ public class Journal extends BaseEntity {
 
     @Column(columnDefinition = "TEXT")
     private String lessons;
+
+    @Version
+    @Column(name = "lock_version", nullable = false)
+    private Long lockVersion = 0L;
 }

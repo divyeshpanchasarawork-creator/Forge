@@ -1,5 +1,6 @@
 package com.forge.leetcode.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.forge.auth.entity.User;
 import com.forge.common.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 @Table(name = "leetcode_snapshots")
 public class LeetCodeSnapshot extends BaseEntity {
 
+    @JsonIgnore
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;

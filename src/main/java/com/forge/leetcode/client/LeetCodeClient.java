@@ -117,6 +117,10 @@ public class LeetCodeClient {
                 log.warn("No data returned from LeetCode for user: {}", username);
                 return null;
             } catch (Exception e) {
+                if (Thread.currentThread().isInterrupted()) {
+                    Thread.currentThread().interrupt();
+                    return null;
+                }
                 if (attempt == 1) {
                     log.warn("LeetCode fetch attempt {} failed for {}: {} — retrying", attempt, username, e.getMessage());
                     try {

@@ -33,6 +33,7 @@ public class RevisionService {
     private final RevisionMapper revisionMapper;
     private final SpacedRepetitionService spacedRepetitionService;
 
+    @Transactional(readOnly = true)
     public List<RevisionResponse> getTodayRevisions() {
         UUID userId = SecurityUtils.getCurrentUserId();
         java.time.ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
@@ -40,6 +41,7 @@ public class RevisionService {
         return revisions.stream().map(revisionMapper::toResponse).toList();
     }
 
+    @Transactional(readOnly = true)
     public List<RevisionResponse> getTodayActivity() {
         UUID userId = SecurityUtils.getCurrentUserId();
         java.time.ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));
@@ -47,6 +49,7 @@ public class RevisionService {
         return revisions.stream().map(revisionMapper::toResponse).toList();
     }
 
+    @Transactional(readOnly = true)
     public List<RevisionResponse> getPendingRevisions() {
         UUID userId = SecurityUtils.getCurrentUserId();
         java.time.ZoneId zone = TimezoneUtil.resolve(userRepository.findById(userId).orElse(null));

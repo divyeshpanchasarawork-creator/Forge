@@ -2,6 +2,7 @@ package com.forge.scheduler;
 
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
+import com.forge.revision.entity.Revision;
 import com.forge.revision.repository.RevisionRepository;
 import com.forge.topic.entity.Topic;
 import com.forge.topic.repository.TopicRepository;
@@ -11,6 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -29,12 +32,14 @@ class RevisionSchedulerTest {
     @Mock private TopicRepository topicRepository;
     @Mock private RevisionRepository revisionRepository;
     @Mock private UserRepository userRepository;
+    @Mock private PlatformTransactionManager transactionManager;
 
     private RevisionScheduler scheduler;
 
     @BeforeEach
     void setUp() {
-        scheduler = new RevisionScheduler(topicRepository, revisionRepository, userRepository);
+        scheduler = new RevisionScheduler(topicRepository, revisionRepository, userRepository,
+                new TransactionTemplate(transactionManager));
     }
 
     private User user() {
@@ -66,13 +71,14 @@ class RevisionSchedulerTest {
         verify(topicRepository).findTopicsNeedingRevisionByUserId(eq(user.getId()), todayCaptor.capture());
         assertEquals(LocalDate.now(ZoneId.of("UTC")), todayCaptor.getValue());
 
-        ArgumentCaptor<com.forge.revision.entity.Revision> captor = ArgumentCaptor.forClass(com.forge.revision.entity.Revision.class);
-        verify(revisionRepository, times(1)).save(captor.capture());
-        assertEquals(topic, captor.getValue().getTopic());
-        assertEquals(user, captor.getValue().getUser());
-        assertEquals("scheduled", captor.getValue().getReason());
-        assertEquals(false, captor.getValue().getCompleted());
-        assertEquals(LocalDate.now(ZoneId.of("UTC")), captor.getValue().getScheduledDate());
+        ArgumentCaptor<List<Revision>> captor = ArgumentCaptor.forClass(List.class);
+        verify(revisionRepository).saveAll(captor.capture());
+        Revision saved = captor.getValue().getFirst();
+        assertEquals(topic, saved.getTopic());
+        assertEquals(user, saved.getUser());
+        assertEquals("scheduled", saved.getReason());
+        assertEquals(false, saved.getCompleted());
+        assertEquals(LocalDate.now(ZoneId.of("UTC")), saved.getScheduledDate());
     }
 
     @Test
@@ -85,7 +91,7 @@ class RevisionSchedulerTest {
 
         scheduler.materializeDueRevisions();
 
-        verify(revisionRepository, never()).save(any());
+        verify(revisionRepository, never()).saveAll(any());
     }
 
     @Test
@@ -96,7 +102,7 @@ class RevisionSchedulerTest {
 
         scheduler.materializeDueRevisions();
 
-        verify(revisionRepository, never()).save(any());
+        verify(revisionRepository, never()).saveAll(any());
     }
 
     @Test
@@ -110,7 +116,9 @@ class RevisionSchedulerTest {
 
         scheduler.materializeDueRevisions();
 
-        verify(revisionRepository, times(2)).save(any());
+        ArgumentCaptor<List<Revision>> captor = ArgumentCaptor.forClass(List.class);
+        verify(revisionRepository).saveAll(captor.capture());
+        assertEquals(2, captor.getValue().size());
         assertTrue(t1.getNextRevision() != null && t2.getNextRevision() != null);
     }
 }

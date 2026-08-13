@@ -1,5 +1,6 @@
 package com.forge.topic.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.forge.auth.entity.User;
 import com.forge.common.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -17,6 +18,7 @@ import java.time.LocalDateTime;
 @Table(name = "topics")
 public class Topic extends BaseEntity {
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -83,4 +85,8 @@ public class Topic extends BaseEntity {
 
     @Column(name = "mastery_probability", columnDefinition = "DOUBLE PRECISION DEFAULT 0.0")
     private Double masteryProbability = 0.0;
+
+    @Version
+    @Column(name = "lock_version", nullable = false)
+    private Long lockVersion = 0L;
 }

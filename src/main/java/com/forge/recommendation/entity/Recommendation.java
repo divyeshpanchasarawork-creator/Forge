@@ -1,5 +1,6 @@
 package com.forge.recommendation.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.forge.auth.entity.User;
 import com.forge.common.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -20,6 +21,7 @@ public class Recommendation extends BaseEntity {
     public static final String STATUS_COMPLETED = "COMPLETED";
     public static final String STATUS_DISMISSED = "DISMISSED";
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

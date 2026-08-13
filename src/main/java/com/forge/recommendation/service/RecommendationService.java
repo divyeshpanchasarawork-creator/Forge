@@ -15,7 +15,10 @@ import com.forge.recommendation.mapper.RecommendationMapper;
 import com.forge.recommendation.repository.RecommendationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -35,6 +38,7 @@ public class RecommendationService {
     private final UserRepository userRepository;
     private final ProblemScorer problemScorer;
     private final ProblemLoader problemLoader;
+    private final PlatformTransactionManager transactionManager;
 
     @Transactional(readOnly = true)
     public List<RecommendationResponse> getActiveRecommendations() {
@@ -60,9 +64,23 @@ public class RecommendationService {
             List<RecommendationResponse> responseRecs = toResponses(recs);
             return new GenerateResponse(responseRecs, Math.max(0, DAILY_LIMIT - used), DAILY_LIMIT);
         } catch (RuntimeException e) {
-            userRepository.releaseDailyGeneration(userId, today);
+            refundDailyGeneration(userId, today);
             throw e;
         }
+    }
+
+    /**
+     * Refunds the reserved slot in its own transaction. The surrounding transaction is already
+     * marked rollback-only once {@link #generateRecommendations()} throws, so a plain update would
+     * join the doomed transaction and be rolled back with it.
+     */
+    private void refundDailyGeneration(UUID userId, LocalDate today) {
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
+        tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        tx.execute(status -> {
+            userRepository.releaseDailyGeneration(userId, today);
+            return null;
+        });
     }
 
     @Transactional

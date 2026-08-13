@@ -31,7 +31,6 @@ public class HealthController {
             return ResponseEntity.status(503).body(Map.of(
                     "status", "DEGRADED",
                     "db", "DOWN",
-                    "error", ex.getClass().getSimpleName(),
                     "timestamp", Instant.now().toString()
             ));
         }
