@@ -1,9 +1,18 @@
 import axios from 'axios';
+import type { ApiResponse, LoginResponse } from '@/types';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 15_000,
 });
+
+export const unwrap = <T>(res: { data: ApiResponse<T> }): T => {
+  const payload = res.data.data;
+  if (payload == null) {
+    throw new Error(res.data.message || 'Empty response');
+  }
+  return payload;
+};
 
 api.interceptors.request.use((config) => {
   const token = sessionStorage.getItem('forge_token');
@@ -90,13 +99,14 @@ api.interceptors.response.use(
         if (!refreshToken) {
           throw new Error('No refresh token');
         }
-        const { data } = await axios.post(
+        const { data } = await axios.post<ApiResponse<LoginResponse>>(
           `${import.meta.env.VITE_API_URL || '/api'}/auth/refresh`,
           { refreshToken },
           { timeout: 10_000 }
         );
-        const newToken = data.data.token;
-        const newRefreshToken = data.data.refreshToken;
+        const payload = unwrap({ data });
+        const newToken = payload.token;
+        const newRefreshToken = payload.refreshToken;
         if (isLoggedOut) {
           processQueue(error, null);
           return Promise.reject(error);

@@ -20,7 +20,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -39,6 +42,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final PlatformTransactionManager transactionManager;
 
     @Transactional
     public LoginResponse login(LoginRequest request) {
@@ -66,13 +70,14 @@ public class AuthService {
 
         String tokenHash = hash(refreshTokenValue);
         RefreshToken stored = refreshTokenRepository.findByTokenHash(tokenHash).orElse(null);
-        if (stored == null || stored.isRevoked() || stored.getExpiresAt().isBefore(LocalDateTime.now())) {
+        if (stored == null || stored.isRevoked() || stored.getExpiresAt() == null
+                || stored.getExpiresAt().isBefore(LocalDateTime.now())) {
             // Reuse detection: a revoked row means the token was already consumed (or the whole
             // family was revoked) — replaying it is a signal the token was stolen, so revoke the
-            // family and reject.
+            // family and reject. The revocation must commit even though this request transaction
+            // rolls back with the 400, so it runs in its own REQUIRES_NEW transaction.
             if (stored != null && stored.isRevoked()) {
-                refreshTokenRepository.revokeAllForUser(stored.getUserId());
-                log.warn("Refresh token reuse detected; revoked all tokens for user {}", stored.getUserId());
+                revokeFamilyInNewTransaction(stored.getUserId());
             }
             throw new BadRequestException("Invalid or expired refresh token");
         }
@@ -104,7 +109,10 @@ public class AuthService {
             return;
         }
         refreshTokenRepository.findByTokenHash(hash(refreshTokenValue))
-                .ifPresent(refreshTokenRepository::delete);
+                .ifPresent(stored -> {
+                    int revoked = refreshTokenRepository.revokeAllForUser(stored.getUserId());
+                    log.info("Logout: revoked {} token(s) for user {}", revoked, stored.getUserId());
+                });
     }
 
     @Transactional
@@ -162,6 +170,15 @@ public class AuthService {
         user = userRepository.save(user);
         log.info("Profile updated for user: {}", user.getUsername());
         return toUserInfo(user);
+    }
+
+    private void revokeFamilyInNewTransaction(UUID userId) {
+        TransactionTemplate tx = new TransactionTemplate(transactionManager);
+        tx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        tx.executeWithoutResult(status -> {
+            int revoked = refreshTokenRepository.revokeAllForUser(userId);
+            log.warn("Refresh token reuse detected; revoked {} token(s) for user {}", revoked, userId);
+        });
     }
 
     private void storeRefreshToken(UUID userId, String refreshTokenValue) {

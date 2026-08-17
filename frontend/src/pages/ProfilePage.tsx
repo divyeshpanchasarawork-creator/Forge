@@ -9,7 +9,7 @@ import { Select } from '@/components/ui/Select';
 import { Callout } from '@/components/ui/Callout';
 import { Badge } from '@/components/ui/Badge';
 import { User, Code2, Save, RefreshCw, Target, Sparkles, Activity, Gauge, TrendingDown } from 'lucide-react';
-import { authApi, leetcodeApi, calibrationApi } from '@/api';
+import { authApi, leetcodeApi, calibrationApi, unwrap } from '@/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTargetLevel } from '@/lib/targetLevels';
 import { parseApiError } from '@/lib/error';
@@ -17,7 +17,7 @@ import { useToast } from '@/contexts/ToastContext';
 import KpiCard from '@/components/ui/KpiCard';
 
 const fmt = (v?: number | null) =>
-  v != null && Number.isFinite(v) ? v.toFixed(2) : '—';
+  v != null && Number.isFinite(v) ? v.toFixed(2) : 'n/a';
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
@@ -41,7 +41,7 @@ export default function ProfilePage() {
   const profileMutation = useMutation({
     mutationFn: () => authApi.updateProfile({ displayName, email, leetcodeUsername, targetLevel, preferredAnalysisTime: preferredAnalysisTime || undefined, timezone: browserTimezone }),
     onSuccess: (res) => {
-      setUser?.(res.data.data);
+      setUser?.(unwrap(res));
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
       toast({ title: 'Profile updated', tone: 'success' });
@@ -69,7 +69,7 @@ export default function ProfilePage() {
 
   const { data: lcData } = useQuery({
     queryKey: ['leetcode-stats'],
-    queryFn: () => leetcodeApi.getStats().then((res) => res.data.data),
+    queryFn: () => leetcodeApi.getStats().then((res) => res.data.data ?? null),
     enabled: !!user?.leetcodeUsername,
   });
 
@@ -77,7 +77,7 @@ export default function ProfilePage() {
 
   const { data: engineReport, isLoading: reportLoading, isError: reportError } = useQuery({
     queryKey: ['engine-report'],
-    queryFn: () => calibrationApi.getReport().then((res) => res.data.data),
+    queryFn: () => calibrationApi.getReport().then(unwrap),
     retry: 1,
   });
 
@@ -86,7 +86,7 @@ export default function ProfilePage() {
   const calibrateMutation = useMutation({
     mutationFn: () => calibrationApi.runCalibration(),
     onSuccess: (res) => {
-      const result = res.data.data;
+      const result = unwrap(res);
       setCalibrationMessage({ text: result.message, applied: result.applied });
       queryClient.invalidateQueries({ queryKey: ['engine-report'] });
     },
@@ -255,7 +255,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 <StatTile label="Total Solved" value={lcStats.totalSolved} tone="primary" />
                 <StatTile label="Day Streak" value={lcStats.streak} tone="warning" />
-                <StatTile label="Ranking" value={lcStats.ranking ? `#${lcStats.ranking.toLocaleString()}` : '-'} />
+                <StatTile label="Ranking" value={lcStats.ranking ? `#${lcStats.ranking.toLocaleString()}` : 'n/a'} />
                 <StatTile label="Active Days" value={lcStats.totalActiveDays} tone="success" />
               </div>
 
@@ -297,19 +297,19 @@ export default function ProfilePage() {
                   icon={<Target className="h-5 w-5 text-muted-foreground" />}
                   value={fmt(engineReport?.liveAuc)}
                   label="Live Rank-AUC"
-                  tooltip="Rank correlation between the active scorer and actual outcomes. 1.0 is a perfect ranking, 0.5 is random. Shows n/a until there are both success and failure samples."
+                  tooltip="Out-of-sample (leave-one-out) rank correlation between the scorer and actual outcomes. 1.0 is a perfect ranking, 0.5 is random. Shows n/a until there are both success and failure samples."
                 />
                 <KpiCard
                   icon={<Gauge className="h-5 w-5 text-muted-foreground" />}
                   value={fmt(engineReport?.liveMse)}
                   label="Live MSE"
-                  tooltip="Mean squared error between the predicted score and reward (quality/5, scaled to 0-100)."
+                  tooltip="Out-of-sample (leave-one-out) mean squared error between the predicted score and reward (quality/5, scaled to 0-100)."
                 />
                 <KpiCard
                   icon={<TrendingDown className="h-5 w-5 text-muted-foreground" />}
                   value={fmt(engineReport?.liveLogLoss)}
                   label="Live Log-Loss"
-                  tooltip="Binary log-loss of the active scorer treating reward >= 0.6 as success."
+                  tooltip="Out-of-sample (leave-one-out) binary log-loss of the scorer treating reward >= 0.6 as success."
                 />
               </div>
 

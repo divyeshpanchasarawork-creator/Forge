@@ -1,6 +1,8 @@
 import api from './client';
 import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, WeeklyProgress, LeetCodeStats, MemoryResponse, PracticeQueueResponse, RoadmapAnalysis, PagedResponse, ProblemAttempt, ProblemAttemptRequest, ProblemAttemptResponse, LearningCurveResponse, ActivityDay, EngineReport, CalibrationResult } from '@/types';
 
+export { unwrap } from './client';
+
 export const authApi = {
   login: (username: string, password: string) =>
     api.post<ApiResponse<LoginResponse>>('/auth/login', { username, password }),

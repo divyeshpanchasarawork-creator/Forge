@@ -18,9 +18,9 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Nightly recalibration of the scorer weights. Re-scores stored signal snapshots under the
- * current and a least-squares fitted weight vector, and swaps only when MSE improves by at
- * least the threshold on at least {@value #MIN_SAMPLES} samples.
+ * Nightly recalibration of the scorer weights. Fits a least-squares weight vector over stored
+ * signal snapshots and swaps it in only when its leave-one-out metrics clear the bar on at least
+ * {@value #MIN_SAMPLES} samples — in-sample metrics are gamed by underdetermined fits.
  */
 @Slf4j
 @Component
@@ -29,9 +29,6 @@ public class CalibrationJob {
 
     public static final int MIN_SAMPLES = 10;
     private static final int MAX_SAMPLES = 300;
-    /** Ridge expressed as a fraction of the mean normal-equation diagonal, so it stays
-     *  meaningful regardless of the signal scale (raw signals are 0-100). */
-    private static final double RIDGE_RATIO = 1e-3;
     /** A candidate predictor that ranks at or below random is never swapped in. */
     private static final double MIN_AUC = 0.5;
 
@@ -61,15 +58,16 @@ public class CalibrationJob {
         double before = evaluate(current, samples);
         SignalWeights candidate;
         try {
-            candidate = fit(samples);
+            candidate = SignalWeights.from(RecEngineEvaluator.fitLeastSquares(xsOf(samples), rewardsOf(samples)));
         } catch (Exception ex) {
             String message = "Calibration skipped: fit failed (" + ex.getMessage() + "). Keeping current weights.";
             log.warn("Calibration fit failed: {}", ex.getMessage());
             return CalibrationResult.skipped(samples.size(), MIN_SAMPLES, message);
         }
-        double after = evaluate(candidate, samples);
+        RecEngineEvaluator.CvMetrics cv = RecEngineEvaluator.cvMetrics(xsOf(samples), rewardsOf(samples));
+        double after = cv.mse();
 
-        if (shouldApply(current, candidate, samples, before, after)) {
+        if (shouldApply(current, samples, before, cv)) {
             scorerWeightsService.applyWeights(candidate, samples.size(), before, after);
             String message = String.format(
                     "Calibration applied: MSE %.2f -> %.2f on %d samples. New weights active.",
@@ -87,22 +85,21 @@ public class CalibrationJob {
     }
 
     /**
-     * Swap the candidate weights only when the MSE improvement clears the threshold AND the
-     * candidate does not rank worse than random (or worse than the current weights). MSE alone
-     * is evaluated in-sample and can be gamed by a degenerate "always predict high" predictor;
-     * the AUC guard rejects those.
+     * Swap the candidate weights only when its leave-one-out MSE improvement clears the threshold
+     * AND its leave-one-out AUC does not rank worse than random (or worse than the current weights).
+     * The LOO metrics are honest — a fit evaluated on the same samples it memorized always clears an
+     * in-sample bar, which is exactly the degenerate case this guards against.
      */
-    private boolean shouldApply(SignalWeights current, SignalWeights candidate, List<SignalSample> samples,
-                                double before, double after) {
+    private boolean shouldApply(SignalWeights current, List<SignalSample> samples,
+                                double before, RecEngineEvaluator.CvMetrics cv) {
         double threshold = Math.max(1.0, 0.05 * before);
-        if (before - after < threshold) return false;
-        if (!Double.isFinite(after)) return false;
+        if (before - cv.mse() < threshold) return false;
+        if (!Double.isFinite(cv.mse())) return false;
 
-        double candidateAuc = aucOf(candidate, samples);
-        if (Double.isFinite(candidateAuc) && candidateAuc <= MIN_AUC) return false;
+        if (Double.isFinite(cv.auc()) && cv.auc() <= MIN_AUC) return false;
         double currentAuc = aucOf(current, samples);
-        if (Double.isFinite(currentAuc) && Double.isFinite(candidateAuc)
-                && candidateAuc + 0.01 < currentAuc) return false;
+        if (Double.isFinite(currentAuc) && Double.isFinite(cv.auc())
+                && cv.auc() + 0.01 < currentAuc) return false;
         return true;
     }
 
@@ -152,81 +149,12 @@ public class CalibrationJob {
         return new SignalSample(signals, attempt.getQuality() / 5.0);
     }
 
-    private SignalWeights fit(List<SignalSample> samples) {
-        int k = SignalWeights.SIGNAL_NAMES.size();
-        double[][] a = new double[k][k];
-        double[] b = new double[k];
-        for (SignalSample s : samples) {
-            double[] x = s.signals();
-            double y = s.reward() * 100.0;
-            for (int i = 0; i < k; i++) {
-                b[i] += x[i] * y;
-                for (int j = 0; j < k; j++) {
-                    a[i][j] += x[i] * x[j];
-                }
-            }
-        }
-        addRidge(a, k);
-
-        double[] w = solve(a, b);
-        for (int i = 0; i < k; i++) {
-            if (!Double.isFinite(w[i])) {
-                w[i] = 0;
-            }
-            w[i] = Math.max(0, Math.min(0.5, w[i]));
-        }
-        return SignalWeights.from(w);
+    private static List<double[]> xsOf(List<SignalSample> samples) {
+        return samples.stream().map(SignalSample::signals).toList();
     }
 
-    private void addRidge(double[][] a, int k) {
-        double meanDiag = 0;
-        for (int i = 0; i < k; i++) {
-            meanDiag += a[i][i];
-        }
-        meanDiag /= k;
-        double ridge = RIDGE_RATIO * meanDiag;
-        for (int i = 0; i < k; i++) {
-            a[i][i] += ridge;
-        }
-    }
-
-    /** Solves a*x = b via Gaussian elimination with partial pivoting. */
-    private double[] solve(double[][] a, double[] b) {
-        int n = b.length;
-        double[][] m = new double[n][n + 1];
-        for (int i = 0; i < n; i++) {
-            System.arraycopy(a[i], 0, m[i], 0, n);
-            m[i][n] = b[i];
-        }
-        for (int col = 0; col < n; col++) {
-            int pivot = col;
-            for (int row = col + 1; row < n; row++) {
-                if (Math.abs(m[row][col]) > Math.abs(m[pivot][col])) {
-                    pivot = row;
-                }
-            }
-            if (Math.abs(m[pivot][col]) < 1e-12) {
-                continue;
-            }
-            double[] tmp = m[col];
-            m[col] = m[pivot];
-            m[pivot] = tmp;
-            for (int row = col + 1; row < n; row++) {
-                double factor = m[row][col] / m[col][col];
-                for (int j = col; j <= n; j++) {
-                    m[row][j] -= factor * m[col][j];
-                }
-            }
-        }
-        double[] x = new double[n];
-        for (int i = n - 1; i >= 0; i--) {
-            double sum = m[i][n];
-            for (int j = i + 1; j < n; j++) {
-                sum -= m[i][j] * x[j];
-            }
-            x[i] = Math.abs(m[i][i]) < 1e-12 ? 0 : sum / m[i][i];
-        }
-        return x;
+    private static double[] rewardsOf(List<SignalSample> samples) {
+        return samples.stream().mapToDouble(SignalSample::reward).toArray();
     }
 
     private record SignalSample(double[] signals, double reward) {}

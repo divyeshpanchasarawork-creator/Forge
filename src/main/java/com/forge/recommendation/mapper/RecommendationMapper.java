@@ -1,5 +1,6 @@
 package com.forge.recommendation.mapper;
 
+import com.forge.common.util.DifficultyUtil;
 import com.forge.recommendation.dto.RecommendationResponse;
 import com.forge.recommendation.entity.Recommendation;
 import org.springframework.stereotype.Component;
@@ -20,7 +21,7 @@ public class RecommendationMapper {
                 rec.getOutcome(),
                 rec.getProblemSlug(),
                 rec.getProblemTitle(),
-                rec.getProblemDifficulty(),
+                DifficultyUtil.titleCase(rec.getProblemDifficulty()),
                 rec.getCreatedAt(),
                 null,
                 null

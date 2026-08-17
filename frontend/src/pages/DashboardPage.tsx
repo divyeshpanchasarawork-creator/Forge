@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
-import { dashboardApi, recommendationsApi, practiceApi, analyticsApi } from '@/api';
+import { dashboardApi, recommendationsApi, practiceApi, analyticsApi, unwrap } from '@/api';
 import { parseApiError } from '@/lib/error';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -41,28 +41,32 @@ export default function DashboardPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [generateError, setGenerateError] = useState<string | null>(null);
-  const [remaining, setRemaining] = useState<number | null>(null);
+  const [remaining, setRemaining] = useState<number | null>(() => {
+    const stored = sessionStorage.getItem('forge_generations_left');
+    return stored == null ? null : Number(stored);
+  });
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboard'],
-    queryFn: () => dashboardApi.get().then((res) => res.data.data),
+    queryFn: () => dashboardApi.get().then(unwrap),
   });
 
   const { data: practiceQueue } = useQuery<PracticeQueueResponse>({
     queryKey: ['practice', 'queue'],
-    queryFn: () => practiceApi.getQueue().then((res) => res.data.data),
+    queryFn: () => practiceApi.getQueue().then(unwrap),
     staleTime: 20_000,
   });
 
   const { data: weekly } = useQuery({
     queryKey: ['analytics', 'weekly'],
-    queryFn: () => analyticsApi.getWeekly().then((res) => res.data.data),
+    queryFn: () => analyticsApi.getWeekly().then(unwrap),
   });
 
   const generateMutation = useMutation({
-    mutationFn: () => recommendationsApi.generate().then((res) => res.data.data),
+    mutationFn: () => recommendationsApi.generate().then(unwrap),
     onSuccess: (res) => {
       setRemaining(res.remainingGenerations);
+      sessionStorage.setItem('forge_generations_left', String(res.remainingGenerations));
       setGenerateError(null);
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast({ title: 'Recommendations generated', tone: 'success' });
@@ -300,7 +304,7 @@ export default function DashboardPage() {
             />
             <KpiCard
               icon={<Brain className="h-5 w-5 text-muted-foreground" />}
-              value={kh.averageRetention != null ? `${Math.round(kh.averageRetention)}%` : '-'}
+              value={kh.averageRetention != null ? `${Math.round(kh.averageRetention)}%` : 'n/a'}
               label="Avg Retention"
               tooltip="Estimated knowledge retention across all topics based on the Ebbinghaus curve."
             />
@@ -327,7 +331,7 @@ export default function DashboardPage() {
               <StatTile label="Avg Confidence" value={`${kh.averageConfidence || 0}/10`} tone="warning" />
               <StatTile
                 label="Avg Retention"
-                value={kh.averageRetention != null ? `${Math.round(kh.averageRetention)}%` : '-'}
+value={kh.averageRetention != null ? `${Math.round(kh.averageRetention)}%` : 'n/a'}
                 tone="primary"
               />
             </div>
@@ -439,7 +443,7 @@ export default function DashboardPage() {
                 <StatTile label="Easy" value={lc.easySolved} tone="success" />
                 <StatTile label="Medium" value={lc.mediumSolved} tone="warning" />
                 <StatTile label="Hard" value={lc.hardSolved} tone="danger" />
-                <StatTile label="Ranking" value={lc.ranking ? `#${lc.ranking.toLocaleString()}` : '-'} />
+                <StatTile label="Ranking" value={lc.ranking ? `#${lc.ranking.toLocaleString()}` : 'n/a'} />
               </div>
             </CardContent>
           </Card>

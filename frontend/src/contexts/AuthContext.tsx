@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
-import { authApi } from '@/api';
+import { authApi, unwrap } from '@/api';
 import { setLoggedOut, setSkipAuthRedirect } from '@/api/client';
 
 interface User {
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             const res = await authApi.getProfile();
             if (cancelled) return;
-            setUser(res.data.data);
+            setUser(unwrap(res));
           } catch (error) {
             if (cancelled) return;
             const status = (error as AxiosError).response?.status;
@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         const res = await authApi.refresh(refreshToken);
         if (cancelled) return;
-        const data = res.data.data;
+        const data = unwrap(res);
         persistTokens(data);
         setToken(data.token);
         setUser(data.user);
@@ -125,7 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoggingOut(false);
     setSkipAuthRedirect(false);
     const response = await authApi.login(username, password);
-    const data = response.data.data;
+    const data = unwrap(response);
     persistTokens(data);
     setToken(data.token);
     setUser(data.user);
@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSkipAuthRedirect(false);
     await authApi.register(data);
     const response = await authApi.login(data.email, data.password);
-    const loginData = response.data.data;
+    const loginData = unwrap(response);
     persistTokens(loginData);
     setToken(loginData.token);
     setUser(loginData.user);

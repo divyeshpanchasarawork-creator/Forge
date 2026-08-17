@@ -51,8 +51,11 @@ class SecurityGatingTest {
 
     @Test
     void internalEndpointsAllowAdminUsers() throws Exception {
-        User admin = userRepository.findByUsername("forge")
-                .orElseThrow(() -> new IllegalStateException("dev seed user missing"));
+        User admin = new User();
+        admin.setUsername("admin-" + UUID.randomUUID().toString().substring(0, 8));
+        admin.setDisplayName("admin");
+        admin.setRole("ADMIN");
+        admin = userRepository.save(admin);
 
         mockMvc.perform(get("/api/internal/engine-report")
                         .header("Authorization", "Bearer " + tokenFor(admin.getId(), admin.getUsername(), "ADMIN")))
@@ -60,10 +63,17 @@ class SecurityGatingTest {
     }
 
     @Test
-    void registerEndpointIsWiredInDevProfile() throws Exception {
+    void registerEndpointIsNotWiredOutsideDevProfile() throws Exception {
+        User admin = new User();
+        admin.setUsername("admin-" + UUID.randomUUID().toString().substring(0, 8));
+        admin.setDisplayName("admin");
+        admin.setRole("ADMIN");
+        admin = userRepository.save(admin);
+
         mockMvc.perform(post("/api/auth/register")
                         .contentType("application/json")
+                        .header("Authorization", "Bearer " + tokenFor(admin.getId(), admin.getUsername(), "ADMIN"))
                         .content("{}"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isNotFound());
     }
 }

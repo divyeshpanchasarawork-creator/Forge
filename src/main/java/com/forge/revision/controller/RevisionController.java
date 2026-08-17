@@ -3,8 +3,11 @@ package com.forge.revision.controller;
 import com.forge.common.dto.ApiResponse;
 import com.forge.revision.dto.RevisionResponse;
 import com.forge.revision.service.RevisionService;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -13,6 +16,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/revisions")
 @RequiredArgsConstructor
+@Validated
 public class RevisionController {
 
     private final RevisionService revisionService;
@@ -35,7 +39,7 @@ public class RevisionController {
     @PostMapping("/{id}/complete")
     public ResponseEntity<ApiResponse<RevisionResponse>> completeRevision(
             @PathVariable UUID id,
-            @RequestParam(defaultValue = "4") int quality) {
+            @RequestParam(defaultValue = "4") @Min(0) @Max(5) int quality) {
         return ResponseEntity.ok(ApiResponse.success("Revision completed", revisionService.completeRevision(id, quality)));
     }
 }

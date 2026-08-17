@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { authApi } from '@/api';
+import { authApi, unwrap } from '@/api';
 import { parseApiError } from '@/lib/error';
 import { getTargetLevel } from '@/lib/targetLevels';
 import { StatTile } from '@/components/ui/StatTile';
@@ -29,7 +29,7 @@ export default function OnboardingPage() {
         leetcodeUsername: skipLeetcode ? undefined : leetcodeUsername || undefined,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       });
-      setUser(res.data.data);
+      setUser(unwrap(res));
       navigate('/app');
     } catch (err: unknown) {
       setError(parseApiError(err));

@@ -75,6 +75,7 @@ public class RevisionService {
 
         revision.setCompleted(true);
         revision.setCompletionDate(now);
+        revision.setPendingTopic(null);
         revisionRepository.save(revision);
 
         Topic topic = revision.getTopic();

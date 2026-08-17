@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { roadmapApi } from '@/api';
+import { roadmapApi, unwrap } from '@/api';
 import { useAuth } from '@/contexts/AuthContext';
 import TeachingEmptyState from '@/components/ui/TeachingEmptyState';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
@@ -21,7 +21,7 @@ export default function RoadmapPage() {
 
   const { data: analysis, isLoading, error, refetch } = useQuery({
     queryKey: ['roadmap-analysis'],
-    queryFn: () => roadmapApi.getAnalysis().then((res) => res.data.data),
+    queryFn: () => roadmapApi.getAnalysis().then(unwrap),
   });
 
   if (error) {

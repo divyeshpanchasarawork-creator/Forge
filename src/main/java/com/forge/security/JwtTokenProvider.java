@@ -15,14 +15,17 @@ import java.util.UUID;
 @Component
 public class JwtTokenProvider {
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
+    private final SecretKey signingKey;
+    private final long jwtExpiration;
+    private final long refreshExpiration;
 
-    @Value("${jwt.expiration:1800000}")
-    private long jwtExpiration;
-
-    @Value("${jwt.refresh-expiration:604800000}")
-    private long refreshExpiration;
+    public JwtTokenProvider(@Value("${jwt.secret}") String jwtSecret,
+                            @Value("${jwt.expiration:1800000}") long jwtExpiration,
+                            @Value("${jwt.refresh-expiration:604800000}") long refreshExpiration) {
+        this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+        this.jwtExpiration = jwtExpiration;
+        this.refreshExpiration = refreshExpiration;
+    }
 
     public String generateToken(UserPrincipal principal) {
         return Jwts.builder()
@@ -44,15 +47,6 @@ public class JwtTokenProvider {
                 .expiration(new Date(System.currentTimeMillis() + refreshExpiration))
                 .signWith(getSigningKey())
                 .compact();
-    }
-
-    public UUID getUserIdFromToken(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-        return UUID.fromString(claims.getSubject());
     }
 
     /**
@@ -96,7 +90,6 @@ public class JwtTokenProvider {
     }
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
-        return Keys.hmacShaKeyFor(keyBytes);
+        return signingKey;
     }
 }

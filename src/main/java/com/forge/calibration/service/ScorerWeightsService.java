@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 
@@ -49,9 +51,27 @@ public class ScorerWeightsService {
         row.setVersion(row.getVersion() == null ? 1 : row.getVersion() + 1);
         row.setLastCalibratedAt(LocalDateTime.now());
         repository.save(row);
-        cached = weights;
+        publishCacheUpdate(weights);
         log.info("Calibration applied new scorer weights (v{}) on {} samples: MSE {} -> {}",
                 row.getVersion(), sampleCount, metricBefore, metricAfter);
+    }
+
+    /**
+     * Publishes the new vector to the volatile cache only after the surrounding transaction
+     * has committed. Writing it eagerly would leave the in-memory weights ahead of the DB if
+     * the transaction later rolls back, silently desyncing scoring from the stored row.
+     */
+    private void publishCacheUpdate(SignalWeights weights) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    cached = weights;
+                }
+            });
+        } else {
+            cached = weights;
+        }
     }
 
     /**

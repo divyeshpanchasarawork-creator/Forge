@@ -2,6 +2,7 @@ package com.forge.practice.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.forge.common.exception.BadRequestException;
+import com.forge.common.util.DifficultyUtil;
 import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.SecurityUtils;
@@ -104,7 +105,8 @@ public class PracticeService {
         attempt.setUser(user);
         attempt.setProblemTitle(request.getProblemTitle());
         attempt.setProblemSlug(request.getProblemSlug());
-        attempt.setDifficulty(request.getDifficulty() != null ? request.getDifficulty().toUpperCase() : "MEDIUM");
+        attempt.setDifficulty(request.getDifficulty() != null
+                ? DifficultyUtil.titleCase(request.getDifficulty()) : "Medium");
         attempt.setTopicTagSlug(request.getTopicTagSlug());
         attempt.setTopicTagName(request.getTopicTagName());
         attempt.setOutcome(outcome);

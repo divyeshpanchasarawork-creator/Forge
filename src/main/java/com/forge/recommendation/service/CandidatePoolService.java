@@ -1,5 +1,6 @@
 package com.forge.recommendation.service;
 
+import com.forge.common.util.DifficultyUtil;
 import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.ProblemScorer;
 import com.forge.leetcode.entity.LeetCodeTagStat;
@@ -46,7 +47,8 @@ public class CandidatePoolService {
             if (!"RECOMMENDATION".equals(ps.getSource())) continue;
             if (scored.size() >= cap) break;
             if (seen.add(ps.getTitleSlug())) {
-                ProblemLoader.ProblemEntry entry = new ProblemLoader.ProblemEntry(ps.getTitle(), ps.getTitleSlug(), ps.getDifficulty());
+                ProblemLoader.ProblemEntry entry = new ProblemLoader.ProblemEntry(ps.getTitle(), ps.getTitleSlug(),
+                        DifficultyUtil.titleCase(ps.getDifficulty()));
                 ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx, entry, ps.getTopicTagSlug());
                 scored.add(new Candidate(entry, ps.getTopicTagSlug(), breakdown.total(), breakdown));
             }

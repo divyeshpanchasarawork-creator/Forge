@@ -9,6 +9,7 @@ import com.forge.topic.entity.Topic;
 import com.forge.topic.repository.TopicRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -52,9 +53,16 @@ public class RevisionScheduler {
                             .map(topic -> buildRevision(user, topic, today))
                             .toList();
                     if (!toCreate.isEmpty()) {
-                        revisionRepository.saveAll(toCreate);
-                        log.info("RevisionScheduler: materialized {} revision(s) for user {} ({} already pending)",
-                                toCreate.size(), user.getId(), due.size() - toCreate.size());
+                        try {
+                            revisionRepository.saveAll(toCreate);
+                            log.info("RevisionScheduler: materialized {} revision(s) for user {} ({} already pending)",
+                                    toCreate.size(), user.getId(), due.size() - toCreate.size());
+                        } catch (DataIntegrityViolationException e) {
+                            // A concurrent scheduler instance already materialized these rows; the
+                            // partial unique index (uq_revisions_pending) is the real guard.
+                            log.debug("RevisionScheduler: {} revision(s) for user {} already materialized (concurrent run); skipping",
+                                    toCreate.size(), user.getId());
+                        }
                     }
                 });
             } catch (RuntimeException e) {
@@ -71,6 +79,7 @@ public class RevisionScheduler {
         revision.setPriority(1);
         revision.setReason("scheduled");
         revision.setCompleted(false);
+        revision.setPendingTopic(topic.getId());
         return revision;
     }
 }

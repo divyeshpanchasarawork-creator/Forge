@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { journalsApi } from '@/api';
+import { journalsApi, unwrap } from '@/api';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Button } from '@/components/ui/Button';
@@ -10,39 +10,70 @@ import { Input } from '@/components/ui/Input';
 import { useToast } from '@/contexts/ToastContext';
 import { parseApiError } from '@/lib/error';
 import { NotebookPen, ListChecks } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const inputClass =
   'w-full rounded-lg border border-input bg-secondary/50 px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 transition-all focus:border-primary focus:bg-secondary focus:outline-none focus:ring-1 focus:ring-primary';
 
+const DEFAULT_FORM = {
+  morningGoal: '',
+  eveningReflection: '',
+  energy: 3,
+  mood: 3,
+  hoursStudied: 0,
+  achievements: '',
+  challenges: '',
+  lessons: '',
+};
+
+const todayISO = (() => {
+  const d = new Date();
+  const m = `${d.getMonth() + 1}`.padStart(2, '0');
+  const day = `${d.getDate()}`.padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+})();
+
 export default function JournalPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [form, setForm] = useState({
-    morningGoal: '',
-    eveningReflection: '',
-    energy: 3,
-    mood: 3,
-    hoursStudied: 0,
-    achievements: '',
-    challenges: '',
-    lessons: '',
-  });
+  const [form, setForm] = useState(DEFAULT_FORM);
+  const hydratedRef = useRef(false);
 
   const [page, setPage] = useState(0);
 
   const { data: journalPage, error, refetch, isLoading } = useQuery({
     queryKey: ['journal', 'all', page],
-    queryFn: () => journalsApi.getAll(page, 20).then((res) => res.data.data),
+    queryFn: () => journalsApi.getAll(page, 20).then(unwrap),
   });
 
   const entries = journalPage?.content ?? [];
+
+  useEffect(() => {
+    if (hydratedRef.current || isLoading) return;
+    const todaysEntry = entries.find((entry) => entry.entryDate === todayISO);
+    if (!todaysEntry) return;
+    hydratedRef.current = true;
+    setForm({
+      morningGoal: todaysEntry.morningGoal ?? '',
+      eveningReflection: todaysEntry.eveningReflection ?? '',
+      energy: todaysEntry.energy ?? 3,
+      mood: todaysEntry.mood ?? 3,
+      hoursStudied: todaysEntry.hoursStudied ?? 0,
+      achievements: todaysEntry.achievements ?? '',
+      challenges: todaysEntry.challenges ?? '',
+      lessons: todaysEntry.lessons ?? '',
+    });
+  }, [entries, isLoading]);
 
   const saveMutation = useMutation({
     mutationFn: journalsApi.save,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['journal'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['memory'] });
+      hydratedRef.current = true;
+      setForm(DEFAULT_FORM);
       toast({ title: 'Journal entry saved', tone: 'success' });
     },
     onError: (err: unknown) => {
@@ -160,7 +191,7 @@ export default function JournalPage() {
             {entries.map((journal) => (
               <div key={journal.id} className="rounded-xl bg-secondary/50 px-5 py-4">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-sm font-medium">{new Date(journal.entryDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</p>
+                  <p className="text-sm font-medium">{new Date(`${journal.entryDate.slice(0, 10)}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</p>
                   <div className="flex items-center gap-2 text-lg">
                     <span>{moodEmojis[journal.mood || 3]}</span>
                     <span className="text-caption text-muted-foreground">Energy: {journal.energy}/5</span>

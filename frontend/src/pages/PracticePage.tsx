@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { practiceApi, leetcodeApi } from '@/api';
+import { practiceApi, leetcodeApi, unwrap } from '@/api';
 import { Badge } from '@/components/ui/Badge';
 import { Button, buttonVariants } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Select';
@@ -63,14 +63,15 @@ const ProblemRow = memo(function ProblemRow({ problem, index }: { problem: Pract
   );
 
   const submit = useMutation({
-    mutationFn: (payload: ProblemAttemptRequest) => practiceApi.submitAttempt(payload).then((res) => res.data),
+    mutationFn: (payload: ProblemAttemptRequest) => practiceApi.submitAttempt(payload).then(unwrap),
     onSuccess: (res) => {
-      setFeedback(res.data.feedback);
+      setFeedback(res.feedback);
       setError('');
       queryClient.invalidateQueries({ queryKey: ['practice', 'queue'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['memory'] });
+      queryClient.invalidateQueries({ queryKey: ['palette-attempts'] });
       toast({ title: 'Attempt recorded', tone: 'success' });
     },
     onError: (err: unknown) => {
@@ -190,7 +191,7 @@ const ProblemRow = memo(function ProblemRow({ problem, index }: { problem: Pract
                   className="w-[4.5rem]"
                 >
                   {[0, 5, 10, 15, 20, 30, 45].map((t) => (
-                    <option key={t} value={t}>{t === 0 ? '—' : t}</option>
+                    <option key={t} value={t}>{t === 0 ? 'n/a' : t}</option>
                   ))}
                 </Select>
               </label>
@@ -218,7 +219,7 @@ export default function PracticePage() {
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['practice', 'queue'],
-    queryFn: () => practiceApi.getQueue().then((res) => res.data.data),
+    queryFn: () => practiceApi.getQueue().then(unwrap),
     staleTime: 20_000,
   });
 

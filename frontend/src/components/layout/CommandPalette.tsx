@@ -8,7 +8,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
-import { practiceApi, searchApi, type SearchProblem } from '@/api';
+import { practiceApi, searchApi, unwrap, type SearchProblem } from '@/api';
 import type { ProblemAttempt } from '@/types';
 import { NAV_ITEMS } from '@/lib/nav';
 
@@ -102,14 +102,14 @@ export default function CommandPalette({ open, onClose, recent }: { open: boolea
 
   const { data: attempts } = useQuery({
     queryKey: ['palette-attempts'],
-    queryFn: () => practiceApi.getAttempts(6).then((r) => r.data.data),
+    queryFn: () => practiceApi.getAttempts(6).then(unwrap),
     enabled: open,
     staleTime: 60_000,
   });
 
   const { data: problems, isFetching: searching } = useQuery<SearchProblem[]>({
     queryKey: ['problem-search', debounced],
-    queryFn: () => searchApi.problems(debounced).then((r) => r.data.data ?? []),
+    queryFn: () => searchApi.problems(debounced).then(unwrap),
     enabled: open && debounced.length > 0,
     staleTime: 60_000,
     placeholderData: (prev) => prev,

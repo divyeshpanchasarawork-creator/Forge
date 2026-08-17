@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Component
@@ -45,38 +46,49 @@ public class AnalysisScheduler {
 
             ZoneId zone = TimezoneUtil.resolve(user);
             LocalTime userNow = LocalTime.now(zone);
-            LocalDate userToday = LocalDate.now(zone);
-            LocalTime windowStart = userNow.minusMinutes(15);
-            LocalTime windowEnd = userNow.plusMinutes(15);
-            log.info("AnalysisScheduler: candidate {} preferred={} zone={} (server {}, local {} window {}..{})",
-                    user.getId(), preferred, zone, serverNow, userNow, windowStart, windowEnd);
+            log.info("AnalysisScheduler: candidate {} preferred={} zone={} (server {}, local {})",
+                    user.getId(), preferred, zone, serverNow, userNow);
 
             if (!isInWindow(preferred, userNow)) {
                 skippedOutsideWindow++;
                 continue;
             }
 
-            if (user.getLastGenerationDate() == null || !user.getLastGenerationDate().equals(userToday)) {
-                user.setDailyGenerationsUsed(0);
-                user.setLastGenerationDate(userToday);
-            }
-            if (user.getDailyGenerationsUsed() >= 4) {
-                skippedQuota++;
-                continue;
-            }
-
+            AtomicBoolean quotaHit = new AtomicBoolean(false);
             try {
+                // Quota reset, quota check, generation, and the counter increment run in a single
+                // transaction against a freshly-loaded managed entity. The stale detached candidate
+                // is never written, so a failed generation cannot burn quota and a concurrent manual
+                // generate cannot race the reset.
                 TransactionTemplate txTemplate = new TransactionTemplate(transactionManager);
                 txTemplate.executeWithoutResult(status -> {
-                    recommendationEngine.generateForUser(user.getId(), true);
-                    leetCodeFetchService.refreshProblemSuggestions(user.getId());
-                    user.setDailyGenerationsUsed(user.getDailyGenerationsUsed() + 1);
-                    userRepository.save(user);
+                    User managed = userRepository.findById(user.getId())
+                            .orElseThrow(() -> new IllegalStateException("User " + user.getId() + " no longer exists"));
+                    LocalDate managedToday = LocalDate.now(TimezoneUtil.resolve(managed));
+                    if (managed.getLastGenerationDate() == null || !managed.getLastGenerationDate().equals(managedToday)) {
+                        managed.setDailyGenerationsUsed(0);
+                        managed.setLastGenerationDate(managedToday);
+                    }
+                    if (managed.getDailyGenerationsUsed() >= 4) {
+                        quotaHit.set(true);
+                        status.setRollbackOnly();
+                        return;
+                    }
+                    recommendationEngine.generateForUser(managed.getId(), true);
+                    leetCodeFetchService.refreshProblemSuggestions(managed.getId());
+                    managed.setDailyGenerationsUsed(managed.getDailyGenerationsUsed() + 1);
+                    userRepository.save(managed);
                 });
-                processed++;
             } catch (Exception e) {
                 log.error("Scheduled generation failed for user {}: {}", user.getId(), e.getMessage());
                 lastError = e.getClass().getSimpleName() + ": " + e.getMessage();
+                continue;
+            }
+
+            if (quotaHit.get()) {
+                skippedQuota++;
+            } else {
+                processed++;
             }
         }
 

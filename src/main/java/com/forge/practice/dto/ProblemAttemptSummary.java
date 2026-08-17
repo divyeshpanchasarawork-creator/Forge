@@ -1,5 +1,6 @@
 package com.forge.practice.dto;
 
+import com.forge.common.util.DifficultyUtil;
 import com.forge.practice.entity.ProblemAttempt;
 
 import java.time.LocalDateTime;
@@ -23,7 +24,7 @@ public record ProblemAttemptSummary(
                 attempt.getId(),
                 attempt.getProblemTitle(),
                 attempt.getProblemSlug(),
-                attempt.getDifficulty(),
+                DifficultyUtil.titleCase(attempt.getDifficulty()),
                 attempt.getTopicTagSlug(),
                 attempt.getTopicTagName(),
                 attempt.getOutcome(),

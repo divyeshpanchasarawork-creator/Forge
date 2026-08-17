@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { memoryApi } from '@/api';
+import { memoryApi, unwrap } from '@/api';
 import TeachingEmptyState from '@/components/ui/TeachingEmptyState';
 import { Callout } from '@/components/ui/Callout';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -13,7 +13,7 @@ import ApiErrorState from '@/components/ui/ApiErrorState';
 export default function MemoryPage() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['memory'],
-    queryFn: () => memoryApi.get().then((res) => res.data.data),
+    queryFn: () => memoryApi.get().then(unwrap),
   });
 
   if (error) {

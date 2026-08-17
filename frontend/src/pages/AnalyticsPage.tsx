@@ -1,7 +1,7 @@
 import { memo, useMemo, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { analyticsApi } from '@/api';
+import { analyticsApi, unwrap } from '@/api';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { HeroCard } from '@/components/ui/HeroCard';
@@ -412,22 +412,22 @@ export default function AnalyticsPage() {
   const navigate = useNavigate();
   const { data, isLoading, error, refetch } = useQuery<AnalyticsResponse>({
     queryKey: ['analytics'],
-    queryFn: () => analyticsApi.get().then((res) => res.data.data),
+    queryFn: () => analyticsApi.get().then(unwrap),
   });
 
   const { data: heatmap } = useQuery<ActivityDay[]>({
     queryKey: ['analytics', 'heatmap'],
-    queryFn: () => analyticsApi.getHeatmap(28).then((res) => res.data.data),
+    queryFn: () => analyticsApi.getHeatmap(28).then(unwrap),
   });
 
   const { data: weekly } = useQuery<WeeklyProgress>({
     queryKey: ['analytics', 'weekly'],
-    queryFn: () => analyticsApi.getWeekly().then((res) => res.data.data),
+    queryFn: () => analyticsApi.getWeekly().then(unwrap),
   });
 
   const { data: learningCurve } = useQuery<LearningCurveResponse>({
     queryKey: ['analytics', 'learning-curve'],
-    queryFn: () => analyticsApi.getLearningCurve(30).then((res) => res.data.data),
+    queryFn: () => analyticsApi.getLearningCurve(30).then(unwrap),
   });
 
   const derived = useMemo(() => {

@@ -56,17 +56,18 @@ class EngineReportServiceTest {
         assertEquals(3, report.sampleCount());
         assertEquals(CalibrationJob.MIN_SAMPLES, report.minSamples());
         assertEquals(14969.0 / 3.0, report.storedMse(), 1e-9);
-        assertEquals(200.0 / 3.0, report.liveMse(), 1e-9);
         assertEquals(1.0, report.storedAuc(), 1e-9);
-        assertEquals(1.0, report.liveAuc(), 1e-9);
-        assertEquals(2 * -Math.log(0.9) / 3.0, report.liveLogLoss(), 1e-9);
+        // Live metrics are leave-one-out: each sample is predicted by a fit on the other two.
+        // The held-out sample's only active signal is absent from its training set, so all
+        // three LOO predictions are 0 — an honest signal that 2-sample fits cannot generalize.
+        assertEquals(20000.0 / 3.0, report.liveMse(), 1e-6);
+        assertEquals(0.5, report.liveAuc(), 1e-9);
+        assertEquals(2 * -Math.log(1e-9) / 3.0, report.liveLogLoss(), 1e-9);
         assertEquals(weights, report.weights());
         assertEquals(3, report.version());
         assertEquals(5000.0, report.lastMetricBefore());
         assertEquals(60.0, report.lastMetricAfter());
         assertEquals(row.getLastCalibratedAt(), report.lastCalibratedAt());
-        assertTrue(report.storedLogLoss() > report.liveLogLoss(),
-                "stored (uncalibrated) log-loss should exceed live one");
     }
 
     @Test

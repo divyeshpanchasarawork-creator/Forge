@@ -116,6 +116,7 @@ export default function Sidebar({
         )}
       />
       <aside
+        inert={!mobileOpen}
         className={cn(
           'fixed left-3 top-3 bottom-3 z-50 flex w-64 flex-col rounded-2xl border border-border bg-sidebar transition-transform duration-200 lg:hidden',
           mobileOpen ? 'translate-x-0' : 'pointer-events-none -translate-x-[110%]'

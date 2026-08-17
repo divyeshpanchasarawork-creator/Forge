@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { revisionsApi } from '@/api';
+import { revisionsApi, unwrap } from '@/api';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import KpiCard from '@/components/ui/KpiCard';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -77,12 +77,12 @@ export default function RevisionPage() {
 
   const { data: todayRevisions, isLoading: loadingToday, error: todayError, refetch: refetchToday } = useQuery({
     queryKey: ['revisions', 'today'],
-    queryFn: () => revisionsApi.getTodayActivity().then((res) => res.data.data),
+    queryFn: () => revisionsApi.getTodayActivity().then(unwrap),
   });
 
   const { data: pendingRevisions, isLoading: loadingPending } = useQuery({
     queryKey: ['revisions', 'pending'],
-    queryFn: () => revisionsApi.getPending().then((res) => res.data.data),
+    queryFn: () => revisionsApi.getPending().then(unwrap),
   });
 
   const completeMutation = useMutation({
@@ -229,7 +229,7 @@ export default function RevisionPage() {
               <div key={rev.id} className="flex items-center justify-between rounded-xl bg-secondary/50 px-5 py-3">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{rev.topicTitle}</p>
-                  <p className="text-caption text-muted-foreground">Scheduled: {new Date(rev.scheduledDate).toLocaleDateString()}</p>
+                  <p className="text-caption text-muted-foreground">Scheduled: {new Date(`${rev.scheduledDate.slice(0, 10)}T00:00:00`).toLocaleDateString()}</p>
                 </div>
                 <Button
                   size="sm"

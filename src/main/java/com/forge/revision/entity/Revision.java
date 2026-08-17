@@ -11,6 +11,7 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -43,4 +44,13 @@ public class Revision extends BaseEntity {
 
     @Column(name = "completion_date")
     private LocalDateTime completionDate;
+
+    /**
+     * Non-null only while the revision is pending (completed = false); cleared on completion.
+     * Combined with the unique index on (user_id, pending_topic) this enforces at-most-one
+     * pending revision per topic — NULLs never collide, so completed rows don't block the next
+     * scheduled revision for the same topic.
+     */
+    @Column(name = "pending_topic")
+    private UUID pendingTopic;
 }

@@ -8,6 +8,17 @@ import { NAV_SHORTCUTS } from '@/lib/nav';
 
 const CommandPalette = lazy(() => import('./CommandPalette'));
 
+const pageLabels: Record<string, string> = {
+  '/app': 'Dashboard',
+  '/app/roadmap': 'Roadmap',
+  '/app/problems': 'Practice',
+  '/app/revision': 'Revision',
+  '/app/journal': 'Journal',
+  '/app/memory': 'Memory',
+  '/app/analytics': 'Analytics',
+  '/app/profile': 'Profile',
+};
+
 export default function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('forge-sidebar-collapsed');
@@ -43,19 +54,10 @@ export default function AppLayout() {
     if (active && active !== document.body && active !== rootRef.current) {
       active.blur();
     }
+    rootRef.current?.focus({ preventScroll: true });
   }, [location.pathname]);
 
   useEffect(() => {
-    const pageLabels: Record<string, string> = {
-      '/app': 'Dashboard',
-      '/app/roadmap': 'Roadmap',
-      '/app/problems': 'Practice',
-      '/app/revision': 'Revision',
-      '/app/journal': 'Journal',
-      '/app/memory': 'Memory',
-      '/app/analytics': 'Analytics',
-      '/app/profile': 'Profile',
-    };
     const label = pageLabels[location.pathname];
     if (!label) return;
     setRecent((prev) => {
@@ -121,6 +123,9 @@ export default function AppLayout() {
   return (
     <div ref={rootRef} tabIndex={-1} className="min-h-screen outline-none">
       <div className="pointer-events-none fixed inset-0 -z-10 bg-dots" aria-hidden="true" />
+      <span className="sr-only" role="status" aria-live="polite">
+        {pageLabels[location.pathname]}
+      </span>
       <TopHeader sidebarCollapsed={sidebarCollapsed} onMenuClick={() => setMobileOpen(true)} onOpenSearch={openPalette} />
       {paletteMounted && (
         <Suspense fallback={null}>

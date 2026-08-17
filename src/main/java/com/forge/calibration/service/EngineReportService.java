@@ -46,15 +46,15 @@ public class EngineReportService {
         }
 
         SignalWeights weights = scorerWeightsService.currentWeights();
-        double[] w = weights.toArray();
         List<Double> stored = new ArrayList<>();
-        List<Double> live = new ArrayList<>();
+        List<double[]> xs = new ArrayList<>();
         List<Double> actual = new ArrayList<>();
         for (Sample s : samples) {
             stored.add((double) s.predicted());
-            live.add((double) RecEngineEvaluator.predict(w, s.signals()));
+            xs.add(s.signals());
             actual.add(s.reward());
         }
+        RecEngineEvaluator.CvMetrics live = RecEngineEvaluator.cvMetrics(xs, toArray(actual));
 
         ScorerWeights row = scorerWeightsRepository.findFirstByOrderByCreatedAtDesc().orElse(null);
         Integer version = row != null ? row.getVersion() : null;
@@ -68,14 +68,22 @@ public class EngineReportService {
                 RecEngineEvaluator.mse(stored, actual),
                 RecEngineEvaluator.logLoss(stored, actual),
                 RecEngineEvaluator.auc(stored, actual),
-                RecEngineEvaluator.mse(live, actual),
-                RecEngineEvaluator.logLoss(live, actual),
-                RecEngineEvaluator.auc(live, actual),
+                live.mse(),
+                live.logLoss(),
+                live.auc(),
                 weights,
                 version,
                 before,
                 after,
                 calibratedAt);
+    }
+
+    private static double[] toArray(List<Double> values) {
+        double[] out = new double[values.size()];
+        for (int i = 0; i < out.length; i++) {
+            out[i] = values.get(i);
+        }
+        return out;
     }
 
     private record Sample(double[] signals, double reward, int predicted) {}

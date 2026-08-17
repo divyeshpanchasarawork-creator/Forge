@@ -80,7 +80,7 @@ export default function TopHeader({ sidebarCollapsed, onMenuClick, onOpenSearch 
             aria-expanded={menuOpen}
             className="flex h-9 items-center gap-2 rounded-lg px-1.5 transition-colors hover:bg-secondary"
           >
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-purple-500 text-xs font-bold text-white shadow-glow">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/50 text-xs font-bold text-white shadow-glow">
               {(user?.displayName || user?.username || 'F').charAt(0).toUpperCase()}
             </div>
             {user && (
@@ -91,6 +91,7 @@ export default function TopHeader({ sidebarCollapsed, onMenuClick, onOpenSearch 
             <ChevronDown className={cn('h-3.5 w-3.5 text-muted-foreground md:inline', menuOpen && 'rotate-180')} />
           </button>
           <div
+            inert={!menuOpen}
             className={cn(
               'absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-border bg-card p-1.5 transition-all duration-150',
               menuOpen ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-1 opacity-0'

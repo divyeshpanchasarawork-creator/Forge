@@ -4,6 +4,7 @@ import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.RewardModel;
 import com.forge.common.util.SecurityUtils;
 import com.forge.common.util.SignalWeights;
+import com.forge.common.exception.BadRequestException;
 import com.forge.intelligence.service.ColdStartService;
 import com.forge.intelligence.service.ForgettingCurveService;
 import com.forge.intelligence.service.MasteryService;
@@ -11,6 +12,8 @@ import com.forge.intelligence.service.SkillRatingService;
 import com.forge.knowledge.service.KnowledgeGraphService;
 import com.forge.practice.dto.PracticeProblemResponse;
 import com.forge.practice.dto.PracticeQueueResponse;
+import com.forge.practice.dto.ProblemAttemptRequest;
+import com.forge.practice.dto.ProblemAttemptResponse;
 import com.forge.practice.dto.ProblemAttemptSummary;
 import com.forge.practice.entity.ProblemAttempt;
 import com.forge.practice.repository.ProblemAttemptRepository;
@@ -19,7 +22,9 @@ import com.forge.practice.service.SessionPlanner;
 import com.forge.recommendation.service.CandidatePoolService;
 import com.forge.recommendation.service.RecommendationService;
 import com.forge.security.UserPrincipal;
+import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
+import com.forge.topic.entity.Topic;
 import com.forge.topic.repository.TopicRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +40,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -149,7 +155,7 @@ class PracticeServiceTest {
         assertEquals(attempt.getId(), s.id());
         assertEquals("Two Sum", s.problemTitle());
         assertEquals("two-sum", s.problemSlug());
-        assertEquals("EASY", s.difficulty());
+        assertEquals("Easy", s.difficulty());
         assertEquals("arrays", s.topicTagSlug());
         assertEquals("Arrays", s.topicTagName());
         assertEquals("SOLVED", s.outcome());
@@ -169,5 +175,94 @@ class PracticeServiceTest {
         ArgumentCaptor<PageRequest> captor = ArgumentCaptor.forClass(PageRequest.class);
         verify(problemAttemptRepository).findByUserIdOrderByAttemptedAtDesc(eq(userId), captor.capture());
         assertEquals(50, captor.getValue().getPageSize());
+    }
+
+    @Test
+    void submitAttemptNormalizesOutcomeAndDifficultyBeforePersisting() {
+        User user = new User();
+        user.setId(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(masteryService.qualityFrom("SOLVED", 0, 420)).thenReturn(5);
+        when(problemAttemptRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(topicRepository.findByUserId(eq(userId), any())).thenReturn(List.of());
+
+        ProblemAttemptRequest request = new ProblemAttemptRequest();
+        request.setProblemTitle("Two Sum");
+        request.setProblemSlug("two-sum");
+        request.setDifficulty("EASY");
+        request.setOutcome("solved");
+        request.setHintsUsed(0);
+        request.setTimeTakenSeconds(420);
+
+        ProblemAttemptResponse response = service.submitAttempt(request);
+
+        ArgumentCaptor<ProblemAttempt> captor = ArgumentCaptor.forClass(ProblemAttempt.class);
+        verify(problemAttemptRepository).save(captor.capture());
+        ProblemAttempt saved = captor.getValue();
+        assertEquals("SOLVED", saved.getOutcome());
+        assertEquals("Easy", saved.getDifficulty());
+        assertEquals(5, saved.getQuality());
+        assertEquals("two-sum", saved.getProblemSlug());
+        assertNull(saved.getSignalsJson());
+        assertEquals("SOLVED Two Sum recorded. No matching topic yet — add one to link your progress.",
+                response.getFeedback());
+        verify(recommendationService).completeRecommendationsForProblem(eq(userId), eq("two-sum"), eq("SOLVED"));
+    }
+
+    @Test
+    void submitAttemptUpdatesMatchingTopicAndPropagatesGraphBoost() {
+        User user = new User();
+        user.setId(userId);
+        Topic topic = new Topic();
+        topic.setId(UUID.randomUUID());
+        topic.setTitle("Two Sum");
+        topic.setSkillRating(1000.0);
+        topic.setAttemptsTotal(0);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(masteryService.qualityFrom("SOLVED", 0, 300)).thenReturn(5);
+        when(problemAttemptRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(topicRepository.findByUserId(eq(userId), any())).thenReturn(List.of(topic));
+        when(skillRatingService.applyResult(1000.0, "Medium", true, 0)).thenReturn(1016.0);
+        when(knowledgeGraphService.matchConcept("Two Sum")).thenReturn("two-sum");
+
+        ProblemAttemptRequest request = new ProblemAttemptRequest();
+        request.setProblemTitle("Two Sum");
+        request.setProblemSlug("two-sum");
+        request.setDifficulty("Medium");
+        request.setOutcome("SOLVED");
+        request.setHintsUsed(0);
+        request.setTimeTakenSeconds(300);
+
+        ProblemAttemptResponse response = service.submitAttempt(request);
+
+        verify(masteryService).apply(topic, "SOLVED", 0, 300);
+        assertEquals(1016.0, topic.getSkillRating());
+        verify(forgettingCurveService).strengthen(topic, 1.0);
+        verify(forgettingCurveService).refreshTopicRetention(topic);
+        verify(topicRepository).save(topic);
+        verify(knowledgeGraphService).propagateBoost(userId, "two-sum", 15);
+        assertEquals(List.of("Two Sum"), response.getTopicsUpdated());
+    }
+
+    @Test
+    void submitAttemptRejectsInvalidOutcome() {
+        ProblemAttemptRequest request = new ProblemAttemptRequest();
+        request.setProblemTitle("Two Sum");
+        request.setProblemSlug("two-sum");
+        request.setOutcome("GUESSED");
+
+        assertThrows(BadRequestException.class, () -> service.submitAttempt(request));
+        verify(problemAttemptRepository, never()).save(any());
+    }
+
+    @Test
+    void submitAttemptRejectsBlankProblemSlug() {
+        ProblemAttemptRequest request = new ProblemAttemptRequest();
+        request.setProblemTitle("Two Sum");
+        request.setProblemSlug("  ");
+        request.setOutcome("SOLVED");
+
+        assertThrows(BadRequestException.class, () -> service.submitAttempt(request));
+        verify(problemAttemptRepository, never()).save(any());
     }
 }

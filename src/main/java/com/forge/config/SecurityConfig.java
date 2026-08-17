@@ -36,7 +36,9 @@ public class SecurityConfig {
                 .cors(cors -> {})
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers("/api/auth/login", "/api/auth/refresh").permitAll();
+                    // Logout is unauthenticated by design: it only revokes a token the caller
+                    // must already possess, and must still work after the access token expired.
+                    auth.requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/logout").permitAll();
                     auth.requestMatchers("/api/internal/**").hasRole("ADMIN");
                     auth.requestMatchers("/api/health").permitAll();
                     if (environment.acceptsProfiles(Profiles.of("dev"))) {

@@ -22,6 +22,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -41,6 +43,7 @@ class AuthServiceTest {
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private JwtTokenProvider jwtTokenProvider;
     @Mock private RefreshTokenRepository refreshTokenRepository;
+    @Mock private PlatformTransactionManager transactionManager;
 
     private AuthService service;
     private UUID userId;
@@ -48,7 +51,7 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         service = new AuthService(authenticationManager, userRepository, passwordEncoder,
-                jwtTokenProvider, refreshTokenRepository);
+                jwtTokenProvider, refreshTokenRepository, transactionManager);
         userId = UUID.randomUUID();
         UserPrincipal principal = new UserPrincipal(userId, "testuser", "password", "USER");
         Authentication auth = new UsernamePasswordAuthenticationToken(principal, null, List.of());
@@ -204,6 +207,7 @@ class AuthServiceTest {
         stored.setUserId(userId);
         stored.setRevoked(true);
         when(refreshTokenRepository.findByTokenHash(any())).thenReturn(Optional.of(stored));
+        when(transactionManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
 
         assertThrows(BadRequestException.class, () -> service.refresh("replayed-token"));
 
@@ -212,13 +216,14 @@ class AuthServiceTest {
     }
 
     @Test
-    void logoutRevokesStoredRefreshToken() {
+    void logoutRevokesAllTokensForUser() {
         RefreshToken stored = new RefreshToken();
+        stored.setUserId(userId);
         when(refreshTokenRepository.findByTokenHash(any())).thenReturn(Optional.of(stored));
 
         service.logout("raw-refresh-token");
 
-        verify(refreshTokenRepository).delete(stored);
+        verify(refreshTokenRepository).revokeAllForUser(userId);
     }
 
     @Test
@@ -227,7 +232,7 @@ class AuthServiceTest {
 
         service.logout("unknown-token");
 
-        verify(refreshTokenRepository, never()).delete(any());
+        verify(refreshTokenRepository, never()).revokeAllForUser(any());
         assertDoesNotThrow(() -> service.logout(null));
         assertDoesNotThrow(() -> service.logout("  "));
     }
