@@ -1,6 +1,7 @@
 package com.forge.config;
 
 import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.io.DecodingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
@@ -39,7 +40,7 @@ public class ProdSecurityGuard implements ApplicationRunner {
         byte[] keyBytes;
         try {
             keyBytes = Decoders.BASE64.decode(jwtSecret);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | DecodingException e) {
             throw new IllegalStateException("jwt.secret must be Base64-encoded", e);
         }
         if (keyBytes.length < MIN_KEY_BYTES) {

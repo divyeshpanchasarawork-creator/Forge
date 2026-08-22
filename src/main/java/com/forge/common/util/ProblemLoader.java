@@ -22,12 +22,20 @@ public class ProblemLoader {
 
     @PostConstruct
     public void init() {
-        ObjectMapper mapper = new ObjectMapper();
-        InputStream is = getClass().getResourceAsStream("/problems.json");
+        InputStream is = openStream();
         if (is == null) {
             throw new IllegalStateException("problems.json not found on the classpath; refusing to start with an empty practice queue");
         }
+        load(is);
+    }
+
+    InputStream openStream() {
+        return getClass().getResourceAsStream("/problems.json");
+    }
+
+    void load(InputStream is) {
         try {
+            ObjectMapper mapper = new ObjectMapper();
             Map<String, List<Map<String, String>>> raw = mapper.readValue(is, new TypeReference<>() {});
             Set<String> seenSlugs = new HashSet<>();
             for (var entry : raw.entrySet()) {
