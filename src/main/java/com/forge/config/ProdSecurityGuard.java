@@ -22,8 +22,11 @@ public class ProdSecurityGuard implements ApplicationRunner {
     static final String KNOWN_DEV_SECRET = "Zm9yZ2Utc2VjcmV0LWtleS1mb3ItZGV2LWVudmlyb25tZW50LW9ubHk=";
     private static final int MIN_KEY_BYTES = 32;
 
-    @Value("${jwt.secret:}")
-    private String jwtSecret;
+    private final String jwtSecret;
+
+    public ProdSecurityGuard(@Value("${jwt.secret:}") String jwtSecret) {
+        this.jwtSecret = jwtSecret;
+    }
 
     @Override
     public void run(ApplicationArguments args) {

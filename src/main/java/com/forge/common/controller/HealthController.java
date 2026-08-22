@@ -21,18 +21,10 @@ public class HealthController {
         try {
             Integer one = jdbcTemplate.queryForObject("SELECT 1", Integer.class);
             if (one == null || one != 1) {
-                return ResponseEntity.status(503).body(Map.of(
-                        "status", "DEGRADED",
-                        "db", "DOWN",
-                        "timestamp", Instant.now().toString()
-                ));
+                return degraded();
             }
         } catch (Exception ex) {
-            return ResponseEntity.status(503).body(Map.of(
-                    "status", "DEGRADED",
-                    "db", "DOWN",
-                    "timestamp", Instant.now().toString()
-            ));
+            return degraded();
         }
 
         Map<String, Object> body = new LinkedHashMap<>();
@@ -40,5 +32,13 @@ public class HealthController {
         body.put("db", "UP");
         body.put("timestamp", Instant.now().toString());
         return ResponseEntity.ok(body);
+    }
+
+    private ResponseEntity<Map<String, Object>> degraded() {
+        return ResponseEntity.status(503).body(Map.of(
+                "status", "DEGRADED",
+                "db", "DOWN",
+                "timestamp", Instant.now().toString()
+        ));
     }
 }

@@ -2,7 +2,6 @@ package com.forge.config;
 
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
@@ -15,20 +14,25 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 @Component
 @Profile("prod")
-@RequiredArgsConstructor
 public class ProdAdminSeedInitializer implements ApplicationRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final String adminUsername;
+    private final String adminPassword;
+    private final String adminEmail;
 
-    @Value("${ADMIN_USERNAME:}")
-    private String adminUsername;
-
-    @Value("${ADMIN_PASSWORD:}")
-    private String adminPassword;
-
-    @Value("${ADMIN_EMAIL:}")
-    private String adminEmail;
+    public ProdAdminSeedInitializer(UserRepository userRepository,
+                                    PasswordEncoder passwordEncoder,
+                                    @Value("${ADMIN_USERNAME:}") String adminUsername,
+                                    @Value("${ADMIN_PASSWORD:}") String adminPassword,
+                                    @Value("${ADMIN_EMAIL:}") String adminEmail) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.adminUsername = adminUsername;
+        this.adminPassword = adminPassword;
+        this.adminEmail = adminEmail;
+    }
 
     @Override
     public void run(ApplicationArguments args) {

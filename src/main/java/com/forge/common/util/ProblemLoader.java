@@ -22,19 +22,21 @@ public class ProblemLoader {
 
     @PostConstruct
     public void init() {
+        ObjectMapper mapper = new ObjectMapper();
+        InputStream is = getClass().getResourceAsStream("/problems.json");
+        if (is == null) {
+            throw new IllegalStateException("problems.json not found on the classpath; refusing to start with an empty practice queue");
+        }
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            InputStream is = getClass().getResourceAsStream("/problems.json");
-            if (is == null) {
-                log.warn("problems.json not found, practice queue will be empty");
-                return;
-            }
             Map<String, List<Map<String, String>>> raw = mapper.readValue(is, new TypeReference<>() {});
             Set<String> seenSlugs = new HashSet<>();
             for (var entry : raw.entrySet()) {
                 String tagSlug = entry.getKey();
                 List<ProblemEntry> tagProblems = new ArrayList<>();
                 for (Map<String, String> p : entry.getValue()) {
+                    if (isBlank(p.get("title")) || isBlank(p.get("titleSlug")) || isBlank(p.get("difficulty"))) {
+                        throw new IllegalStateException("problems.json contains an incomplete problem entry under tag '" + tagSlug + "'");
+                    }
                     ProblemEntry pe = new ProblemEntry(p.get("title"), p.get("titleSlug"), p.get("difficulty"));
                     tagProblems.add(pe);
                     tagBySlug.putIfAbsent(pe.getTitleSlug(), tagSlug);
@@ -45,9 +47,15 @@ public class ProblemLoader {
                 problemsByTag.put(tagSlug, tagProblems);
             }
             log.info("Loaded {} curated problems across {} tags ({} unique)", allProblems.size(), problemsByTag.size(), seenSlugs.size());
+        } catch (IllegalStateException e) {
+            throw e;
         } catch (Exception e) {
-            log.error("Failed to load problems.json: {}", e.getMessage());
+            throw new IllegalStateException("Failed to parse problems.json", e);
         }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     public List<ProblemEntry> getProblemsForTag(String tagSlug) {

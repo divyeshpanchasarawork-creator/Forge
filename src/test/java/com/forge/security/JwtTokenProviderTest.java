@@ -1,5 +1,6 @@
 package com.forge.security;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -17,13 +18,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class JwtTokenProviderTest {
 
     private static final String TEST_SECRET = "Zm9yZ2UtdGVzdC1zZWNyZXQta2V5LWZvci10ZXN0aW5nLW9ubHk=";
+    private static final String TEST_ISSUER = "forge-test";
 
     private JwtTokenProvider provider;
     private UserPrincipal principal;
 
     @BeforeEach
     void setUp() {
-        provider = new JwtTokenProvider(TEST_SECRET, 1_800_000L, 604_800_000L);
+        provider = new JwtTokenProvider(TEST_SECRET, 1_800_000L, 604_800_000L, TEST_ISSUER);
         principal = new UserPrincipal(UUID.randomUUID(), "testuser", "password", "ADMIN");
     }
 
@@ -32,6 +34,29 @@ class JwtTokenProviderTest {
         String token = provider.generateToken(principal);
 
         assertEquals(principal.getId(), provider.getAccessTokenUserId(token));
+    }
+
+    @Test
+    void tokensCarryConfiguredIssuerAndUniqueJti() throws Exception {
+        String access = provider.generateToken(principal);
+        String refresh = provider.generateRefreshToken(principal);
+
+        Claims accessClaims = parse(access);
+        Claims refreshClaims = parse(refresh);
+        assertEquals(TEST_ISSUER, accessClaims.getIssuer());
+        assertEquals(TEST_ISSUER, refreshClaims.getIssuer());
+        assertNotNull(accessClaims.getId());
+        assertNotNull(refreshClaims.getId());
+        assertNotEquals(accessClaims.getId(), refreshClaims.getId());
+    }
+
+    private Claims parse(String token) {
+        SecretKey key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(TEST_SECRET));
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
     @Test

@@ -5,6 +5,7 @@ import com.forge.intelligence.service.SkillRatingService;
 import com.forge.practice.dto.PracticeProblemResponse;
 import com.forge.recommendation.service.CandidatePoolService;
 import com.forge.topic.entity.Topic;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class SessionPlanner {
 
     public static final String SEGMENT_WARMUP = "WARMUP";
@@ -24,10 +26,6 @@ public class SessionPlanner {
     public static final String SEGMENT_REVISION = "REVISION";
 
     private final SkillRatingService skillRatingService;
-
-    public SessionPlanner(SkillRatingService skillRatingService) {
-        this.skillRatingService = skillRatingService;
-    }
 
     public record AttemptCounts(int attempts, int solved) {}
 

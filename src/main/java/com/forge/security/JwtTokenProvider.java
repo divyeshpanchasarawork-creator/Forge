@@ -18,18 +18,23 @@ public class JwtTokenProvider {
     private final SecretKey signingKey;
     private final long jwtExpiration;
     private final long refreshExpiration;
+    private final String jwtIssuer;
 
     public JwtTokenProvider(@Value("${jwt.secret}") String jwtSecret,
                             @Value("${jwt.expiration:1800000}") long jwtExpiration,
-                            @Value("${jwt.refresh-expiration:604800000}") long refreshExpiration) {
+                            @Value("${jwt.refresh-expiration:604800000}") long refreshExpiration,
+                            @Value("${jwt.issuer:forge}") String jwtIssuer) {
         this.signingKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
         this.jwtExpiration = jwtExpiration;
         this.refreshExpiration = refreshExpiration;
+        this.jwtIssuer = jwtIssuer;
     }
 
     public String generateToken(UserPrincipal principal) {
         return Jwts.builder()
                 .subject(principal.getId().toString())
+                .issuer(jwtIssuer)
+                .id(UUID.randomUUID().toString())
                 .claim("username", principal.getUsername())
                 .claim("type", "access")
                 .issuedAt(new Date())
@@ -41,6 +46,8 @@ public class JwtTokenProvider {
     public String generateRefreshToken(UserPrincipal principal) {
         return Jwts.builder()
                 .subject(principal.getId().toString())
+                .issuer(jwtIssuer)
+                .id(UUID.randomUUID().toString())
                 .claim("username", principal.getUsername())
                 .claim("type", "refresh")
                 .issuedAt(new Date())
