@@ -186,6 +186,49 @@ class CandidatePoolServiceTest {
     }
 
     @Test
+    void rankForUserShouldCapSuggestionsAtHalfThePool() {
+        LeetCodeTagStat weak = new LeetCodeTagStat();
+        weak.setTagSlug("dp");
+        weak.setProblemsSolved(2);
+
+        List<ProblemSuggestion> suggestions = new java.util.ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+            ProblemSuggestion s = new ProblemSuggestion();
+            s.setSource("RECOMMENDATION");
+            s.setTitle("Suggested " + i);
+            s.setTitleSlug("sug" + i);
+            s.setDifficulty("Medium");
+            s.setTopicTagSlug("dp");
+            suggestions.add(s);
+        }
+
+        when(problemLoader.getProblemsForTag("dp")).thenReturn(List.of(
+                new ProblemLoader.ProblemEntry("Tag One", "tag1", "Easy"),
+                new ProblemLoader.ProblemEntry("Tag Two", "tag2", "Easy")));
+        when(problemScorer.breakdown(any(), any(), any())).thenReturn(new ProblemScorer.ScoreBreakdown(70, List.of()));
+
+        List<CandidatePoolService.Candidate> ranked =
+                service.rankForUser(ctx(List.of(weak), suggestions), 4);
+
+        assertEquals(4, ranked.size());
+        long fromSuggestions = ranked.stream().filter(c -> c.problem().getTitleSlug().startsWith("sug")).count();
+        long fromTags = ranked.stream().filter(c -> c.problem().getTitleSlug().startsWith("tag")).count();
+        assertEquals(2, fromSuggestions, "stale suggestion backlog must not crowd out fresh tag candidates");
+        assertEquals(2, fromTags);
+    }
+
+    @Test
+    void tagSlugForTopicShouldFuzzyMatchTagName() {
+        LeetCodeTagStat tag = new LeetCodeTagStat();
+        tag.setTagName("Sliding Window");
+        tag.setTagSlug("sliding-window");
+
+        String slug = service.tagSlugForTopic(ctx(List.of(tag)), "sliding-window drills");
+
+        assertEquals("sliding-window", slug);
+    }
+
+    @Test
     void rankForUserShouldIgnoreNonRecommendationSuggestions() {
         ProblemSuggestion weakTagSuggestion = new ProblemSuggestion();
         weakTagSuggestion.setSource("WEAK_TAG");

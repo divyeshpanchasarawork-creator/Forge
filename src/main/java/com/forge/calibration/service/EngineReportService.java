@@ -1,7 +1,9 @@
 package com.forge.calibration.service;
 
 import com.forge.calibration.dto.EngineReport;
+import com.forge.calibration.entity.CalibrationRun;
 import com.forge.calibration.entity.ScorerWeights;
+import com.forge.calibration.repository.CalibrationRunRepository;
 import com.forge.calibration.repository.ScorerWeightsRepository;
 import com.forge.common.util.SignalWeights;
 import com.forge.practice.entity.ProblemAttempt;
@@ -19,13 +21,19 @@ import java.util.List;
 public class EngineReportService {
 
     private static final int MAX_SAMPLES = 300;
+    private static final int MAX_RUNS = 30;
 
     private final ProblemAttemptRepository attemptRepository;
     private final ScorerWeightsRepository scorerWeightsRepository;
     private final ScorerWeightsService scorerWeightsService;
+    private final CalibrationRunRepository calibrationRunRepository;
 
     @Transactional(readOnly = true)
     public EngineReport getReport() {
+        List<EngineReport.RunView> recentRuns = calibrationRunRepository.findTop30ByOrderByRanAtDesc().stream()
+                .map(EngineReportService::toRunView)
+                .toList();
+
         List<ProblemAttempt> attempts = attemptRepository.findWithPredictedScores(PageRequest.of(0, MAX_SAMPLES));
         List<Sample> samples = new ArrayList<>();
         for (ProblemAttempt attempt : attempts) {
@@ -42,7 +50,7 @@ public class EngineReportService {
         if (samples.isEmpty()) {
             return new EngineReport(0, CalibrationJob.minRequiredSamples(), Double.NaN, Double.NaN, Double.NaN,
                     Double.NaN, Double.NaN, Double.NaN,
-                    scorerWeightsService.currentWeights(), null, null, null, null);
+                    scorerWeightsService.currentWeights(), null, null, null, null, recentRuns);
         }
 
         SignalWeights weights = scorerWeightsService.currentWeights();
@@ -75,7 +83,13 @@ public class EngineReportService {
                 version,
                 before,
                 after,
-                calibratedAt);
+                calibratedAt,
+                recentRuns);
+    }
+
+    private static EngineReport.RunView toRunView(CalibrationRun run) {
+        return new EngineReport.RunView(run.getRanAt(), run.getStatus(), run.getSampleCount(),
+                run.getMetricBefore(), run.getMetricAfter(), Boolean.TRUE.equals(run.getSwapped()), run.getMessage());
     }
 
     private static double[] toArray(List<Double> values) {

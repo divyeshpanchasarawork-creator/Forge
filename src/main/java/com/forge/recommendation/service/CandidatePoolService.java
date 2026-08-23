@@ -42,10 +42,13 @@ public class CandidatePoolService {
     public List<Candidate> rankForUser(ProblemScorer.ScoringContext ctx, int cap) {
         List<Candidate> scored = new ArrayList<>();
         Set<String> seen = new HashSet<>();
+        // Stored suggestions can accumulate a stale backlog; capping their share keeps
+        // tag-derived candidates — which track current weak spots — in every generation.
+        int suggestionShare = Math.max(1, cap / 2);
 
         for (ProblemSuggestion ps : ctx.suggestions()) {
             if (!"RECOMMENDATION".equals(ps.getSource())) continue;
-            if (scored.size() >= cap) break;
+            if (scored.size() >= suggestionShare || scored.size() >= cap) break;
             if (seen.add(ps.getTitleSlug())) {
                 ProblemLoader.ProblemEntry entry = new ProblemLoader.ProblemEntry(ps.getTitle(), ps.getTitleSlug(),
                         DifficultyUtil.titleCase(ps.getDifficulty()));
@@ -77,7 +80,7 @@ public class CandidatePoolService {
         String topicSlug = slugify(topicTitle);
         List<Candidate> ranked = rank(ctx, List.of(topicSlug), null, 1);
         if (ranked.isEmpty()) {
-            String matchingSlug = tagSlugForTopic(ctx, topicTitle, topicSlug);
+            String matchingSlug = tagSlugForTopic(ctx, topicTitle);
             if (matchingSlug != null && !matchingSlug.equals(topicSlug)) {
                 ranked = rank(ctx, List.of(matchingSlug), null, 1);
             }
@@ -127,10 +130,14 @@ public class CandidatePoolService {
                 .toList();
     }
 
-    public String tagSlugForTopic(ProblemScorer.ScoringContext ctx, String topicTitle, String topicSlug) {
+    /**
+     * Resolves a topic title to a real LeetCode tag slug via fuzzy title matching over the
+     * user's synced tag stats — the shared {@link TitleMatcher} contract, not exact equality.
+     */
+    public String tagSlugForTopic(ProblemScorer.ScoringContext ctx, String topicTitle) {
         return ctx.stats().stream()
-                .filter(ts -> ts.getTagName().equalsIgnoreCase(topicTitle)
-                        || ts.getTagSlug().equalsIgnoreCase(topicSlug))
+                .filter(ts -> com.forge.common.util.TitleMatcher.topicMatches(ts.getTagName(), topicTitle)
+                        || com.forge.common.util.TitleMatcher.topicMatches(ts.getTagSlug(), topicTitle))
                 .findFirst()
                 .map(LeetCodeTagStat::getTagSlug)
                 .orElse(null);

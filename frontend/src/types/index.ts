@@ -45,6 +45,16 @@ export interface Recommendation {
   scoreBreakdown?: { total: number; items: ScoreItem[] } | null;
 }
 
+export interface CalibrationRunView {
+  ranAt: string;
+  status: 'SKIPPED' | 'APPLIED';
+  sampleCount: number;
+  metricBefore: number | null;
+  metricAfter: number | null;
+  swapped: boolean;
+  message: string;
+}
+
 export interface EngineReport {
   sampleCount: number;
   minSamples: number;
@@ -59,6 +69,7 @@ export interface EngineReport {
   lastMetricBefore: number | null;
   lastMetricAfter: number | null;
   lastCalibratedAt: string | null;
+  recentRuns: CalibrationRunView[];
 }
 
 export interface CalibrationResult {

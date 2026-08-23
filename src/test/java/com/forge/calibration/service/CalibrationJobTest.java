@@ -30,13 +30,14 @@ class CalibrationJobTest {
 
     @Mock private ProblemAttemptRepository attemptRepository;
     @Mock private ScorerWeightsService scorerWeightsService;
+    @Mock private com.forge.calibration.repository.CalibrationRunRepository calibrationRunRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private CalibrationJob job;
 
     @BeforeEach
     void setUp() {
-        job = new CalibrationJob(attemptRepository, scorerWeightsService);
+        job = new CalibrationJob(attemptRepository, scorerWeightsService, calibrationRunRepository);
     }
 
     @Test
@@ -51,6 +52,55 @@ class CalibrationJobTest {
         assertEquals(MIN_REQUIRED_SAMPLES, result.minSamples());
         verify(scorerWeightsService, never()).applyWeights(any(), anyInt(), anyDouble(), anyDouble());
         verify(scorerWeightsService, never()).recordMetrics(anyInt(), anyDouble(), anyDouble());
+    }
+
+    @Test
+    void shouldLedgerSkippedRunWhenBelowSampleGate() {
+        when(attemptRepository.findWithPredictedScores(any())).thenReturn(List.of());
+
+        job.calibrate();
+
+        ArgumentCaptor<com.forge.calibration.entity.CalibrationRun> runCaptor =
+                ArgumentCaptor.forClass(com.forge.calibration.entity.CalibrationRun.class);
+        verify(calibrationRunRepository).save(runCaptor.capture());
+        com.forge.calibration.entity.CalibrationRun run = runCaptor.getValue();
+        assertEquals("SKIPPED", run.getStatus());
+        assertFalse(run.getSwapped());
+        assertEquals(0, run.getSampleCount());
+        assertEquals(MIN_REQUIRED_SAMPLES, run.getMinSamples());
+        assertNull(run.getMetricBefore());
+        assertNull(run.getMetricAfter());
+        assertNotNull(run.getRanAt());
+    }
+
+    @Test
+    void shouldLedgerAppliedRunWithSwapAndMetrics() throws Exception {
+        List<ProblemAttempt> attempts = new ArrayList<>();
+        for (int i = 0; i < 60; i++) {
+            double x0 = (i * 37) % 101;
+            double x1 = (i * 53) % 101;
+            double target = 0.4 * x0 + 0.3 * x1;
+            double[] s = new double[SIGNALS];
+            s[0] = x0;
+            s[1] = x1;
+            int quality = Math.max(0, Math.min(5, (int) Math.round(target / 20)));
+            attempts.add(attempt(s, quality));
+        }
+        when(attemptRepository.findWithPredictedScores(any())).thenReturn(attempts);
+        when(scorerWeightsService.currentWeights()).thenReturn(SignalWeights.DEFAULT);
+
+        CalibrationResult result = job.calibrate();
+
+        assertTrue(result.applied());
+        ArgumentCaptor<com.forge.calibration.entity.CalibrationRun> runCaptor =
+                ArgumentCaptor.forClass(com.forge.calibration.entity.CalibrationRun.class);
+        verify(calibrationRunRepository).save(runCaptor.capture());
+        com.forge.calibration.entity.CalibrationRun run = runCaptor.getValue();
+        assertEquals("APPLIED", run.getStatus());
+        assertTrue(run.getSwapped());
+        assertTrue(run.getMetricAfter() < run.getMetricBefore(),
+                "ledger must record the improving holdout MSE pair");
+        assertNotNull(run.getMessage());
     }
 
     @Test

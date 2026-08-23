@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -9,6 +9,7 @@ import { Select } from '@/components/ui/Select';
 import { Callout } from '@/components/ui/Callout';
 import { Badge } from '@/components/ui/Badge';
 import { User, Code2, Save, RefreshCw, Target, Sparkles, Activity, Gauge, TrendingDown } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { authApi, leetcodeApi, calibrationApi, unwrap } from '@/api';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTargetLevel } from '@/lib/targetLevels';
@@ -18,6 +19,12 @@ import KpiCard from '@/components/ui/KpiCard';
 
 const fmt = (v?: number | null) =>
   v != null && Number.isFinite(v) ? v.toFixed(2) : 'n/a';
+
+interface RunTrendPoint {
+  ts: number;
+  mse: number;
+  swapped: boolean;
+}
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
@@ -82,6 +89,17 @@ export default function ProfilePage() {
   });
 
   const [calibrationMessage, setCalibrationMessage] = useState<{ text: string; applied: boolean } | null>(null);
+
+  const runTrend: RunTrendPoint[] = useMemo(
+    () =>
+      (engineReport?.recentRuns ?? [])
+        .filter((r) => r.metricBefore != null)
+        .slice()
+        .reverse()
+        .map((r) => ({ ts: new Date(r.ranAt).getTime(), mse: r.metricBefore as number, swapped: r.swapped })),
+    [engineReport],
+  );
+  const lastRun = engineReport?.recentRuns?.[0];
 
   const calibrateMutation = useMutation({
     mutationFn: () => calibrationApi.runCalibration(),
@@ -319,6 +337,49 @@ export default function ProfilePage() {
                   {(engineReport?.minSamples ?? 12) - (engineReport?.sampleCount ?? 0)} more to go. The nightly
                   check runs at 02:00 Asia/Kolkata; until then the engine keeps its current weights.
                 </p>
+              )}
+
+              {runTrend.length >= 2 && (
+                <div>
+                  <p className="mb-1 text-caption text-muted-foreground">
+                    Holdout MSE across the last {runTrend.length} evaluated runs — lower is better; filled dots mark
+                    nights where weights were swapped.
+                  </p>
+                  <ResponsiveContainer width="100%" height={96}>
+                    <LineChart data={runTrend} margin={{ top: 6, right: 8, left: 8, bottom: 0 }}>
+                      <XAxis dataKey="ts" type="number" scale="time" domain={['dataMin', 'dataMax']} hide />
+                      <YAxis hide domain={['auto', 'auto']} />
+                      <RechartsTooltip
+                        contentStyle={{
+                          backgroundColor: 'var(--color-card)',
+                          border: '1px solid var(--color-border)',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          color: 'var(--color-foreground)',
+                        }}
+                        labelFormatter={(ts) => new Date(Number(ts)).toLocaleDateString()}
+                        formatter={(value) => [Number(value).toFixed(2), 'Holdout MSE']}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="mse"
+                        stroke="var(--color-primary)"
+                        strokeWidth={2}
+                        dot={(props: { cx?: number; cy?: number; payload?: RunTrendPoint }) => {
+                          const { cx = 0, cy = 0, payload } = props;
+                          if (!payload?.swapped) return <g key={cy} />;
+                          return <circle key={cx} cx={cx} cy={cy} r={3} fill="var(--color-success)" />;
+                        }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  {lastRun && (
+                    <p className="text-caption text-muted-foreground">
+                      Last run {new Date(lastRun.ranAt).toLocaleString()} ·{' '}
+                      {lastRun.swapped ? 'weights swapped' : lastRun.status.toLowerCase()} · {lastRun.message}
+                    </p>
+                  )}
+                </div>
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-secondary/50 px-4 py-3">

@@ -3,6 +3,7 @@ package com.forge.calibration.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.forge.calibration.dto.EngineReport;
 import com.forge.calibration.entity.ScorerWeights;
+import com.forge.calibration.repository.CalibrationRunRepository;
 import com.forge.calibration.repository.ScorerWeightsRepository;
 import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.SignalWeights;
@@ -32,6 +33,7 @@ class EngineReportServiceTest {
     @Mock private ProblemAttemptRepository attemptRepository;
     @Mock private ScorerWeightsRepository scorerWeightsRepository;
     @Mock private ScorerWeightsService scorerWeightsService;
+    @Mock private CalibrationRunRepository calibrationRunRepository;
 
     @Test
     void shouldReportStoredVsLiveMetrics() throws Exception {
@@ -51,7 +53,7 @@ class EngineReportServiceTest {
         when(scorerWeightsService.currentWeights()).thenReturn(weights);
         when(scorerWeightsRepository.findFirstByOrderByCreatedAtDesc()).thenReturn(java.util.Optional.of(row));
 
-        EngineReport report = new EngineReportService(attemptRepository, scorerWeightsRepository, scorerWeightsService).getReport();
+        EngineReport report = new EngineReportService(attemptRepository, scorerWeightsRepository, scorerWeightsService, calibrationRunRepository).getReport();
 
         assertEquals(3, report.sampleCount());
         assertEquals(CalibrationJob.minRequiredSamples(), report.minSamples());
@@ -84,7 +86,7 @@ class EngineReportServiceTest {
         when(scorerWeightsService.currentWeights()).thenReturn(weights);
         when(scorerWeightsRepository.findFirstByOrderByCreatedAtDesc()).thenReturn(java.util.Optional.of(row));
 
-        EngineReport report = new EngineReportService(attemptRepository, scorerWeightsRepository, scorerWeightsService).getReport();
+        EngineReport report = new EngineReportService(attemptRepository, scorerWeightsRepository, scorerWeightsService, calibrationRunRepository).getReport();
 
         assertNull(report.lastCalibratedAt(),
                 "a metrics-only row must not look calibrated");
@@ -95,7 +97,7 @@ class EngineReportServiceTest {
         when(attemptRepository.findWithPredictedScores(any())).thenReturn(List.of());
         when(scorerWeightsService.currentWeights()).thenReturn(SignalWeights.DEFAULT);
 
-        EngineReport report = new EngineReportService(attemptRepository, scorerWeightsRepository, scorerWeightsService).getReport();
+        EngineReport report = new EngineReportService(attemptRepository, scorerWeightsRepository, scorerWeightsService, calibrationRunRepository).getReport();
 
         assertEquals(0, report.sampleCount());
         assertEquals(CalibrationJob.minRequiredSamples(), report.minSamples());

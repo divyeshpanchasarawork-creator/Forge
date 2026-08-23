@@ -3,6 +3,8 @@ package com.forge.calibration.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.forge.calibration.dto.CalibrationResult;
+import com.forge.calibration.entity.CalibrationRun;
+import com.forge.calibration.repository.CalibrationRunRepository;
 import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.SignalWeights;
 import com.forge.practice.entity.ProblemAttempt;
@@ -14,6 +16,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
@@ -44,10 +47,12 @@ public class CalibrationJob {
 
     private final ProblemAttemptRepository attemptRepository;
     private final ScorerWeightsService scorerWeightsService;
+    private final CalibrationRunRepository calibrationRunRepository;
 
     @Scheduled(cron = "0 0 2 * * *", zone = "Asia/Kolkata")
     @Transactional
     public CalibrationResult calibrate() {
+        LocalDateTime ranAt = LocalDateTime.now();
         List<ProblemAttempt> attempts = attemptRepository.findWithPredictedScores(PageRequest.of(0, MAX_SAMPLES));
         List<SignalSample> samples = attempts.stream()
                 .filter(a -> a.getSignalsJson() != null && a.getQuality() != null)
@@ -59,7 +64,7 @@ public class CalibrationJob {
             String message = "Calibration skipped: " + samples.size() + " of " + minRequiredSamples()
                     + " minimum scored samples available. Practice more to grow the calibration set.";
             log.info(message);
-            return CalibrationResult.skipped(samples.size(), minRequiredSamples(), message);
+            return record(ranAt, CalibrationResult.skipped(samples.size(), minRequiredSamples(), message));
         }
 
         // Temporal holdout: samples are newest-first. Fit the candidate on the older majority
@@ -78,7 +83,7 @@ public class CalibrationJob {
         } catch (Exception ex) {
             String message = "Calibration skipped: fit failed (" + ex.getMessage() + "). Keeping current weights.";
             log.warn("Calibration fit failed: {}", ex.getMessage());
-            return CalibrationResult.skipped(samples.size(), minRequiredSamples(), message);
+            return record(ranAt, CalibrationResult.skipped(samples.size(), minRequiredSamples(), message));
         }
         double after = evaluate(candidate, validation);
 
@@ -88,15 +93,33 @@ public class CalibrationJob {
                     "Calibration applied: holdout MSE %.2f -> %.2f (%d training / %d held-out samples). New weights active.",
                     before, after, training.size(), validation.size());
             log.info(message);
-            return CalibrationResult.applied(training.size(), minRequiredSamples(), before, after, message);
+            return record(ranAt, CalibrationResult.applied(training.size(), minRequiredSamples(), before, after, message));
         } else {
             scorerWeightsService.recordMetrics(samples.size(), before, after);
             String message = String.format(
                     "Calibration ran but kept current weights: holdout MSE %.2f -> %.2f on %d held-out samples did not clear the swap bar.",
                     before, after, validation.size());
             log.info(message);
-            return CalibrationResult.skipped(samples.size(), minRequiredSamples(), before, after, message);
+            return record(ranAt, CalibrationResult.skipped(samples.size(), minRequiredSamples(), before, after, message));
         }
+    }
+
+    /**
+     * Persists the outcome to the append-only {@link CalibrationRun} ledger so the engine
+     * health card can chart a trend; runs within the surrounding transaction of calibrate().
+     */
+    private CalibrationResult record(LocalDateTime ranAt, CalibrationResult result) {
+        CalibrationRun run = new CalibrationRun();
+        run.setRanAt(ranAt);
+        run.setStatus(result.status());
+        run.setSampleCount(result.sampleCount());
+        run.setMinSamples(result.minSamples());
+        run.setMetricBefore(result.before());
+        run.setMetricAfter(result.after());
+        run.setSwapped(result.applied());
+        run.setMessage(result.message());
+        calibrationRunRepository.save(run);
+        return result;
     }
 
     /**
