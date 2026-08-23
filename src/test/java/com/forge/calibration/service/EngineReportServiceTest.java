@@ -54,7 +54,7 @@ class EngineReportServiceTest {
         EngineReport report = new EngineReportService(attemptRepository, scorerWeightsRepository, scorerWeightsService).getReport();
 
         assertEquals(3, report.sampleCount());
-        assertEquals(CalibrationJob.MIN_SAMPLES, report.minSamples());
+        assertEquals(CalibrationJob.minRequiredSamples(), report.minSamples());
         assertEquals(14969.0 / 3.0, report.storedMse(), 1e-9);
         assertEquals(1.0, report.storedAuc(), 1e-9);
         // Live metrics are leave-one-out: each sample is predicted by a fit on the other two.
@@ -98,7 +98,7 @@ class EngineReportServiceTest {
         EngineReport report = new EngineReportService(attemptRepository, scorerWeightsRepository, scorerWeightsService).getReport();
 
         assertEquals(0, report.sampleCount());
-        assertEquals(CalibrationJob.MIN_SAMPLES, report.minSamples());
+        assertEquals(CalibrationJob.minRequiredSamples(), report.minSamples());
         assertTrue(Double.isNaN(report.liveMse()));
     }
 

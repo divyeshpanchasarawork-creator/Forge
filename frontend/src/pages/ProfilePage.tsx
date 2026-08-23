@@ -289,34 +289,42 @@ export default function ProfilePage() {
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <KpiCard
                   icon={<Activity className="h-5 w-5 text-muted-foreground" />}
-                  value={`${engineReport?.sampleCount ?? 0} / ${engineReport?.minSamples ?? 10}`}
+                  value={`${engineReport?.sampleCount ?? 0} / ${engineReport?.minSamples ?? 12}`}
                   label="Scored Samples"
-                  tooltip={`Attempts with a stored signal snapshot used to evaluate the scorer. Calibration needs at least ${engineReport?.minSamples ?? 10} scored samples.`}
+                  tooltip={`Logged attempts with a stored signal snapshot, evaluated out-of-sample. Calibrating needs at least ${engineReport?.minSamples ?? 12}: the older majority fit the weights, the newest few are held back to judge them.`}
                 />
                 <KpiCard
                   icon={<Target className="h-5 w-5 text-muted-foreground" />}
                   value={fmt(engineReport?.liveAuc)}
                   label="Live Rank-AUC"
-                  tooltip="Out-of-sample (leave-one-out) rank correlation between the scorer and actual outcomes. 1.0 is a perfect ranking, 0.5 is random. Shows n/a until there are both success and failure samples."
+                  tooltip="Out-of-sample (leave-one-out) rank correlation between the scorer and actual outcomes. 1.0 is a perfect ranking, 0.5 is random. n/a until the samples include at least one success (quality >= 3) and one failure."
                 />
                 <KpiCard
                   icon={<Gauge className="h-5 w-5 text-muted-foreground" />}
                   value={fmt(engineReport?.liveMse)}
                   label="Live MSE"
-                  tooltip="Out-of-sample (leave-one-out) mean squared error between the predicted score and reward (quality/5, scaled to 0-100)."
+                  tooltip="Out-of-sample (leave-one-out) mean squared error on the 0-100 score scale — sqrt of this is the typical miss in points. E.g. MSE 73 ≈ 8.5 points off on average."
                 />
                 <KpiCard
                   icon={<TrendingDown className="h-5 w-5 text-muted-foreground" />}
                   value={fmt(engineReport?.liveLogLoss)}
                   label="Live Log-Loss"
-                  tooltip="Out-of-sample (leave-one-out) binary log-loss of the scorer treating reward >= 0.6 as success."
+                  tooltip="Out-of-sample (leave-one-out) binary log-loss treating reward >= 0.6 as success. Near 0 is good — but it reads optimistically low while every logged attempt was a success."
                 />
               </div>
+
+              {(engineReport?.sampleCount ?? 0) < (engineReport?.minSamples ?? 12) && (
+                <p className="text-caption text-muted-foreground">
+                  Calibration unlocks at {engineReport?.minSamples ?? 12} scored samples —{' '}
+                  {(engineReport?.minSamples ?? 12) - (engineReport?.sampleCount ?? 0)} more to go. The nightly
+                  check runs at 02:00 Asia/Kolkata; until then the engine keeps its current weights.
+                </p>
+              )}
 
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-secondary/50 px-4 py-3">
                 <div className="text-caption text-muted-foreground">
                   {engineReport?.lastCalibratedAt
-                    ? `Weights v${engineReport.version} · calibrated ${new Date(engineReport.lastCalibratedAt).toLocaleString()}`
+                    ? `Weights v${engineReport.version} · last swapped ${new Date(engineReport.lastCalibratedAt).toLocaleString()}`
                     : engineReport?.version != null
                       ? `Weights v${engineReport.version} — recorded metrics, not yet recalibrated.`
                       : 'No calibration applied yet — the scorer is using initial default weights.'}

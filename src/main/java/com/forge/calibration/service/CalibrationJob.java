@@ -30,10 +30,15 @@ import java.util.Objects;
 public class CalibrationJob {
 
     public static final int MIN_SAMPLES = 10;
+    /** Newest samples held back to validate both weight vectors on equal footing. */
+    public static final int MIN_HOLDOUT = 2;
     private static final int MAX_SAMPLES = 300;
-    private static final int MIN_HOLDOUT = 2;
     /** A candidate predictor that ranks at or below random is never swapped in. */
     private static final double MIN_AUC = 0.5;
+
+    public static int minRequiredSamples() {
+        return MIN_SAMPLES + MIN_HOLDOUT;
+    }
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -50,11 +55,11 @@ public class CalibrationJob {
                 .filter(Objects::nonNull)
                 .toList();
 
-        if (samples.size() < MIN_SAMPLES + MIN_HOLDOUT) {
-            String message = "Calibration skipped: " + samples.size() + " of " + (MIN_SAMPLES + MIN_HOLDOUT)
+        if (samples.size() < minRequiredSamples()) {
+            String message = "Calibration skipped: " + samples.size() + " of " + minRequiredSamples()
                     + " minimum scored samples available. Practice more to grow the calibration set.";
             log.info(message);
-            return CalibrationResult.skipped(samples.size(), MIN_SAMPLES, message);
+            return CalibrationResult.skipped(samples.size(), minRequiredSamples(), message);
         }
 
         // Temporal holdout: samples are newest-first. Fit the candidate on the older majority
@@ -73,7 +78,7 @@ public class CalibrationJob {
         } catch (Exception ex) {
             String message = "Calibration skipped: fit failed (" + ex.getMessage() + "). Keeping current weights.";
             log.warn("Calibration fit failed: {}", ex.getMessage());
-            return CalibrationResult.skipped(samples.size(), MIN_SAMPLES, message);
+            return CalibrationResult.skipped(samples.size(), minRequiredSamples(), message);
         }
         double after = evaluate(candidate, validation);
 
@@ -83,14 +88,14 @@ public class CalibrationJob {
                     "Calibration applied: holdout MSE %.2f -> %.2f (%d training / %d held-out samples). New weights active.",
                     before, after, training.size(), validation.size());
             log.info(message);
-            return CalibrationResult.applied(training.size(), MIN_SAMPLES, before, after, message);
+            return CalibrationResult.applied(training.size(), minRequiredSamples(), before, after, message);
         } else {
             scorerWeightsService.recordMetrics(samples.size(), before, after);
             String message = String.format(
                     "Calibration ran but kept current weights: holdout MSE %.2f -> %.2f on %d held-out samples did not clear the swap bar.",
                     before, after, validation.size());
             log.info(message);
-            return CalibrationResult.skipped(samples.size(), MIN_SAMPLES, before, after, message);
+            return CalibrationResult.skipped(samples.size(), minRequiredSamples(), before, after, message);
         }
     }
 

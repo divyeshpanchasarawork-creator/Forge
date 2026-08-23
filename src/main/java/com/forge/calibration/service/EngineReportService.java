@@ -40,7 +40,7 @@ public class EngineReportService {
         }
 
         if (samples.isEmpty()) {
-            return new EngineReport(0, CalibrationJob.MIN_SAMPLES, Double.NaN, Double.NaN, Double.NaN,
+            return new EngineReport(0, CalibrationJob.minRequiredSamples(), Double.NaN, Double.NaN, Double.NaN,
                     Double.NaN, Double.NaN, Double.NaN,
                     scorerWeightsService.currentWeights(), null, null, null, null);
         }
@@ -64,7 +64,7 @@ public class EngineReportService {
 
         return new EngineReport(
                 samples.size(),
-                CalibrationJob.MIN_SAMPLES,
+                CalibrationJob.minRequiredSamples(),
                 RecEngineEvaluator.mse(stored, actual),
                 RecEngineEvaluator.logLoss(stored, actual),
                 RecEngineEvaluator.auc(stored, actual),

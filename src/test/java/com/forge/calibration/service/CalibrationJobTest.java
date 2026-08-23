@@ -26,6 +26,7 @@ class CalibrationJobTest {
 
     private static final int SIGNALS = SignalWeights.SIGNAL_NAMES.size();
     private static final int MIN_SAMPLES = 10;
+    private static final int MIN_REQUIRED_SAMPLES = CalibrationJob.minRequiredSamples();
 
     @Mock private ProblemAttemptRepository attemptRepository;
     @Mock private ScorerWeightsService scorerWeightsService;
@@ -47,7 +48,7 @@ class CalibrationJobTest {
         assertEquals("SKIPPED", result.status());
         assertFalse(result.applied());
         assertEquals(0, result.sampleCount());
-        assertEquals(MIN_SAMPLES, result.minSamples());
+        assertEquals(MIN_REQUIRED_SAMPLES, result.minSamples());
         verify(scorerWeightsService, never()).applyWeights(any(), anyInt(), anyDouble(), anyDouble());
         verify(scorerWeightsService, never()).recordMetrics(anyInt(), anyDouble(), anyDouble());
     }
