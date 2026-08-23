@@ -81,13 +81,15 @@ public class LeetCodeClient {
 
     public LeetCodeClient() {
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(Duration.ofSeconds(10));
-        requestFactory.setReadTimeout(Duration.ofSeconds(30));
+        requestFactory.setConnectTimeout(Duration.ofSeconds(5));
+        requestFactory.setReadTimeout(Duration.ofSeconds(20));
 
         this.restClient = RestClient.builder()
                 .baseUrl(GRAPHQL_URL)
                 .requestFactory(requestFactory)
                 .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader("Accept", MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader("Accept-Language", "en-US,en;q=0.9")
                 .defaultHeader("Referer", "https://leetcode.com/")
                 .defaultHeader("Origin", "https://leetcode.com")
                 .defaultHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
@@ -119,7 +121,11 @@ public class LeetCodeClient {
                     return response;
                 }
 
-                log.warn("No data returned from LeetCode for user: {}", username);
+                if (response != null && response.getErrors() != null && !response.getErrors().isEmpty()) {
+                    log.error("LeetCode GraphQL rejected the query for {}: {}", username, response.getErrors());
+                } else {
+                    log.warn("No data returned from LeetCode for user: {} (matchedUser absent)", username);
+                }
                 return null;
             } catch (Exception e) {
                 if (Thread.currentThread().isInterrupted()) {
@@ -135,7 +141,8 @@ public class LeetCodeClient {
                         return null;
                     }
                 } else {
-                    log.error("Failed to fetch LeetCode profile for {}: {}", username, e.getMessage());
+                    log.error("Failed to fetch LeetCode profile for {}: {} ({})",
+                            username, e.getClass().getSimpleName(), e.getMessage());
                 }
             }
         }

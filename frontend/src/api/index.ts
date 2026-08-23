@@ -29,7 +29,7 @@ export const revisionsApi = {
 };
 
 export const recommendationsApi = {
-  generate: () => api.post<ApiResponse<GenerateResponse>>('/recommendations/generate'),
+  generate: () => api.post<ApiResponse<GenerateResponse>>('/recommendations/generate', undefined, { timeout: 60_000 }),
   complete: (id: string, outcome = 'SOLVED') => api.put<ApiResponse<Recommendation>>(`/recommendations/${id}/complete`, { outcome }),
   dismiss: (id: string) => api.put<ApiResponse<Recommendation>>(`/recommendations/${id}/dismiss`),
 };
@@ -61,7 +61,8 @@ export const roadmapApi = {
 };
 
 export const leetcodeApi = {
-  sync: () => api.post<ApiResponse<LeetCodeStats>>('/leetcode/sync'),
+  // Upstream LeetCode fetches + cold starts can take far longer than the global 15s budget.
+  sync: () => api.post<ApiResponse<LeetCodeStats>>('/leetcode/sync', undefined, { timeout: 60_000 }),
   getStats: () => api.get<ApiResponse<LeetCodeStats>>('/leetcode/stats'),
   getPendingSolves: () => api.get<ApiResponse<PendingSolve[]>>('/leetcode/pending-solves'),
 };

@@ -17,6 +17,9 @@ public class LeetCodeGraphQlResponse {
 
     private Data data;
 
+    /** Populated when LeetCode rejects the query (schema/validation errors) — null on success. */
+    private List<Map<String, Object>> errors;
+
     @Getter
     @Setter
     @NoArgsConstructor

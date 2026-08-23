@@ -16,6 +16,19 @@ describe('parseApiError', () => {
     expect(parseApiError(new Error('network down'))).toBe('network down');
   });
 
+  it('translates axios timeouts into a friendly message', () => {
+    const err = { code: 'ECONNABORTED' };
+    expect(parseApiError(err)).toBe(
+      'Request timed out — the backend may be waking up. Try again in a moment.'
+    );
+  });
+
+  it('translates network failures into a friendly message', () => {
+    expect(parseApiError({ code: 'ERR_NETWORK' })).toBe(
+      'Network error — could not reach the server.'
+    );
+  });
+
   it('handles non-error values', () => {
     expect(parseApiError(undefined)).toBe('An unexpected error occurred');
     expect(parseApiError('weird')).toBe('An unexpected error occurred');

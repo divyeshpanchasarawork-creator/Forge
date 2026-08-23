@@ -247,7 +247,7 @@ export default function ProfilePage() {
           )}
 
           {syncMutation.isError && (
-            <Callout tone="danger">Sync failed. Check your LeetCode username and try again.</Callout>
+            <Callout tone="danger">{parseApiError(syncMutation.error)}</Callout>
           )}
 
           {lcStats && (

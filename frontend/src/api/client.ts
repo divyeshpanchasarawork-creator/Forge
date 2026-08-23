@@ -65,10 +65,14 @@ api.interceptors.response.use(
     // until the instance wakes), at most one retry after a short backoff.
     // Only idempotent methods are safe to retry automatically; a non-idempotent
     // POST could already have been applied server-side and double-executing it
-    // (submit attempt, journal entry, LeetCode sync, generate) would corrupt data.
+    // (submit attempt, journal entry, generate) would corrupt data.
+    // /leetcode/sync is the exception: it overwrites its own snapshot and
+    // delete-after-fetches tag stats, so replaying it is harmless.
     const method = (originalRequest?.method ?? 'get').toUpperCase();
+    const url = originalRequest?.url ?? '';
     const isIdempotent = method === 'GET' || method === 'HEAD' || method === 'OPTIONS'
-      || method === 'PUT' || method === 'DELETE';
+      || method === 'PUT' || method === 'DELETE'
+      || (method === 'POST' && url.includes('/leetcode/sync'));
     const timedOut = error.code === 'ECONNABORTED' && status == null;
     if ((timedOut || (status >= 502 && status <= 504)) && isIdempotent && (originalRequest._retryCount ?? 0) < 1) {
       originalRequest._retryCount = (originalRequest._retryCount ?? 0) + 1;
