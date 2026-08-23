@@ -91,7 +91,6 @@ class LeetCodeFetchServiceTest {
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(leetCodeClient.fetchUserProfile("forgeleet")).thenReturn(responseWithMatchedUser());
         when(transactionManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
-        when(userRepository.getReferenceById(user.getId())).thenReturn(user);
         when(snapshotRepository.findByUserId(user.getId())).thenReturn(Optional.empty());
         when(snapshotRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(tagStatRepository.findByUserId(user.getId())).thenReturn(List.of());
@@ -125,7 +124,6 @@ class LeetCodeFetchServiceTest {
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(leetCodeClient.fetchUserProfile("forgeleet")).thenReturn(response);
         when(transactionManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
-        when(userRepository.getReferenceById(user.getId())).thenReturn(user);
         when(snapshotRepository.findByUserId(user.getId())).thenReturn(Optional.empty());
         when(snapshotRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(tagStatRepository.findByUserId(user.getId())).thenReturn(List.of());
@@ -143,6 +141,32 @@ class LeetCodeFetchServiceTest {
         assertEquals("Two Sum", saved.getTitle());
         assertFalse(saved.isLogged());
         assertNotNull(saved.getSolvedAt());
+    }
+
+    @Test
+    void syncSurvivesExternalSolveDetectionFailure() {
+        User user = userWithLeetcode("forgeleet");
+        LeetCodeGraphQlResponse response = responseWithMatchedUser();
+        LeetCodeGraphQlResponse.RecentSubmission submission = new LeetCodeGraphQlResponse.RecentSubmission();
+        submission.setTitle("Two Sum");
+        submission.setTitleSlug("two-sum");
+        submission.setTimestamp("1700000000");
+        response.getData().setRecentAcSubmissionList(List.of(submission));
+
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(leetCodeClient.fetchUserProfile("forgeleet")).thenReturn(response);
+        when(transactionManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
+        when(snapshotRepository.findByUserId(user.getId())).thenReturn(Optional.empty());
+        when(snapshotRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(tagStatRepository.findByUserId(user.getId())).thenReturn(List.of());
+        when(topicMapper.mapToTopics(any(), any(), eq("mixed"))).thenReturn(List.of());
+        when(externalSolveRepository.existsByUserIdAndTitleSlug(any(), any()))
+                .thenThrow(new RuntimeException("db blew up"));
+
+        LeetCodeStatsResponse stats = buildService().syncUserProfile(user.getId());
+
+        assertEquals(42, stats.getTotalSolved());
+        verify(recommendationEngine).generateForUser(user.getId(), true);
     }
 
     @Test

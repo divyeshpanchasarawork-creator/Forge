@@ -97,10 +97,19 @@ public class LeetCodeFetchService {
         return txTemplate.execute(status -> {
             LeetCodeSnapshot snapshot = saveSnapshot(userId, data, matchedUser);
             saveTagStats(userId, matchedUser);
-            User managedUser = userRepository.getReferenceById(userId);
+            // Real entity, not a lazy proxy: downstream code reads business fields
+            // (e.g. TimezoneUtil.resolve reads timezone) which would blow up on an
+            // uninitialized proxy in this programmatically-opened transaction.
+            User managedUser = userRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
             syncTopicsFromTags(managedUser, matchedUser);
             fetchAndSaveProblemSuggestions(managedUser, matchedUser);
-            upsertExternalSolves(managedUser, data.getRecentAcSubmissionList());
+            try {
+                upsertExternalSolves(managedUser, data.getRecentAcSubmissionList());
+            } catch (Exception e) {
+                // External solve detection is auxiliary — never fail the whole sync over it.
+                log.error("External solve detection failed during sync for user {}", userId, e);
+            }
             log.info("LeetCode sync complete for user: {} (solved: {})", lcUsername, snapshot.getTotalSolved());
             return toStatsResponse(snapshot, userId);
         });
