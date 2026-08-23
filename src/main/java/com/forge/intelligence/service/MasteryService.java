@@ -7,10 +7,6 @@ import org.springframework.stereotype.Service;
 @Service
 public class MasteryService {
 
-    private static final double LEARN_RATE = 0.35;
-    private static final double PARTIAL_RATE = 0.15;
-    private static final double FAIL_DECAY = 0.85;
-
     public int qualityFrom(String outcome, int hintsUsed, Integer timeTakenSeconds) {
         int hints = Math.max(0, hintsUsed);
         int quality = switch (outcome) {
@@ -26,19 +22,7 @@ public class MasteryService {
         return Math.max(0, Math.min(5, quality));
     }
 
-    public void apply(Topic topic, String outcome, int hintsUsed, Integer timeTakenSeconds) {
-        int quality = qualityFrom(outcome, hintsUsed, timeTakenSeconds);
-
-        double p = topic.getMasteryProbability() != null ? topic.getMasteryProbability() : 0.0;
-        double newP;
-        switch (outcome) {
-            case "SOLVED" -> newP = p + (1 - p) * LEARN_RATE;
-            case "PARTIAL" -> newP = p + (1 - p) * PARTIAL_RATE;
-            case "FAILED" -> newP = p * FAIL_DECAY;
-            default -> newP = p;
-        }
-        topic.setMasteryProbability(Math.max(0, Math.min(1, newP)));
-
+    public void apply(Topic topic, String outcome, int hintsUsed) {
         int mastery = topic.getMastery() != null ? topic.getMastery() : 0;
         int confidence = topic.getConfidence() != null ? topic.getConfidence() : 0;
 
@@ -63,7 +47,6 @@ public class MasteryService {
             topic.setAttemptsSolved((topic.getAttemptsSolved() != null ? topic.getAttemptsSolved() : 0) + 1);
         }
         topic.setLastAttemptAt(TimezoneUtil.now(topic.getUser()));
-        topic.setLastQuality(quality);
 
         if (mastery >= 80) {
             topic.setStatus("MASTERED");

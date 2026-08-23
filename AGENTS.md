@@ -51,13 +51,16 @@ Run: `mvn test`
 - Memory page surfaces fading concepts, patterns, mistakes, and insights from journal entries
 - KpiCard component simplified (no trend/trendValue props)
 - Scoring self-containment: the 13 signal weights live in `SignalWeights` (order = `SIGNAL_NAMES`, same as the breakdown emits); `ScoringContext.weights` carries them per request; calibration is a single global `scorer_weights` row (single-user app, no per-user scope)
-- `ScorerWeightsService` caches the active weight vector; `CalibrationJob` (nightly 02:00 Asia/Kolkata) least-squares fits weights against stored attempt snapshots and swaps only when MSE improves by >= max(1.0, 5%) on >= 10 samples
+- `ScorerWeightsService` caches the active weight vector; `CalibrationJob` (nightly 02:00 Asia/Kolkata) least-squares fits weights against stored attempt snapshots and swaps only when MSE improves by >= max(1.0, 5%) on >= `minRequiredSamples()` samples (MIN_SAMPLES 10 + MIN_HOLDOUT 2 temporal holdout = 12; below the gate the run is skipped and reported, never a swap)
 - `RecEngineEvaluator` is the shared pure-metric utility (MSE / binary log-loss / rank-AUC, reward = quality/5) used by calibration and the engine report
 - Attempt snapshots for calibration: `PracticeService.submitAttempt` stores `signals_json` (the `ScoreItem` list) + `predicted_score` (breakdown total) before mastery updates
 - `RecommendationResponse.score` mirrors `scoreBreakdown.total`; recommendation lists sort by score desc, then priority asc, then createdAt desc
 - `SessionPlanner` uses marginal-gain selection: repeatedly pick the highest-score unused candidate that fits a remaining segment slot (REVISION > WARMUP > CHALLENGE > REINFORCE) instead of fixed sequential passes
 - `RevisionScheduler` materializes due revisions per user via `findTopicsNeedingRevisionByUserId(userId, TimezoneUtil.today(user))` — the day-granular `next_revision` cutoff is resolved in each user's zone, never the server clock
 - Engine health is surfaced via `GET /api/internal/engine-report` (stored-vs-live MSE/log-loss/rank-AUC over snapshots) and re-fit on demand via `POST /api/internal/calibration/run`; ProfilePage renders a KpiCard health card. Never run calibration automatically on request paths
+- Fuzzy title↔tag matching is centralized in `TitleMatcher` (`normalize` strips punctuation/case; `topicMatches` = bidirectional contains of normalized forms) — ProblemScorer, PracticeService topic linking, and KnowledgeGraphService concept matching all delegate to it; do not hand-roll new matchers
+- Difficulty-fit signal uses real per-difficulty counts from `LeetCodeSnapshot` (`DifficultyStats` in ProblemScorer: EASY decays 60−1.5·easySolved, HARD boosts 80 until 5 hard solves then decays by 4 each); no snapshot → neutral 50
+- Topic has no `masteryProbability`/`lastQuality` (dropped in V32 — they were write-only); `MasteryService.apply(topic, outcome, hintsUsed)` updates mastery/confidence/counters only, quality lives on the attempt row
 
 ## Key Dependencies
 - Spring Boot 4.0.7, Spring Security 7, Spring Data JPA

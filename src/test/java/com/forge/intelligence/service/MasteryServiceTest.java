@@ -43,14 +43,15 @@ class MasteryServiceTest {
     }
 
     @Test
-    void applyStoresTheHintAwareQuality() {
+    void solvedAttemptAdvancesMasteryAndStatus() {
         Topic topic = new Topic();
         User user = new User();
         user.setTimezone("UTC");
         topic.setUser(user);
 
-        service.apply(topic, "SOLVED", 3, null);
+        service.apply(topic, "SOLVED", 0);
 
-        assertEquals(2, topic.getLastQuality());
+        assertEquals(10, topic.getMastery());
+        assertEquals("IN_PROGRESS", topic.getStatus());
     }
 }

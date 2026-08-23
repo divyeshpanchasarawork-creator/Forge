@@ -3,8 +3,10 @@ package com.forge.common.util;
 import com.forge.auth.entity.User;
 import com.forge.auth.repository.UserRepository;
 import com.forge.calibration.service.ScorerWeightsService;
+import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.entity.LeetCodeTagStat;
 import com.forge.leetcode.entity.ProblemSuggestion;
+import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.leetcode.repository.LeetCodeTagStatRepository;
 import com.forge.leetcode.repository.ProblemSuggestionRepository;
 import com.forge.practice.entity.ProblemAttempt;
@@ -34,6 +36,7 @@ import java.util.UUID;
 public class ProblemScorer {
 
     private final LeetCodeTagStatRepository tagStatRepository;
+    private final LeetCodeSnapshotRepository snapshotRepository;
     private final TopicRepository topicRepository;
     private final ProblemSuggestionRepository problemSuggestionRepository;
     private final ProblemAttemptRepository problemAttemptRepository;
@@ -51,6 +54,19 @@ public class ProblemScorer {
 
     public record ScoreBreakdown(int total, List<ScoreItem> items) {}
 
+    /** Real per-difficulty solve counts from the latest LeetCode snapshot. */
+    public record DifficultyStats(int easySolved, int mediumSolved, int hardSolved) {
+        public static final DifficultyStats NONE = new DifficultyStats(0, 0, 0);
+
+        public static DifficultyStats from(LeetCodeSnapshot snapshot) {
+            if (snapshot == null) return NONE;
+            return new DifficultyStats(
+                    snapshot.getEasySolved() != null ? snapshot.getEasySolved() : 0,
+                    snapshot.getMediumSolved() != null ? snapshot.getMediumSolved() : 0,
+                    snapshot.getHardSolved() != null ? snapshot.getHardSolved() : 0);
+        }
+    }
+
     public record ScoringContext(List<LeetCodeTagStat> stats, List<Topic> topics,
                                  List<ProblemAttempt> attempts, List<ProblemSuggestion> suggestions,
                                  int targetLevel, RewardModel.RewardStats rewards, SignalWeights weights,
@@ -59,7 +75,7 @@ public class ProblemScorer {
                                  Map<String, LocalDateTime> lastAttemptBySlug,
                                  Map<String, Long> recentWeekTagCounts,
                                  Map<String, Long> recentTagCounts, int recentSize,
-                                 ZoneId zone) {
+                                 ZoneId zone, DifficultyStats difficultyStats) {
 
         public ScoringContext(List<LeetCodeTagStat> stats, List<Topic> topics,
                               List<ProblemAttempt> attempts, List<ProblemSuggestion> suggestions,
@@ -73,7 +89,24 @@ public class ProblemScorer {
                     ProblemScorer.recentWeekTagCounts(attempts, zone),
                     ProblemScorer.recentTagCounts(attempts),
                     ProblemScorer.recentSize(attempts),
-                    zone);
+                    zone,
+                    DifficultyStats.NONE);
+        }
+
+        public ScoringContext(List<LeetCodeTagStat> stats, List<Topic> topics,
+                              List<ProblemAttempt> attempts, List<ProblemSuggestion> suggestions,
+                              int targetLevel, RewardModel.RewardStats rewards, SignalWeights weights,
+                              Map<String, LocalDateTime> dismissedBySlug,
+                              ZoneId zone, DifficultyStats difficultyStats) {
+            this(stats, topics, attempts, suggestions, targetLevel, rewards, weights, dismissedBySlug,
+                    SkillRatingService.skillFromTopics(topics),
+                    ProblemScorer.totalSolved(stats),
+                    ProblemScorer.lastAttemptBySlug(attempts),
+                    ProblemScorer.recentWeekTagCounts(attempts, zone),
+                    ProblemScorer.recentTagCounts(attempts),
+                    ProblemScorer.recentSize(attempts),
+                    zone,
+                    difficultyStats);
         }
 
         public List<String> suggestedSlugs() {
@@ -90,9 +123,11 @@ public class ProblemScorer {
                 .findByUserIdOrderByAttemptedAtDesc(userId, PageRequest.of(0, 500));
         List<ProblemSuggestion> suggestions = problemSuggestionRepository.findByUserId(userId);
         int targetLevel = user != null && user.getTargetLevel() != null ? user.getTargetLevel() : 5;
+        DifficultyStats difficultyStats = DifficultyStats.from(
+                snapshotRepository.findByUserId(userId).orElse(null));
         return new ScoringContext(stats, topics, attempts, suggestions, targetLevel,
                 RewardModel.stats(attempts), scorerWeightsService.currentWeights(),
-                dismissedRecsBySlug(userId), zone);
+                dismissedRecsBySlug(userId), zone, difficultyStats);
     }
 
     private Map<String, LocalDateTime> dismissedRecsBySlug(UUID userId) {
@@ -150,7 +185,7 @@ public class ProblemScorer {
 
     private double topicMasteryGap(List<Topic> topics, String tagSlug) {
         return topics.stream()
-                .filter(t -> matches(t.getTitle(), tagSlug))
+                .filter(t -> TitleMatcher.topicMatches(t.getTitle(), tagSlug))
                 .findFirst()
                 .map(t -> {
                     int conf = t.getConfidence() != null ? t.getConfidence() : 5;
@@ -162,19 +197,15 @@ public class ProblemScorer {
 
     private double difficultyFit(ScoringContext ctx, String difficulty) {
         if (ctx.stats().isEmpty()) return 50.0;
-        int totalSolved = ctx.totalSolved();
-        if (totalSolved == 0) return 60.0;
-        // Tag stats carry no per-difficulty breakdown, so estimate from the solve total.
-        int hardEstimate = Math.max(1, totalSolved / 10);
-
+        DifficultyStats ds = ctx.difficultyStats();
         if ("EASY".equalsIgnoreCase(difficulty)) {
-            // Easy problems are valuable early, then decay toward a mild penalty once the
-            // user has a base (~20 solves) so the engine starts pushing harder topics.
-            return Math.max(30.0, 60.0 - totalSolved * 1.5);
+            // Easy problems are valuable early, then decay toward a mild penalty as the
+            // user's REAL easy-solve count grows, so the engine starts pushing harder topics.
+            return Math.max(30.0, 60.0 - ds.easySolved() * 1.5);
         }
         if ("HARD".equalsIgnoreCase(difficulty)) {
-            // Strong early boost, decaying as the user accumulates hard solves.
-            return hardEstimate < 5 ? 80.0 : Math.max(40.0, 80.0 - hardEstimate * 4);
+            // Strong early boost, decaying once the user has genuinely accumulated hard solves.
+            return ds.hardSolved() < 5 ? 80.0 : Math.max(40.0, 80.0 - ds.hardSolved() * 4);
         }
         if ("MEDIUM".equalsIgnoreCase(difficulty)) {
             return 70.0;
@@ -184,7 +215,7 @@ public class ProblemScorer {
 
     private double expectedLearningGain(ScoringContext ctx, String tagSlug) {
         return ctx.topics().stream()
-                .filter(t -> matches(t.getTitle(), tagSlug))
+                .filter(t -> TitleMatcher.topicMatches(t.getTitle(), tagSlug))
                 .findFirst()
                 .map(t -> {
                     int mastery = t.getMastery() != null ? t.getMastery() : 0;
@@ -197,7 +228,7 @@ public class ProblemScorer {
 
     private double revisionUrgency(ScoringContext ctx, String tagSlug) {
         return ctx.topics().stream()
-                .filter(t -> matches(t.getTitle(), tagSlug))
+                .filter(t -> TitleMatcher.topicMatches(t.getTitle(), tagSlug))
                 .findFirst()
                 .map(t -> {
                     if (t.getNextRevision() != null && !t.getNextRevision().isAfter(LocalDate.now(ctx.zone()))) return 100.0;
@@ -212,7 +243,7 @@ public class ProblemScorer {
 
     private double confidenceDecay(ScoringContext ctx, String tagSlug) {
         return ctx.topics().stream()
-                .filter(t -> matches(t.getTitle(), tagSlug))
+                .filter(t -> TitleMatcher.topicMatches(t.getTitle(), tagSlug))
                 .findFirst()
                 .map(t -> {
                     LocalDateTime anchor = t.getLastAttemptAt() != null ? t.getLastAttemptAt() : t.getLastRevision();
@@ -302,13 +333,6 @@ public class ProblemScorer {
         double exploitation = meanReward * 100.0;
         double exploration = 25.0 * Math.sqrt(Math.log(totalCount + 1) / (count + 1));
         return Math.min(100, Math.max(0, exploitation + exploration));
-    }
-
-    private boolean matches(String topicTitle, String tagSlug) {
-        if (topicTitle == null || tagSlug == null) return false;
-        String searchName = tagSlug.replace("-", " ").toLowerCase();
-        String title = topicTitle.toLowerCase();
-        return title.contains(searchName) || searchName.contains(title);
     }
 
     private static int totalSolved(List<LeetCodeTagStat> stats) {

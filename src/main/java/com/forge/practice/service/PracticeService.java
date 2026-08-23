@@ -7,6 +7,7 @@ import com.forge.common.util.ProblemLoader;
 import com.forge.common.util.ProblemScorer;
 import com.forge.common.util.SecurityUtils;
 import com.forge.common.util.TimezoneUtil;
+import com.forge.common.util.TitleMatcher;
 import com.forge.intelligence.service.ColdStartService;
 import com.forge.intelligence.service.ForgettingCurveService;
 import com.forge.intelligence.service.MasteryService;
@@ -122,7 +123,7 @@ public class PracticeService {
         List<Topic> matched = matchTopics(userId, request.getTopicTagSlug(), request.getTopicTagName(), request.getProblemTitle());
         List<String> updatedTitles = new ArrayList<>();
         for (Topic topic : matched) {
-            masteryService.apply(topic, outcome, attempt.getHintsUsed(), attempt.getTimeTakenSeconds());
+            masteryService.apply(topic, outcome, attempt.getHintsUsed());
             boolean solved = "SOLVED".equals(outcome) || "PARTIAL".equals(outcome);
             double oldSkill = topic.getSkillRating() != null ? topic.getSkillRating() : SkillRatingService.INITIAL_RATING;
             double newSkill = skillRatingService.applyResult(
@@ -181,7 +182,9 @@ public class PracticeService {
     private List<Topic> matchTopics(UUID userId, String tagSlug, String tagName, String problemTitle) {
         List<Topic> all = topicRepository.findByUserId(userId, PageRequest.of(0, 500));
         return all.stream()
-                .filter(t -> matches(t.getTitle(), tagSlug) || matches(t.getTitle(), tagName) || matches(t.getTitle(), slugify(problemTitle)))
+                .filter(t -> TitleMatcher.topicMatches(t.getTitle(), tagSlug)
+                        || TitleMatcher.topicMatches(t.getTitle(), tagName)
+                        || TitleMatcher.topicMatches(t.getTitle(), problemTitle))
                 .toList();
     }
 
@@ -205,17 +208,5 @@ public class PracticeService {
         StringBuilder sb = new StringBuilder(outcome + " " + title + " recorded. Updated: ");
         sb.append(matched.stream().map(Topic::getTitle).collect(Collectors.joining(", ")));
         return sb.toString();
-    }
-
-    private boolean matches(String topicTitle, String candidate) {
-        if (topicTitle == null || candidate == null) return false;
-        String c = candidate.replace("-", " ").toLowerCase().trim();
-        String t = topicTitle.toLowerCase();
-        return t.contains(c) || c.contains(t);
-    }
-
-    private String slugify(String title) {
-        if (title == null) return "";
-        return title.toLowerCase().replaceAll("[^a-z0-9]+", " ").trim();
     }
 }

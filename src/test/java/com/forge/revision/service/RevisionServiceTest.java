@@ -164,7 +164,6 @@ class RevisionServiceTest {
         assertNotNull(revision.getCompletionDate());
         assertEquals(2.6, topic.getEasinessFactor());
         assertEquals(10, topic.getRepetitionInterval());
-        assertEquals(4, topic.getLastQuality());
         assertEquals(3, topic.getRevisionCount());
         assertEquals(58, topic.getMastery());
         assertNotNull(topic.getNextRevision());

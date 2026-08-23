@@ -1,6 +1,8 @@
 package com.forge.common.util;
 
 import com.forge.calibration.service.ScorerWeightsService;
+import com.forge.leetcode.entity.LeetCodeTagStat;
+import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.leetcode.repository.LeetCodeTagStatRepository;
 import com.forge.leetcode.repository.ProblemSuggestionRepository;
 import com.forge.practice.entity.ProblemAttempt;
@@ -25,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class ProblemScorerTest {
 
     @Mock private LeetCodeTagStatRepository tagStatRepository;
+    @Mock private LeetCodeSnapshotRepository snapshotRepository;
     @Mock private TopicRepository topicRepository;
     @Mock private ProblemSuggestionRepository problemSuggestionRepository;
     @Mock private ProblemAttemptRepository problemAttemptRepository;
@@ -37,14 +40,54 @@ class ProblemScorerTest {
 
     @BeforeEach
     void setUp() {
-        scorer = new ProblemScorer(tagStatRepository, topicRepository, problemSuggestionRepository,
-                problemAttemptRepository, userRepository, skillRatingService, scorerWeightsService,
-                recommendationRepository);
+        scorer = new ProblemScorer(tagStatRepository, snapshotRepository, topicRepository,
+                problemSuggestionRepository, problemAttemptRepository, userRepository, skillRatingService,
+                scorerWeightsService, recommendationRepository);
     }
 
     private ProblemScorer.ScoringContext ctx(List<ProblemAttempt> attempts) {
         return new ProblemScorer.ScoringContext(List.of(), List.of(), attempts, List.of(), 5,
                 RewardModel.stats(attempts), SignalWeights.DEFAULT, java.util.Map.of(), java.time.ZoneId.of("UTC"));
+    }
+
+    private ProblemScorer.ScoringContext ctxWithDifficulty(ProblemScorer.DifficultyStats difficultyStats) {
+        LeetCodeTagStat stat = new LeetCodeTagStat();
+        stat.setTagSlug("arrays");
+        return new ProblemScorer.ScoringContext(List.of(stat), List.of(), List.of(), List.of(), 5,
+                RewardModel.stats(List.of()), SignalWeights.DEFAULT, java.util.Map.of(),
+                0.0, 0, java.util.Map.of(), java.util.Map.of(), java.util.Map.of(), 0,
+                java.time.ZoneId.of("UTC"), difficultyStats);
+    }
+
+    private double difficultyFitValue(ProblemScorer.ScoreBreakdown breakdown) {
+        return breakdown.items().stream()
+                .filter(item -> item.name().equals(SignalWeights.SIGNAL_NAMES.get(2)))
+                .findFirst().orElseThrow().value();
+    }
+
+    @Test
+    void difficultyFitShouldDecayEasyUsingRealEasyCount() {
+        double fresh = difficultyFitValue(scorer.breakdown(ctxWithDifficulty(ProblemScorer.DifficultyStats.NONE),
+                new ProblemLoader.ProblemEntry("Two Sum", "two-sum", "EASY"), "arrays"));
+        double seasoned = difficultyFitValue(scorer.breakdown(
+                ctxWithDifficulty(new ProblemScorer.DifficultyStats(20, 10, 2)),
+                new ProblemLoader.ProblemEntry("Two Sum", "two-sum", "EASY"), "arrays"));
+
+        assertEquals(60.0, fresh);
+        assertEquals(30.0, seasoned);
+    }
+
+    @Test
+    void difficultyFitShouldBoostHardUntilFiveRealHardSolves() {
+        ProblemLoader.ProblemEntry hard = new ProblemLoader.ProblemEntry("Hard Problem", "hard-problem", "HARD");
+
+        double fewHards = difficultyFitValue(scorer.breakdown(
+                ctxWithDifficulty(new ProblemScorer.DifficultyStats(10, 8, 4)), hard, "arrays"));
+        double manyHards = difficultyFitValue(scorer.breakdown(
+                ctxWithDifficulty(new ProblemScorer.DifficultyStats(10, 8, 6)), hard, "arrays"));
+
+        assertEquals(80.0, fewHards);
+        assertEquals(56.0, manyHards);
     }
 
     @Test

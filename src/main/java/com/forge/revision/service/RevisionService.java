@@ -84,7 +84,6 @@ public class RevisionService {
         SpacedRepetitionService.Sm2Result sm2 = spacedRepetitionService.calculate(topic, quality);
         topic.setEasinessFactor(sm2.easinessFactor());
         topic.setRepetitionInterval(sm2.intervalDays());
-        topic.setLastQuality(quality);
         topic.setNextRevision(now.toLocalDate().plusDays(sm2.intervalDays()));
 
         if (quality < 3) {

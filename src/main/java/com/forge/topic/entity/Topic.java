@@ -65,9 +65,6 @@ public class Topic extends BaseEntity {
     @Column(name = "repetition_interval", columnDefinition = "INTEGER DEFAULT 0")
     private Integer repetitionInterval = 0;
 
-    @Column(name = "last_quality")
-    private Integer lastQuality;
-
     @Column(name = "skill_rating", columnDefinition = "DOUBLE PRECISION DEFAULT 1000")
     private Double skillRating = 1000.0;
 
@@ -82,9 +79,6 @@ public class Topic extends BaseEntity {
 
     @Column(name = "last_attempt_at")
     private LocalDateTime lastAttemptAt;
-
-    @Column(name = "mastery_probability", columnDefinition = "DOUBLE PRECISION DEFAULT 0.0")
-    private Double masteryProbability = 0.0;
 
     @Version
     @Column(name = "lock_version", nullable = false)

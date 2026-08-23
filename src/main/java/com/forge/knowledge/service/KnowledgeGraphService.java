@@ -101,10 +101,8 @@ public class KnowledgeGraphService implements ApplicationRunner {
         if (topicTitle == null || topicTitle.isBlank()) {
             return null;
         }
-        String normalized = topicTitle.toLowerCase().trim();
         for (String slug : CURATED_GRAPH.keySet()) {
-            String searchName = slug.replace("-", " ");
-            if (normalized.contains(searchName) || searchName.contains(normalized)) {
+            if (com.forge.common.util.TitleMatcher.topicMatches(topicTitle, slug)) {
                 return slug;
             }
         }

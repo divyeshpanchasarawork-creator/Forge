@@ -238,7 +238,7 @@ class PracticeServiceTest {
 
         ProblemAttemptResponse response = service.submitAttempt(request);
 
-        verify(masteryService).apply(topic, "SOLVED", 0, 300);
+        verify(masteryService).apply(topic, "SOLVED", 0);
         assertEquals(1016.0, topic.getSkillRating());
         verify(forgettingCurveService).strengthen(topic, 1.0);
         verify(forgettingCurveService).refreshTopicRetention(topic);
