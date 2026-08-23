@@ -7,12 +7,12 @@ import { Select } from '@/components/ui/Select';
 import { SignalChip } from '@/components/ui/SignalChip';
 import { Callout } from '@/components/ui/Callout';
 import TeachingEmptyState from '@/components/ui/TeachingEmptyState';
-import { Code, RefreshCw, ExternalLink, CheckCircle2, ChevronDown, ChevronUp, Sparkles, Target, RotateCcw } from 'lucide-react';
+import { Code, RefreshCw, ExternalLink, CheckCircle2, ChevronDown, ChevronUp, Sparkles, Target, RotateCcw, CloudDownload } from 'lucide-react';
 import { SkeletonList } from '@/components/ui/LoadingSkeleton';
 import ApiErrorState from '@/components/ui/ApiErrorState';
 import { parseApiError } from '@/lib/error';
 import { useToast } from '@/contexts/ToastContext';
-import type { PracticeProblem, ProblemAttemptRequest } from '@/types';
+import type { PracticeProblem, ProblemAttemptRequest, PendingSolve } from '@/types';
 
 const segmentConfig: Record<string, { label: string; tone: 'primary' | 'success' | 'warning' | 'danger'; icon: React.ReactNode }> = {
   WARMUP: { label: 'Warm-up', tone: 'success', icon: <Sparkles className="h-4 w-4" /> },
@@ -212,6 +212,122 @@ const ProblemRow = memo(function ProblemRow({ problem, index }: { problem: Pract
   );
 });
 
+const PendingSolveRow = memo(function PendingSolveRow({ solve }: { solve: PendingSolve }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [outcome, setOutcome] = useState<Outcome>('SOLVED');
+  const [hints, setHints] = useState(0);
+  const [time, setTime] = useState(0);
+  const [error, setError] = useState('');
+
+  const submit = useMutation({
+    mutationFn: (payload: ProblemAttemptRequest) => practiceApi.submitAttempt(payload).then(unwrap),
+    onSuccess: () => {
+      setError('');
+      queryClient.invalidateQueries({ queryKey: ['leetcode', 'pending-solves'] });
+      queryClient.invalidateQueries({ queryKey: ['practice', 'queue'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['memory'] });
+      queryClient.invalidateQueries({ queryKey: ['palette-attempts'] });
+      toast({ title: 'Solve logged', tone: 'success' });
+    },
+    onError: (err: unknown) => {
+      setError(parseApiError(err));
+      toast({ title: 'Could not log solve', description: parseApiError(err), tone: 'danger' });
+    },
+  });
+
+  return (
+    <div className="rounded-lg border border-border/60 px-4 py-3">
+      <div className="flex items-center gap-2.5">
+        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" />
+        <span className="min-w-0 flex-1 truncate text-sm font-medium">{solve.title || solve.titleSlug}</span>
+        <Badge
+          variant={solve.difficulty === 'Easy' ? 'success' : solve.difficulty === 'Hard' ? 'destructive' : 'warning'}
+          className="shrink-0"
+        >
+          {solve.difficulty}
+        </Badge>
+        <span className="hidden shrink-0 rounded-full bg-secondary px-2.5 py-0.5 text-micro font-medium text-muted-foreground sm:inline">
+          {solve.topicTagSlug}
+        </span>
+        <a
+          href={`https://leetcode.com/problems/${solve.titleSlug}/`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+          aria-label={`Open ${solve.titleSlug} on LeetCode`}
+        >
+          <ExternalLink className="h-3 w-3" />
+        </a>
+        <Button size="sm" variant="secondary" onClick={() => setOpen(!open)}>
+          {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          Log it
+        </Button>
+      </div>
+
+      {open && (
+        <div className="mt-3 rounded-xl border border-border bg-secondary/30 p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            {(Object.keys(outcomeConfig) as Outcome[]).map((o) => (
+              <button
+                key={o}
+                onClick={() => setOutcome(o)}
+                className={`rounded-lg px-3 py-1.5 text-caption font-medium transition-all ${outcomeConfig[o].base} ${
+                  outcome === o ? outcomeConfig[o].active : 'opacity-70 hover:opacity-100'
+                }`}
+              >
+                {outcomeConfig[o].label}
+              </button>
+            ))}
+            <div className="ml-auto flex items-center gap-3 text-caption text-muted-foreground">
+              <label className="flex items-center gap-1.5">
+                Hints
+                <Select variant="sm" value={hints} onChange={(e) => setHints(Number(e.target.value))} className="w-[4.5rem]">
+                  {[0, 1, 2, 3].map((h) => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </Select>
+              </label>
+              <label className="flex items-center gap-1.5">
+                Time (min)
+                <Select variant="sm" value={time} onChange={(e) => setTime(Number(e.target.value))} className="w-[4.5rem]">
+                  {[0, 5, 10, 15, 20, 30, 45].map((t) => (
+                    <option key={t} value={t}>{t === 0 ? 'n/a' : t}</option>
+                  ))}
+                </Select>
+              </label>
+            </div>
+          </div>
+          {error && <p className="mt-2 text-caption text-destructive">{error}</p>}
+          <Button
+            size="sm"
+            className="mt-3"
+            loading={submit.isPending}
+            disabled={submit.isPending}
+            onClick={() =>
+              submit.mutate({
+                problemTitle: solve.title || solve.titleSlug,
+                problemSlug: solve.titleSlug,
+                difficulty: solve.difficulty,
+                topicTagSlug: solve.topicTagSlug,
+                topicTagName: solve.topicTagSlug,
+                outcome,
+                hintsUsed: hints,
+                timeTakenSeconds: time > 0 ? time * 60 : undefined,
+              })
+            }
+          >
+            {submit.isPending ? 'Saving…' : 'Save result'}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+});
+
 export default function PracticePage() {
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState('');
@@ -221,6 +337,12 @@ export default function PracticePage() {
     queryKey: ['practice', 'queue'],
     queryFn: () => practiceApi.getQueue().then(unwrap),
     staleTime: 20_000,
+  });
+
+  const { data: pendingSolves } = useQuery({
+    queryKey: ['leetcode', 'pending-solves'],
+    queryFn: () => leetcodeApi.getPendingSolves().then(unwrap),
+    staleTime: 60_000,
   });
 
   const handleSync = async () => {
@@ -234,6 +356,7 @@ export default function PracticePage() {
       queryClient.invalidateQueries({ queryKey: ['memory'] });
       queryClient.invalidateQueries({ queryKey: ['roadmap-analysis'] });
       queryClient.invalidateQueries({ queryKey: ['leetcode-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['leetcode', 'pending-solves'] });
     } catch (err: unknown) {
       setSyncError(parseApiError(err));
     } finally {
@@ -272,6 +395,29 @@ export default function PracticePage() {
         <Callout tone="danger">
           <p className="text-caption text-destructive">{syncError}</p>
         </Callout>
+      )}
+
+      {(pendingSolves?.length ?? 0) > 0 && (
+        <section
+          className="fade-in-up rounded-xl border border-border bg-card p-4"
+          style={{ animationDelay: '40ms' }}
+        >
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <CloudDownload className="h-4 w-4 text-muted-foreground" />
+            <h2 className="text-caption font-semibold uppercase tracking-widest text-muted-foreground">
+              Synced from LeetCode
+            </h2>
+            <span className="text-caption text-muted-foreground tabular-nums">({pendingSolves!.length})</span>
+            <span className="ml-auto text-micro text-muted-foreground">
+              Detected solves not yet logged in Forge
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {pendingSolves!.map((solve) => (
+              <PendingSolveRow key={solve.id} solve={solve} />
+            ))}
+          </div>
+        </section>
       )}
 
       {data?.revisitTopics && data.revisitTopics.length > 0 && (

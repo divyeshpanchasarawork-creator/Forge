@@ -12,6 +12,7 @@ import com.forge.intelligence.service.ForgettingCurveService;
 import com.forge.intelligence.service.MasteryService;
 import com.forge.intelligence.service.SkillRatingService;
 import com.forge.knowledge.service.KnowledgeGraphService;
+import com.forge.leetcode.repository.ExternalSolveRepository;
 import com.forge.practice.dto.PracticeProblemResponse;
 import com.forge.practice.dto.PracticeQueueResponse;
 import com.forge.practice.dto.ProblemAttemptDto;
@@ -57,6 +58,7 @@ public class PracticeService {
     private final KnowledgeGraphService knowledgeGraphService;
     private final RecommendationService recommendationService;
     private final CandidatePoolService candidatePoolService;
+    private final ExternalSolveRepository externalSolveRepository;
 
     public PracticeQueueResponse getPracticeQueue() {
         UUID userId = SecurityUtils.getCurrentUserId();
@@ -135,6 +137,7 @@ public class PracticeService {
 
         String feedback = buildFeedback(outcome, request.getProblemTitle(), matched);
         recommendationService.completeRecommendationsForProblem(userId, request.getProblemSlug(), outcome);
+        externalSolveRepository.markLogged(userId, request.getProblemSlug());
         log.info("Attempt submitted: {} {} ({} matching topics) for user {}",
                 outcome, request.getProblemSlug(), matched.size(), userId);
         return new ProblemAttemptResponse(ProblemAttemptDto.from(attempt), updatedTitles, feedback);
@@ -150,15 +153,13 @@ public class PracticeService {
     }
 
     private void snapshotSignals(ProblemAttempt attempt, ProblemAttemptRequest request, UUID userId) {
-        if (request.getTopicTagSlug() == null || request.getTopicTagSlug().isBlank()) {
-            return;
-        }
         try {
             ProblemScorer.ScoringContext ctx = problemScorer.context(userId);
+            String tagSlug = request.getTopicTagSlug();
             ProblemScorer.ScoreBreakdown breakdown = problemScorer.breakdown(ctx,
                     new ProblemLoader.ProblemEntry(request.getProblemTitle(), request.getProblemSlug(),
                             attempt.getDifficulty()),
-                    request.getTopicTagSlug());
+                    tagSlug == null || tagSlug.isBlank() ? null : tagSlug);
             attempt.setPredictedScore(breakdown.total());
             attempt.setSignalsJson(OBJECT_MAPPER.writeValueAsString(breakdown.items()));
         } catch (Exception e) {

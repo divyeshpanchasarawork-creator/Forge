@@ -9,6 +9,8 @@ import com.forge.leetcode.repository.LeetCodeTagStatRepository;
 import com.forge.leetcode.repository.ProblemSuggestionRepository;
 import com.forge.practice.entity.ProblemAttempt;
 import com.forge.practice.repository.ProblemAttemptRepository;
+import com.forge.recommendation.entity.Recommendation;
+import com.forge.recommendation.repository.RecommendationRepository;
 import com.forge.topic.entity.Topic;
 import com.forge.topic.repository.TopicRepository;
 import com.forge.intelligence.service.SkillRatingService;
@@ -38,6 +40,10 @@ public class ProblemScorer {
     private final UserRepository userRepository;
     private final SkillRatingService skillRatingService;
     private final ScorerWeightsService scorerWeightsService;
+    private final RecommendationRepository recommendationRepository;
+
+    /** A dismissed recommendation suppresses its problem for this long, then may resurface. */
+    public static final int DISMISSAL_SUPPRESSION_DAYS = 7;
 
     private record Signal(String name, double weight, double value) {}
 
@@ -48,6 +54,7 @@ public class ProblemScorer {
     public record ScoringContext(List<LeetCodeTagStat> stats, List<Topic> topics,
                                  List<ProblemAttempt> attempts, List<ProblemSuggestion> suggestions,
                                  int targetLevel, RewardModel.RewardStats rewards, SignalWeights weights,
+                                 Map<String, LocalDateTime> dismissedBySlug,
                                  double userSkill, int totalSolved,
                                  Map<String, LocalDateTime> lastAttemptBySlug,
                                  Map<String, Long> recentWeekTagCounts,
@@ -57,8 +64,9 @@ public class ProblemScorer {
         public ScoringContext(List<LeetCodeTagStat> stats, List<Topic> topics,
                               List<ProblemAttempt> attempts, List<ProblemSuggestion> suggestions,
                               int targetLevel, RewardModel.RewardStats rewards, SignalWeights weights,
+                              Map<String, LocalDateTime> dismissedBySlug,
                               ZoneId zone) {
-            this(stats, topics, attempts, suggestions, targetLevel, rewards, weights,
+            this(stats, topics, attempts, suggestions, targetLevel, rewards, weights, dismissedBySlug,
                     SkillRatingService.skillFromTopics(topics),
                     ProblemScorer.totalSolved(stats),
                     ProblemScorer.lastAttemptBySlug(attempts),
@@ -83,7 +91,17 @@ public class ProblemScorer {
         List<ProblemSuggestion> suggestions = problemSuggestionRepository.findByUserId(userId);
         int targetLevel = user != null && user.getTargetLevel() != null ? user.getTargetLevel() : 5;
         return new ScoringContext(stats, topics, attempts, suggestions, targetLevel,
-                RewardModel.stats(attempts), scorerWeightsService.currentWeights(), zone);
+                RewardModel.stats(attempts), scorerWeightsService.currentWeights(),
+                dismissedRecsBySlug(userId), zone);
+    }
+
+    private Map<String, LocalDateTime> dismissedRecsBySlug(UUID userId) {
+        Map<String, LocalDateTime> bySlug = new HashMap<>();
+        for (Recommendation rec : recommendationRepository
+                .findByUserIdAndStatusAndProblemSlugNotNull(userId, Recommendation.STATUS_DISMISSED)) {
+            bySlug.merge(rec.getProblemSlug(), rec.getUpdatedAt(), (a, b) -> b.isAfter(a) ? b : a);
+        }
+        return bySlug;
     }
 
     public ScoreBreakdown breakdown(ScoringContext ctx, ProblemLoader.ProblemEntry candidate, String tagSlug) {
@@ -99,9 +117,9 @@ public class ProblemScorer {
                 new Signal(SignalWeights.SIGNAL_NAMES.get(7), w[7], timeSinceLastPractice(ctx, candidate.getTitleSlug())),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(8), w[8], coverageBalance(ctx, tagSlug)),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(9), w[9], goalAlignment(candidate.getDifficulty(), ctx.targetLevel())),
-                new Signal(SignalWeights.SIGNAL_NAMES.get(10), w[10], notPreviouslySuggested(ctx.suggestedSlugs(), candidate)),
+                new Signal(SignalWeights.SIGNAL_NAMES.get(10), w[10], notPreviouslySuggested(ctx, candidate)),
                 new Signal(SignalWeights.SIGNAL_NAMES.get(11), w[11], diversity(ctx, tagSlug)),
-                new Signal(SignalWeights.SIGNAL_NAMES.get(12), w[12], ucbExploration(ctx.rewards(), candidate.getTitleSlug()))
+                new Signal(SignalWeights.SIGNAL_NAMES.get(12), w[12], ucbExploration(ctx.rewards(), candidate.getTitleSlug(), tagSlug))
         );
 
         double total = 0;
@@ -243,8 +261,13 @@ public class ProblemScorer {
         return 20.0;
     }
 
-    private double notPreviouslySuggested(List<String> suggestedSlugs, ProblemLoader.ProblemEntry candidate) {
-        if (suggestedSlugs.contains(candidate.getTitleSlug())) return 0.0;
+    private double notPreviouslySuggested(ScoringContext ctx, ProblemLoader.ProblemEntry candidate) {
+        String slug = candidate.getTitleSlug();
+        if (ctx.suggestedSlugs().contains(slug)) return 0.0;
+        LocalDateTime dismissedAt = ctx.dismissedBySlug().get(slug);
+        if (dismissedAt != null && Duration.between(dismissedAt, LocalDateTime.now(ctx.zone())).toDays() < DISMISSAL_SUPPRESSION_DAYS) {
+            return 0.0;
+        }
         return 100.0;
     }
 
@@ -255,11 +278,29 @@ public class ProblemScorer {
         return 100.0 * (1.0 - sameTag / (double) ctx.recentSize());
     }
 
-    private double ucbExploration(RewardModel.RewardStats rewards, String problemSlug) {
+    /**
+     * Reward-aware UCB blending per-problem and per-tag arms (0.6 problem / 0.4 tag).
+     * Untried problems in untried tags get the maximal exploration pull; an untried
+     * problem inside a well-rewarded tag inherits part of that tag's exploitation.
+     */
+    private double ucbExploration(RewardModel.RewardStats rewards, String problemSlug, String tagSlug) {
         if (rewards == null || rewards.totalCount() == 0) return 50.0;
-        RewardModel.Reward r = rewards.byProblem().get(problemSlug);
-        double exploitation = r != null ? r.mean() * 100.0 : 0.0;
-        double exploration = 25.0 * Math.sqrt(Math.log(rewards.totalCount() + 1) / (r != null ? r.count() + 1 : 1));
+        RewardModel.Reward problem = rewards.byProblem().get(problemSlug);
+        double problemValue = ucbArm(rewards.totalCount(),
+                problem != null ? problem.mean() : 0.0,
+                problem != null ? problem.count() : 0);
+        if (tagSlug == null) return problemValue;
+
+        RewardModel.Reward tag = rewards.byTag().get(tagSlug);
+        double tagValue = ucbArm(rewards.totalCount(),
+                tag != null ? tag.mean() : 0.0,
+                tag != null ? tag.count() : 0);
+        return Math.min(100, Math.max(0, 0.6 * problemValue + 0.4 * tagValue));
+    }
+
+    private static double ucbArm(int totalCount, double meanReward, int count) {
+        double exploitation = meanReward * 100.0;
+        double exploration = 25.0 * Math.sqrt(Math.log(totalCount + 1) / (count + 1));
         return Math.min(100, Math.max(0, exploitation + exploration));
     }
 

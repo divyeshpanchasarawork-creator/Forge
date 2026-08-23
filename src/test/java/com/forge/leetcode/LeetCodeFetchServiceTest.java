@@ -3,6 +3,7 @@ package com.forge.leetcode;
 import com.forge.common.util.ProblemLoader;
 import com.forge.leetcode.client.LeetCodeClient;
 import com.forge.leetcode.entity.LeetCodeTagStat;
+import com.forge.leetcode.repository.ExternalSolveRepository;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.leetcode.repository.LeetCodeTagStatRepository;
 import com.forge.leetcode.repository.ProblemSuggestionRepository;
@@ -33,6 +34,7 @@ class LeetCodeFetchServiceTest {
     @Mock private LeetCodeSnapshotRepository snapshotRepository;
     @Mock private LeetCodeTagStatRepository tagStatRepository;
     @Mock private ProblemSuggestionRepository problemSuggestionRepository;
+    @Mock private ExternalSolveRepository externalSolveRepository;
     @Mock private UserRepository userRepository;
     @Mock private TopicRepository topicRepository;
     @Mock private LeetCodeTopicMapper topicMapper;
@@ -46,7 +48,7 @@ class LeetCodeFetchServiceTest {
     @BeforeEach
     void setUp() {
         service = new LeetCodeFetchService(leetCodeClient, snapshotRepository, tagStatRepository,
-                problemSuggestionRepository, userRepository, topicRepository, topicMapper,
+                problemSuggestionRepository, externalSolveRepository, userRepository, topicRepository, topicMapper,
                 recommendationEngine, problemLoader, transactionManager);
         userId = UUID.randomUUID();
     }

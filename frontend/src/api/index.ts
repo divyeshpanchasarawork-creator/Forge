@@ -1,5 +1,5 @@
 import api from './client';
-import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, WeeklyProgress, LeetCodeStats, MemoryResponse, PracticeQueueResponse, RoadmapAnalysis, PagedResponse, ProblemAttempt, ProblemAttemptRequest, ProblemAttemptResponse, LearningCurveResponse, ActivityDay, EngineReport, CalibrationResult } from '@/types';
+import type { ApiResponse, LoginResponse, GenerateResponse, DashboardResponse, Revision, Recommendation, Journal, JournalRequest, AnalyticsResponse, WeeklyProgress, LeetCodeStats, MemoryResponse, PracticeQueueResponse, RoadmapAnalysis, PagedResponse, ProblemAttempt, ProblemAttemptRequest, ProblemAttemptResponse, LearningCurveResponse, ActivityDay, EngineReport, CalibrationResult, PendingSolve } from '@/types';
 
 export { unwrap } from './client';
 
@@ -63,6 +63,7 @@ export const roadmapApi = {
 export const leetcodeApi = {
   sync: () => api.post<ApiResponse<LeetCodeStats>>('/leetcode/sync'),
   getStats: () => api.get<ApiResponse<LeetCodeStats>>('/leetcode/stats'),
+  getPendingSolves: () => api.get<ApiResponse<PendingSolve[]>>('/leetcode/pending-solves'),
 };
 
 export const calibrationApi = {

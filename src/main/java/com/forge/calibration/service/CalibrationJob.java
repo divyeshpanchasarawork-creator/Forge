@@ -19,8 +19,10 @@ import java.util.Objects;
 
 /**
  * Nightly recalibration of the scorer weights. Fits a least-squares weight vector over stored
- * signal snapshots and swaps it in only when its leave-one-out metrics clear the bar on at least
- * {@value #MIN_SAMPLES} samples — in-sample metrics are gamed by underdetermined fits.
+ * signal snapshots and swaps it in only when it beats the incumbent on a temporally held-out
+ * validation slice (the newest samples) across at least {@value #MIN_SAMPLES} training samples —
+ * in-sample metrics are gamed by underdetermined fits, and scoring both vectors on the same
+ * untouched slice keeps the swap comparison symmetric.
  */
 @Slf4j
 @Component
@@ -29,6 +31,7 @@ public class CalibrationJob {
 
     public static final int MIN_SAMPLES = 10;
     private static final int MAX_SAMPLES = 300;
+    private static final int MIN_HOLDOUT = 2;
     /** A candidate predictor that ranks at or below random is never swapped in. */
     private static final double MIN_AUC = 0.5;
 
@@ -47,59 +50,63 @@ public class CalibrationJob {
                 .filter(Objects::nonNull)
                 .toList();
 
-        if (samples.size() < MIN_SAMPLES) {
-            String message = "Calibration skipped: " + samples.size() + " of " + MIN_SAMPLES
+        if (samples.size() < MIN_SAMPLES + MIN_HOLDOUT) {
+            String message = "Calibration skipped: " + samples.size() + " of " + (MIN_SAMPLES + MIN_HOLDOUT)
                     + " minimum scored samples available. Practice more to grow the calibration set.";
             log.info(message);
             return CalibrationResult.skipped(samples.size(), MIN_SAMPLES, message);
         }
 
+        // Temporal holdout: samples are newest-first. Fit the candidate on the older majority
+        // and score BOTH vectors on the newest slice — the candidate cannot memorize what it
+        // is judged on, and incumbent vs candidate face an identical evaluation.
+        int holdoutSize = Math.max(MIN_HOLDOUT, samples.size() / 5);
+        List<SignalSample> validation = samples.subList(0, holdoutSize);
+        List<SignalSample> training = samples.subList(holdoutSize, samples.size());
+
         SignalWeights current = scorerWeightsService.currentWeights();
-        double before = evaluate(current, samples);
+        double before = evaluate(current, validation);
+
         SignalWeights candidate;
         try {
-            candidate = SignalWeights.from(RecEngineEvaluator.fitLeastSquares(xsOf(samples), rewardsOf(samples)));
+            candidate = SignalWeights.from(RecEngineEvaluator.fitLeastSquares(xsOf(training), rewardsOf(training)));
         } catch (Exception ex) {
             String message = "Calibration skipped: fit failed (" + ex.getMessage() + "). Keeping current weights.";
             log.warn("Calibration fit failed: {}", ex.getMessage());
             return CalibrationResult.skipped(samples.size(), MIN_SAMPLES, message);
         }
-        RecEngineEvaluator.CvMetrics cv = RecEngineEvaluator.cvMetrics(xsOf(samples), rewardsOf(samples));
-        double after = cv.mse();
+        double after = evaluate(candidate, validation);
 
-        if (shouldApply(current, samples, before, cv)) {
-            scorerWeightsService.applyWeights(candidate, samples.size(), before, after);
+        if (shouldApply(before, after, aucOf(candidate, validation), aucOf(current, validation))) {
+            scorerWeightsService.applyWeights(candidate, training.size(), before, after);
             String message = String.format(
-                    "Calibration applied: MSE %.2f -> %.2f on %d samples. New weights active.",
-                    before, after, samples.size());
+                    "Calibration applied: holdout MSE %.2f -> %.2f (%d training / %d held-out samples). New weights active.",
+                    before, after, training.size(), validation.size());
             log.info(message);
-            return CalibrationResult.applied(samples.size(), MIN_SAMPLES, before, after, message);
+            return CalibrationResult.applied(training.size(), MIN_SAMPLES, before, after, message);
         } else {
             scorerWeightsService.recordMetrics(samples.size(), before, after);
             String message = String.format(
-                    "Calibration ran but kept current weights: MSE %.2f -> %.2f on %d samples did not clear the swap bar.",
-                    before, after, samples.size());
+                    "Calibration ran but kept current weights: holdout MSE %.2f -> %.2f on %d held-out samples did not clear the swap bar.",
+                    before, after, validation.size());
             log.info(message);
             return CalibrationResult.skipped(samples.size(), MIN_SAMPLES, before, after, message);
         }
     }
 
     /**
-     * Swap the candidate weights only when its leave-one-out MSE improvement clears the threshold
-     * AND its leave-one-out AUC does not rank worse than random (or worse than the current weights).
-     * The LOO metrics are honest — a fit evaluated on the same samples it memorized always clears an
-     * in-sample bar, which is exactly the degenerate case this guards against.
+     * Swap the candidate weights only when its holdout MSE improvement over the incumbent clears
+     * the threshold AND it does not rank at-or-below random or meaningfully worse than the
+     * incumbent on the same held-out samples.
      */
-    private boolean shouldApply(SignalWeights current, List<SignalSample> samples,
-                                double before, RecEngineEvaluator.CvMetrics cv) {
+    private boolean shouldApply(double before, double after, double candidateAuc, double currentAuc) {
+        if (!Double.isFinite(after)) return false;
         double threshold = Math.max(1.0, 0.05 * before);
-        if (before - cv.mse() < threshold) return false;
-        if (!Double.isFinite(cv.mse())) return false;
+        if (before - after < threshold) return false;
 
-        if (Double.isFinite(cv.auc()) && cv.auc() <= MIN_AUC) return false;
-        double currentAuc = aucOf(current, samples);
-        if (Double.isFinite(currentAuc) && Double.isFinite(cv.auc())
-                && cv.auc() + 0.01 < currentAuc) return false;
+        if (Double.isFinite(candidateAuc) && candidateAuc <= MIN_AUC) return false;
+        if (Double.isFinite(candidateAuc) && Double.isFinite(currentAuc)
+                && candidateAuc + 0.01 < currentAuc) return false;
         return true;
     }
 

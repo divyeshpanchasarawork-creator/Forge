@@ -45,6 +45,18 @@ public class LeetCodeGraphQlResponse {
         private List<BeatsStat> problemsSolvedBeatsStats;
         private UserCalendar userCalendar;
         private TagProblemCountGroup tagProblemCounts;
+        private List<RecentSubmission> recentAcSubmissionList;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class RecentSubmission {
+        private String title;
+        private String titleSlug;
+        /** Epoch seconds, as returned by LeetCode. */
+        private String timestamp;
     }
 
     @Getter

@@ -10,9 +10,12 @@ import com.forge.common.util.TimezoneUtil;
 import com.forge.leetcode.client.LeetCodeClient;
 import com.forge.leetcode.dto.LeetCodeGraphQlResponse;
 import com.forge.leetcode.dto.LeetCodeStatsResponse;
+import com.forge.leetcode.dto.PendingSolveResponse;
+import com.forge.leetcode.entity.ExternalSolve;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
 import com.forge.leetcode.entity.LeetCodeTagStat;
 import com.forge.leetcode.entity.ProblemSuggestion;
+import com.forge.leetcode.repository.ExternalSolveRepository;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.leetcode.repository.LeetCodeTagStatRepository;
 import com.forge.leetcode.repository.ProblemSuggestionRepository;
@@ -43,6 +46,7 @@ public class LeetCodeFetchService {
     private final LeetCodeSnapshotRepository snapshotRepository;
     private final LeetCodeTagStatRepository tagStatRepository;
     private final ProblemSuggestionRepository problemSuggestionRepository;
+    private final ExternalSolveRepository externalSolveRepository;
     private final UserRepository userRepository;
     private final TopicRepository topicRepository;
     private final LeetCodeTopicMapper topicMapper;
@@ -96,6 +100,7 @@ public class LeetCodeFetchService {
             User managedUser = userRepository.getReferenceById(userId);
             syncTopicsFromTags(managedUser, matchedUser);
             fetchAndSaveProblemSuggestions(managedUser, matchedUser);
+            upsertExternalSolves(managedUser, matchedUser.getRecentAcSubmissionList());
             log.info("LeetCode sync complete for user: {} (solved: {})", lcUsername, snapshot.getTotalSolved());
             return toStatsResponse(snapshot, userId);
         });
@@ -106,7 +111,64 @@ public class LeetCodeFetchService {
         txTemplate.executeWithoutResult(status -> recommendationEngine.generateForUser(userId, true));
     }
 
+    /**
+     * Records problems recently solved on LeetCode that are not yet known to Forge. Rows are
+     * deduped by (user, slug); logging the solve through the practice flow flips {@code logged}
+     * so it is never surfaced twice. Quality/mastery stay untouched until the user confirms.
+     */
+    private void upsertExternalSolves(User user, List<LeetCodeGraphQlResponse.RecentSubmission> submissions) {
+        if (submissions == null || submissions.isEmpty()) return;
+        java.time.ZoneId zone = TimezoneUtil.resolve(user);
+        int created = 0;
+        for (LeetCodeGraphQlResponse.RecentSubmission submission : submissions) {
+            String slug = submission.getTitleSlug();
+            if (slug == null || slug.isBlank()
+                    || externalSolveRepository.existsByUserIdAndTitleSlug(user.getId(), slug)) {
+                continue;
+            }
+            ExternalSolve solve = new ExternalSolve();
+            solve.setUser(user);
+            solve.setTitle(submission.getTitle());
+            solve.setTitleSlug(slug);
+            solve.setSolvedAt(parseSolvedAt(submission.getTimestamp(), zone));
+            solve.setLogged(false);
+            externalSolveRepository.save(solve);
+            created++;
+        }
+        if (created > 0) {
+            log.info("Detected {} new external solves for user {}", created, user.getId());
+        }
+    }
+
+    private java.time.LocalDateTime parseSolvedAt(String epochSeconds, java.time.ZoneId zone) {
+        try {
+            return java.time.Instant.ofEpochSecond(Long.parseLong(epochSeconds)).atZone(zone).toLocalDateTime();
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Unlogged external solves that exist in the curated library — surfaced to the user as
+     * one-tap logging candidates. Solves outside the library are not offered.
+     */
     @Transactional(readOnly = true)
+    public List<PendingSolveResponse> getPendingSolves(UUID userId) {
+        List<PendingSolveResponse> result = new ArrayList<>();
+        for (ExternalSolve solve : externalSolveRepository.findByUserIdAndLoggedFalseOrderBySolvedAtDesc(userId)) {
+            String tagSlug = problemLoader.getTagSlugForProblem(solve.getTitleSlug());
+            if (tagSlug == null) continue;
+            ProblemLoader.ProblemEntry problem = problemLoader.getProblemsForTag(tagSlug).stream()
+                    .filter(p -> p.getTitleSlug().equals(solve.getTitleSlug()))
+                    .findFirst().orElse(null);
+            if (problem == null) continue;
+            result.add(new PendingSolveResponse(solve.getId(), solve.getTitle(), solve.getTitleSlug(),
+                    problem.getDifficulty(), tagSlug, solve.getSolvedAt()));
+        }
+        return result;
+    }
+
+    @Transactional
     public LeetCodeStatsResponse getLatestStats(UUID userId) {
         LeetCodeSnapshot snapshot = snapshotRepository.findByUserId(userId).orElse(null);
         if (snapshot == null) return null;

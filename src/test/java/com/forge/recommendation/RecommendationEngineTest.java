@@ -60,7 +60,7 @@ class RecommendationEngineTest {
 
     private ProblemScorer.ScoringContext emptyCtx() {
         return new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(), List.of(), 5,
-                RewardModel.stats(List.of()), SignalWeights.DEFAULT, java.time.ZoneId.of("UTC"));
+                RewardModel.stats(List.of()), SignalWeights.DEFAULT, java.util.Map.of(), java.time.ZoneId.of("UTC"));
     }
 
     @Test

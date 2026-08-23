@@ -44,27 +44,32 @@ public class LeetCodeClient {
                   submissionCalendar
                 }
                 tagProblemCounts {
-                  advanced {
-                    tagName
-                    tagSlug
-                    problemsSolved
-                  }
-                  intermediate {
-                    tagName
-                    tagSlug
-                    problemsSolved
-                  }
-                  fundamental {
-                    tagName
-                    tagSlug
-                    problemsSolved
-                  }
-                }
-                languageProblemCount {
-                  languageName
-                  problemsSolved
-                }
-              }
+                   advanced {
+                     tagName
+                     tagSlug
+                     problemsSolved
+                   }
+                   intermediate {
+                     tagName
+                     tagSlug
+                     problemsSolved
+                   }
+                   fundamental {
+                     tagName
+                     tagSlug
+                     problemsSolved
+                   }
+                 }
+                 languageProblemCount {
+                   languageName
+                   problemsSolved
+                 }
+                 recentAcSubmissionList(username: $username, limit: 20) {
+                   title
+                   titleSlug
+                   timestamp
+                 }
+               }
               userContestRanking(username: $username) {
                 attendedContestsCount
                 rating

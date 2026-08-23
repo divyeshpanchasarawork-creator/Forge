@@ -16,6 +16,8 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
 
     List<Recommendation> findByUserIdAndStatusAndProblemSlug(UUID userId, String status, String problemSlug);
 
+    List<Recommendation> findByUserIdAndStatusAndProblemSlugNotNull(UUID userId, String status);
+
     Optional<Recommendation> findByIdAndUserId(UUID id, UUID userId);
 
     @Transactional

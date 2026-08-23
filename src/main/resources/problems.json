@@ -3264,6 +3264,11 @@
       "title": "Build Binary Expression Tree From Infix Expression",
       "titleSlug": "build-binary-expression-tree-from-infix-expression",
       "difficulty": "Hard"
+    },
+    {
+      "title": "Find the Highest Altitude",
+      "titleSlug": "find-the-highest-altitude",
+      "difficulty": "Easy"
     }
   ],
   "monotonic-stack": [

@@ -5,6 +5,7 @@ import com.forge.leetcode.repository.LeetCodeTagStatRepository;
 import com.forge.leetcode.repository.ProblemSuggestionRepository;
 import com.forge.practice.entity.ProblemAttempt;
 import com.forge.practice.repository.ProblemAttemptRepository;
+import com.forge.recommendation.repository.RecommendationRepository;
 import com.forge.topic.repository.TopicRepository;
 import com.forge.auth.repository.UserRepository;
 import com.forge.intelligence.service.SkillRatingService;
@@ -30,18 +31,20 @@ class ProblemScorerTest {
     @Mock private UserRepository userRepository;
     @Mock private SkillRatingService skillRatingService;
     @Mock private ScorerWeightsService scorerWeightsService;
+    @Mock private RecommendationRepository recommendationRepository;
 
     private ProblemScorer scorer;
 
     @BeforeEach
     void setUp() {
         scorer = new ProblemScorer(tagStatRepository, topicRepository, problemSuggestionRepository,
-                problemAttemptRepository, userRepository, skillRatingService, scorerWeightsService);
+                problemAttemptRepository, userRepository, skillRatingService, scorerWeightsService,
+                recommendationRepository);
     }
 
     private ProblemScorer.ScoringContext ctx(List<ProblemAttempt> attempts) {
         return new ProblemScorer.ScoringContext(List.of(), List.of(), attempts, List.of(), 5,
-                RewardModel.stats(attempts), SignalWeights.DEFAULT, java.time.ZoneId.of("UTC"));
+                RewardModel.stats(attempts), SignalWeights.DEFAULT, java.util.Map.of(), java.time.ZoneId.of("UTC"));
     }
 
     @Test
@@ -141,6 +144,50 @@ class ProblemScorerTest {
                 new ProblemLoader.ProblemEntry("Two Sum", "two-sum", "Medium"), "arrays");
 
         assertEquals(100.0, signal(breakdown, "Diversity"));
+    }
+
+    @Test
+    void ucbExplorationShouldBlendTagLevelReward() {
+        List<ProblemAttempt> attempts = new java.util.ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            ProblemAttempt a = new ProblemAttempt();
+            a.setProblemSlug("other-" + i);
+            a.setTopicTagSlug("arrays");
+            a.setQuality(5);
+            a.setAttemptedAt(java.time.LocalDateTime.now().minusHours(i));
+            attempts.add(a);
+        }
+
+        ProblemScorer.ScoreBreakdown inStrongTag = scorer.breakdown(ctx(attempts),
+                new ProblemLoader.ProblemEntry("Fresh A", "fresh-a", "Medium"), "arrays");
+        ProblemScorer.ScoreBreakdown inUnknownTag = scorer.breakdown(ctx(attempts),
+                new ProblemLoader.ProblemEntry("Fresh B", "fresh-b", "Medium"), "tag-with-no-history");
+
+        assertTrue(signal(inStrongTag, "UCB exploration") > signal(inUnknownTag, "UCB exploration"),
+                "An untried problem in a well-rewarded tag should out-pull one in an unrewarded tag, got "
+                        + signal(inStrongTag, "UCB exploration") + " vs " + signal(inUnknownTag, "UCB exploration"));
+    }
+
+    @Test
+    void notSuggestedShouldSuppressRecentlyDismissedProblemsOnly() {
+        java.time.ZoneId zone = java.time.ZoneId.of("UTC");
+        java.util.Map<String, java.time.LocalDateTime> dismissed = java.util.Map.of(
+                "dismissed-yesterday", java.time.LocalDateTime.now(zone).minusDays(1),
+                "dismissed-weeks-ago", java.time.LocalDateTime.now(zone).minusDays(14));
+        ProblemScorer.ScoringContext c = new ProblemScorer.ScoringContext(List.of(), List.of(),
+                List.of(), List.of(), 5, RewardModel.stats(List.of()), SignalWeights.DEFAULT,
+                dismissed, zone);
+
+        double recentDismissal = signal(scorer.breakdown(c,
+                new ProblemLoader.ProblemEntry("Recent", "dismissed-yesterday", "Medium"), "arrays"), "Not suggested");
+        double oldDismissal = signal(scorer.breakdown(c,
+                new ProblemLoader.ProblemEntry("Old", "dismissed-weeks-ago", "Medium"), "arrays"), "Not suggested");
+        double neverDismissed = signal(scorer.breakdown(c,
+                new ProblemLoader.ProblemEntry("New", "never-dismissed", "Medium"), "arrays"), "Not suggested");
+
+        assertEquals(0.0, recentDismissal, "recently dismissed problems must be suppressed");
+        assertEquals(100.0, oldDismissal, "old dismissals expire so problems can resurface");
+        assertEquals(100.0, neverDismissed);
     }
 
     private double signal(ProblemScorer.ScoreBreakdown breakdown, String name) {

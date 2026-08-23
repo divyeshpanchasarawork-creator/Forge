@@ -77,7 +77,7 @@ class CalibrationJobTest {
         ArgumentCaptor<SignalWeights> weightsCaptor = ArgumentCaptor.forClass(SignalWeights.class);
         ArgumentCaptor<Double> beforeCaptor = ArgumentCaptor.forClass(Double.class);
         ArgumentCaptor<Double> afterCaptor = ArgumentCaptor.forClass(Double.class);
-        verify(scorerWeightsService).applyWeights(weightsCaptor.capture(), eq(60), beforeCaptor.capture(), afterCaptor.capture());
+        verify(scorerWeightsService).applyWeights(weightsCaptor.capture(), eq(48), beforeCaptor.capture(), afterCaptor.capture());
 
         assertTrue(result.applied(), "weights should be applied when MSE improves");
         assertEquals("APPLIED", result.status());
@@ -125,6 +125,30 @@ class CalibrationJobTest {
 
         verify(scorerWeightsService, never()).applyWeights(any(), anyInt(), anyDouble(), anyDouble());
         assertFalse(result.applied(), "candidate with degenerate AUC must not be swapped in");
+    }
+
+    @Test
+    void shouldRejectCandidateThatFitsTrainingButRanksBackwardsOnHoldout() throws Exception {
+        // Samples arrive newest-first: indices 0-11 are the held-out validation slice, the rest
+        // are training. Training quality tracks x0 positively; holdout quality anti-correlates.
+        // A candidate fit on training predicts high scores for high x0, so on the untouched
+        // holdout it ranks backwards and must be rejected.
+        List<ProblemAttempt> attempts = new ArrayList<>();
+        for (int i = 0; i < 60; i++) {
+            double x0 = (i * 37) % 101;
+            double[] s = new double[SIGNALS];
+            s[0] = x0;
+            boolean holdout = i < 12;
+            int quality = holdout ? ((x0 >= 50) ? 0 : 5) : ((x0 >= 50) ? 5 : 0);
+            attempts.add(attempt(s, quality));
+        }
+        when(attemptRepository.findWithPredictedScores(any())).thenReturn(attempts);
+        when(scorerWeightsService.currentWeights()).thenReturn(SignalWeights.DEFAULT);
+
+        CalibrationResult result = job.calibrate();
+
+        verify(scorerWeightsService, never()).applyWeights(any(), anyInt(), anyDouble(), anyDouble());
+        assertFalse(result.applied(), "candidate that inverts holdout ranking must not be swapped in");
     }
 
     private ProblemAttempt attempt(double[] signals, int quality) throws Exception {

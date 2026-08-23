@@ -200,6 +200,15 @@ export interface LeetCodeTagStat {
   skillLevel: string;
 }
 
+export interface PendingSolve {
+  id: string;
+  title: string | null;
+  titleSlug: string;
+  difficulty: string;
+  topicTagSlug: string;
+  solvedAt: string | null;
+}
+
 export interface PracticeProblem {
   title: string;
   titleSlug: string;

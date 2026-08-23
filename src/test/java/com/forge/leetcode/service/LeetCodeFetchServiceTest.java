@@ -9,7 +9,10 @@ import com.forge.common.util.ProblemLoader;
 import com.forge.leetcode.client.LeetCodeClient;
 import com.forge.leetcode.dto.LeetCodeGraphQlResponse;
 import com.forge.leetcode.dto.LeetCodeStatsResponse;
+import com.forge.leetcode.dto.PendingSolveResponse;
+import com.forge.leetcode.entity.ExternalSolve;
 import com.forge.leetcode.entity.LeetCodeSnapshot;
+import com.forge.leetcode.repository.ExternalSolveRepository;
 import com.forge.leetcode.repository.LeetCodeSnapshotRepository;
 import com.forge.leetcode.repository.LeetCodeTagStatRepository;
 import com.forge.leetcode.repository.ProblemSuggestionRepository;
@@ -39,6 +42,7 @@ class LeetCodeFetchServiceTest {
     @Mock private LeetCodeSnapshotRepository snapshotRepository;
     @Mock private LeetCodeTagStatRepository tagStatRepository;
     @Mock private ProblemSuggestionRepository problemSuggestionRepository;
+    @Mock private ExternalSolveRepository externalSolveRepository;
     @Mock private UserRepository userRepository;
     @Mock private TopicRepository topicRepository;
     @Mock private LeetCodeTopicMapper topicMapper;
@@ -48,7 +52,7 @@ class LeetCodeFetchServiceTest {
 
     private LeetCodeFetchService buildService() {
         return new LeetCodeFetchService(leetCodeClient, snapshotRepository, tagStatRepository,
-                problemSuggestionRepository, userRepository, topicRepository, topicMapper,
+                problemSuggestionRepository, externalSolveRepository, userRepository, topicRepository, topicMapper,
                 recommendationEngine, problemLoader, transactionManager);
     }
 
@@ -102,6 +106,70 @@ class LeetCodeFetchServiceTest {
         verify(topicRepository).saveAll(any());
         verify(problemSuggestionRepository).deleteByUserIdAndSource(user.getId(), "WEAK_TAG");
         verify(recommendationEngine).generateForUser(user.getId(), true);
+    }
+
+    @Test
+    void syncUpsertsNewExternalSolvesAndSkipsKnownOnes() {
+        User user = userWithLeetcode("forgeleet");
+        LeetCodeGraphQlResponse response = responseWithMatchedUser();
+        LeetCodeGraphQlResponse.RecentSubmission fresh = new LeetCodeGraphQlResponse.RecentSubmission();
+        fresh.setTitle("Two Sum");
+        fresh.setTitleSlug("two-sum");
+        fresh.setTimestamp("1700000000");
+        LeetCodeGraphQlResponse.RecentSubmission known = new LeetCodeGraphQlResponse.RecentSubmission();
+        known.setTitle("Add Two Numbers");
+        known.setTitleSlug("add-two-numbers");
+        known.setTimestamp("1700001000");
+        response.getData().getMatchedUser().setRecentAcSubmissionList(List.of(fresh, known));
+
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(leetCodeClient.fetchUserProfile("forgeleet")).thenReturn(response);
+        when(transactionManager.getTransaction(any())).thenReturn(mock(TransactionStatus.class));
+        when(userRepository.getReferenceById(user.getId())).thenReturn(user);
+        when(snapshotRepository.findByUserId(user.getId())).thenReturn(Optional.empty());
+        when(snapshotRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(tagStatRepository.findByUserId(user.getId())).thenReturn(List.of());
+        when(topicMapper.mapToTopics(any(), any(), eq("mixed"))).thenReturn(List.of());
+        when(externalSolveRepository.existsByUserIdAndTitleSlug(user.getId(), "two-sum")).thenReturn(false);
+        when(externalSolveRepository.existsByUserIdAndTitleSlug(user.getId(), "add-two-numbers")).thenReturn(true);
+        when(externalSolveRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        buildService().syncUserProfile(user.getId());
+
+        org.mockito.ArgumentCaptor<ExternalSolve> captor = org.mockito.ArgumentCaptor.forClass(ExternalSolve.class);
+        verify(externalSolveRepository, times(1)).save(captor.capture());
+        ExternalSolve saved = captor.getValue();
+        assertEquals("two-sum", saved.getTitleSlug());
+        assertEquals("Two Sum", saved.getTitle());
+        assertFalse(saved.isLogged());
+        assertNotNull(saved.getSolvedAt());
+    }
+
+    @Test
+    void getPendingSolvesOnlySurfacesLibraryMatches() {
+        UUID userId = UUID.randomUUID();
+        ExternalSolve matched = new ExternalSolve();
+        matched.setId(UUID.randomUUID());
+        matched.setTitleSlug("two-sum");
+        matched.setTitle("Two Sum");
+        ExternalSolve outside = new ExternalSolve();
+        outside.setId(UUID.randomUUID());
+        outside.setTitleSlug("not-in-library");
+
+        when(externalSolveRepository.findByUserIdAndLoggedFalseOrderBySolvedAtDesc(userId))
+                .thenReturn(List.of(matched, outside));
+        when(problemLoader.getTagSlugForProblem("two-sum")).thenReturn("arrays");
+        when(problemLoader.getTagSlugForProblem("not-in-library")).thenReturn(null);
+        when(problemLoader.getProblemsForTag("arrays"))
+                .thenReturn(List.of(new ProblemLoader.ProblemEntry("Two Sum", "two-sum", "Easy")));
+
+        List<PendingSolveResponse> pending = buildService().getPendingSolves(userId);
+
+        assertEquals(1, pending.size());
+        PendingSolveResponse dto = pending.get(0);
+        assertEquals("two-sum", dto.titleSlug());
+        assertEquals("arrays", dto.topicTagSlug());
+        assertEquals("Easy", dto.difficulty());
     }
 
     @Test

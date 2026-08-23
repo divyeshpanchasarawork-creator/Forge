@@ -63,6 +63,7 @@ class PracticeServiceTest {
     @Mock private KnowledgeGraphService knowledgeGraphService;
     @Mock private RecommendationService recommendationService;
     @Mock private CandidatePoolService candidatePoolService;
+    @Mock private com.forge.leetcode.repository.ExternalSolveRepository externalSolveRepository;
 
     private PracticeService service;
     private UUID userId;
@@ -71,7 +72,8 @@ class PracticeServiceTest {
     void setUp() {
         service = new PracticeService(problemScorer, problemAttemptRepository, topicRepository,
                 userRepository, coldStartService, sessionPlanner, masteryService, skillRatingService,
-                forgettingCurveService, knowledgeGraphService, recommendationService, candidatePoolService);
+                forgettingCurveService, knowledgeGraphService, recommendationService, candidatePoolService,
+                externalSolveRepository);
         userId = UUID.randomUUID();
         UserPrincipal principal = new UserPrincipal(userId, "testuser", "password", "USER");
         Authentication auth = new UsernamePasswordAuthenticationToken(principal, null, List.of());
@@ -90,7 +92,7 @@ class PracticeServiceTest {
         when(coldStartService.planMessage(eq(userId), any())).thenReturn("plan");
         when(problemScorer.context(userId)).thenReturn(
                 new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(), List.of(), 5,
-                        RewardModel.stats(List.of()), SignalWeights.DEFAULT, java.time.ZoneId.of("UTC")));
+                        RewardModel.stats(List.of()), SignalWeights.DEFAULT, java.util.Map.of(), java.time.ZoneId.of("UTC")));
         when(candidatePoolService.rankForUser(any(), anyInt())).thenReturn(List.of());
         when(topicRepository.findByUserId(eq(userId), any())).thenReturn(List.of());
         when(sessionPlanner.build(any(), any(), any(), any(), any(), anyInt())).thenReturn(List.of());
@@ -115,7 +117,7 @@ class PracticeServiceTest {
         when(coldStartService.planMessage(eq(userId), any())).thenReturn("plan");
         when(problemScorer.context(userId)).thenReturn(
                 new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(attempt), List.of(), 5,
-                        RewardModel.stats(List.of(attempt)), SignalWeights.DEFAULT, java.time.ZoneId.of("UTC")));
+                        RewardModel.stats(List.of(attempt)), SignalWeights.DEFAULT, java.util.Map.of(), java.time.ZoneId.of("UTC")));
         when(candidatePoolService.rankForUser(any(), anyInt())).thenReturn(List.of());
         when(topicRepository.findByUserId(eq(userId), any())).thenReturn(List.of());
         when(sessionPlanner.build(any(), any(), any(), any(), any(), anyInt())).thenAnswer(inv -> {
@@ -207,6 +209,7 @@ class PracticeServiceTest {
         assertEquals("SOLVED Two Sum recorded. No matching topic yet — add one to link your progress.",
                 response.getFeedback());
         verify(recommendationService).completeRecommendationsForProblem(eq(userId), eq("two-sum"), eq("SOLVED"));
+        verify(externalSolveRepository).markLogged(userId, "two-sum");
     }
 
     @Test
@@ -242,6 +245,36 @@ class PracticeServiceTest {
         verify(topicRepository).save(topic);
         verify(knowledgeGraphService).propagateBoost(userId, "two-sum", 15);
         assertEquals(List.of("Two Sum"), response.getTopicsUpdated());
+    }
+
+    @Test
+    void submitAttemptSnapshotsSignalsEvenWithoutTopicTag() {
+        User user = new User();
+        user.setId(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(masteryService.qualityFrom("SOLVED", 0, 300)).thenReturn(5);
+        when(problemAttemptRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(topicRepository.findByUserId(eq(userId), any())).thenReturn(List.of());
+        when(problemScorer.context(userId)).thenReturn(
+                new ProblemScorer.ScoringContext(List.of(), List.of(), List.of(), List.of(), 5,
+                        RewardModel.stats(List.of()), SignalWeights.DEFAULT, java.util.Map.of(), java.time.ZoneId.of("UTC")));
+        when(problemScorer.breakdown(any(), any(), eq(null))).thenReturn(new ProblemScorer.ScoreBreakdown(72,
+                List.of(new ProblemScorer.ScoreItem("Weak tag", 0.15, 100, 15))));
+
+        ProblemAttemptRequest request = new ProblemAttemptRequest();
+        request.setProblemTitle("Two Sum");
+        request.setProblemSlug("two-sum");
+        request.setDifficulty("Easy");
+        request.setOutcome("SOLVED");
+        request.setTimeTakenSeconds(300);
+
+        service.submitAttempt(request);
+
+        ArgumentCaptor<ProblemAttempt> captor = ArgumentCaptor.forClass(ProblemAttempt.class);
+        verify(problemAttemptRepository).save(captor.capture());
+        assertEquals(72, captor.getValue().getPredictedScore(),
+                "attempts without a topic tag must still become calibration samples");
+        assertNotNull(captor.getValue().getSignalsJson());
     }
 
     @Test
