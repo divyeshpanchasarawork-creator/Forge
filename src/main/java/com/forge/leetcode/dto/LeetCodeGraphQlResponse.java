@@ -25,6 +25,8 @@ public class LeetCodeGraphQlResponse {
         private List<DifficultyCount> allQuestionsCount;
         private MatchedUser matchedUser;
         private UserContestRanking userContestRanking;
+        /** Root-level field on LeetCode's schema — NOT available under matchedUser. */
+        private List<RecentSubmission> recentAcSubmissionList;
     }
 
     @Getter
@@ -45,7 +47,6 @@ public class LeetCodeGraphQlResponse {
         private List<BeatsStat> problemsSolvedBeatsStats;
         private UserCalendar userCalendar;
         private TagProblemCountGroup tagProblemCounts;
-        private List<RecentSubmission> recentAcSubmissionList;
     }
 
     @Getter

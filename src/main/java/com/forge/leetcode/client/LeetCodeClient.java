@@ -64,12 +64,12 @@ public class LeetCodeClient {
                    languageName
                    problemsSolved
                  }
-                 recentAcSubmissionList(username: $username, limit: 20) {
-                   title
-                   titleSlug
-                   timestamp
-                 }
                }
+              recentAcSubmissionList(username: $username, limit: 20) {
+                title
+                titleSlug
+                timestamp
+              }
               userContestRanking(username: $username) {
                 attendedContestsCount
                 rating

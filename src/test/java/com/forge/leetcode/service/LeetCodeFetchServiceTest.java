@@ -120,7 +120,7 @@ class LeetCodeFetchServiceTest {
         known.setTitle("Add Two Numbers");
         known.setTitleSlug("add-two-numbers");
         known.setTimestamp("1700001000");
-        response.getData().getMatchedUser().setRecentAcSubmissionList(List.of(fresh, known));
+        response.getData().setRecentAcSubmissionList(List.of(fresh, known));
 
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(leetCodeClient.fetchUserProfile("forgeleet")).thenReturn(response);

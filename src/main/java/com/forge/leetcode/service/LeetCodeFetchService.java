@@ -100,7 +100,7 @@ public class LeetCodeFetchService {
             User managedUser = userRepository.getReferenceById(userId);
             syncTopicsFromTags(managedUser, matchedUser);
             fetchAndSaveProblemSuggestions(managedUser, matchedUser);
-            upsertExternalSolves(managedUser, matchedUser.getRecentAcSubmissionList());
+            upsertExternalSolves(managedUser, data.getRecentAcSubmissionList());
             log.info("LeetCode sync complete for user: {} (solved: {})", lcUsername, snapshot.getTotalSolved());
             return toStatsResponse(snapshot, userId);
         });
